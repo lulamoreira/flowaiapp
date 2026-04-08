@@ -1,7 +1,7 @@
-import { Search, Bell, UserPlus } from 'lucide-react';
+import { Search, Bell, UserPlus, Moon, Sun } from 'lucide-react';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { InviteDialog } from '@/components/invite/InviteDialog';
 
 interface HeaderProps {
@@ -10,6 +10,18 @@ interface HeaderProps {
 
 export function Header({ title }: HeaderProps) {
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [dark, setDark] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('flowai-theme') === 'dark' ||
+        (!localStorage.getItem('flowai-theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', dark);
+    localStorage.setItem('flowai-theme', dark ? 'dark' : 'light');
+  }, [dark]);
 
   return (
     <>
@@ -19,6 +31,14 @@ export function Header({ title }: HeaderProps) {
           {title && <h1 className="text-lg font-semibold text-foreground">{title}</h1>}
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-muted-foreground"
+            onClick={() => setDark(d => !d)}
+          >
+            {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </Button>
           <Button variant="ghost" size="icon" className="text-muted-foreground">
             <Bell className="h-4 w-4" />
           </Button>
