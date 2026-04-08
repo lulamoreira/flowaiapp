@@ -44,6 +44,7 @@ export interface Board {
   description: string;
   color: string;
   updatedAt: string;
+  favorite?: boolean;
 }
 
 export interface User {
