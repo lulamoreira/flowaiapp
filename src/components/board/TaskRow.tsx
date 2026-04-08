@@ -2,9 +2,9 @@ import { Task } from '@/types';
 import { StatusBadge } from './StatusBadge';
 import { PriorityBadge } from './PriorityBadge';
 import { useAppStore } from '@/store/useAppStore';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, differenceInDays, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { GripVertical } from 'lucide-react';
+import { GripVertical, AlertTriangle, Clock } from 'lucide-react';
 
 interface TaskRowProps {
   task: Task;
@@ -54,7 +54,18 @@ export function TaskRow({ task, groupColor, onClick, draggable, onDragStart, onD
         )}
       </div>
       <div className="w-[100px] px-2 text-xs text-muted-foreground">
-        {task.dueDate ? format(parseISO(task.dueDate), 'dd MMM', { locale: ptBR }) : '-'}
+        {task.dueDate ? (() => {
+          const days = differenceInDays(parseISO(task.dueDate), startOfDay(new Date()));
+          const overdue = days < 0 && task.status !== 'done';
+          const soon = days >= 0 && days <= 2 && task.status !== 'done';
+          return (
+            <span className={`flex items-center gap-1 ${overdue ? 'text-destructive font-semibold' : soon ? 'text-orange-500 font-medium' : ''}`}>
+              {overdue && <AlertTriangle className="h-3 w-3" />}
+              {soon && <Clock className="h-3 w-3" />}
+              {format(parseISO(task.dueDate), 'dd MMM', { locale: ptBR })}
+            </span>
+          );
+        })() : '-'}
       </div>
     </div>
   );
