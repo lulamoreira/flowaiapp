@@ -16,7 +16,11 @@ type Action =
   | { type: 'ADD_TASK'; payload: Task }
   | { type: 'DELETE_TASK'; payload: string }
   | { type: 'ADD_BOARD'; payload: Board }
+  | { type: 'UPDATE_BOARD'; payload: Board }
+  | { type: 'DELETE_BOARD'; payload: string }
   | { type: 'ADD_GROUP'; payload: TaskGroup }
+  | { type: 'UPDATE_GROUP'; payload: TaskGroup }
+  | { type: 'DELETE_GROUP'; payload: string }
   | { type: 'TOGGLE_GROUP'; payload: string }
   | { type: 'ADD_AUTOMATION'; payload: AutomationRule }
   | { type: 'TOGGLE_AUTOMATION'; payload: string }
@@ -43,8 +47,26 @@ function reducer(state: AppState, action: Action): AppState {
       return { ...state, tasks: state.tasks.filter(t => t.id !== action.payload) };
     case 'ADD_BOARD':
       return { ...state, boards: [...state.boards, action.payload] };
+    case 'UPDATE_BOARD':
+      return { ...state, boards: state.boards.map(b => b.id === action.payload.id ? action.payload : b) };
+    case 'DELETE_BOARD':
+      return {
+        ...state,
+        boards: state.boards.filter(b => b.id !== action.payload),
+        groups: state.groups.filter(g => g.boardId !== action.payload),
+        tasks: state.tasks.filter(t => t.boardId !== action.payload),
+        automations: state.automations.filter(a => a.boardId !== action.payload),
+      };
     case 'ADD_GROUP':
       return { ...state, groups: [...state.groups, action.payload] };
+    case 'UPDATE_GROUP':
+      return { ...state, groups: state.groups.map(g => g.id === action.payload.id ? action.payload : g) };
+    case 'DELETE_GROUP':
+      return {
+        ...state,
+        groups: state.groups.filter(g => g.id !== action.payload),
+        tasks: state.tasks.filter(t => t.groupId !== action.payload),
+      };
     case 'TOGGLE_GROUP':
       return { ...state, groups: state.groups.map(g => g.id === action.payload ? { ...g, collapsed: !g.collapsed } : g) };
     case 'ADD_AUTOMATION':

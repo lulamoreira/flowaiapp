@@ -122,6 +122,8 @@ export function BoardTable({ boardId }: BoardTableProps) {
               taskCount={groupTasks.length}
               onToggle={() => dispatch({ type: 'TOGGLE_GROUP', payload: group.id })}
               onAddTask={() => addTask(group.id)}
+              onRename={(title) => dispatch({ type: 'UPDATE_GROUP', payload: { ...group, title } })}
+              onDelete={() => dispatch({ type: 'DELETE_GROUP', payload: group.id })}
             />
             {!group.collapsed && groupTasks.map(task => (
               <TaskRow
