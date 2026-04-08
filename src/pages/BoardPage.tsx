@@ -15,6 +15,7 @@ const BoardPage = () => {
   const board = state.boards.find(b => b.id === id);
   const [showCharts, setShowCharts] = useState(false);
   const [showAutomation, setShowAutomation] = useState(false);
+  const [showKanban, setShowKanban] = useState(false);
 
   if (!board) return <div className="p-6 text-muted-foreground">Board não encontrado</div>;
 
