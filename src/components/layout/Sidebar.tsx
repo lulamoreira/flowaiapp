@@ -1,4 +1,4 @@
-import { LayoutDashboard, BarChart3, Plus, Pencil, Trash2 } from 'lucide-react';
+import { LayoutDashboard, BarChart3, Plus, Pencil, Trash2, Star } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAppStore } from '@/store/useAppStore';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -88,6 +88,33 @@ export function AppSidebar() {
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
+
+          {/* Favoritos */}
+          {appState.boards.some(b => b.favorite) && (
+            <SidebarGroup>
+              <SidebarGroupLabel className="text-[#9699a8] text-xs uppercase tracking-wider px-4">
+                {!collapsed && <span className="flex items-center gap-1"><Star className="h-3 w-3 fill-yellow-400 text-yellow-400" /> Favoritos</span>}
+              </SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {appState.boards.filter(b => b.favorite).map(board => (
+                    <SidebarMenuItem key={board.id}>
+                      <SidebarMenuButton asChild>
+                        <NavLink
+                          to={`/board/${board.id}`}
+                          className="text-[#c3c6d4] hover:bg-[#3c4260] hover:text-white rounded-md"
+                          activeClassName="bg-[#3c4260] text-white"
+                        >
+                          <Star className="h-3 w-3 fill-yellow-400 text-yellow-400 shrink-0" />
+                          {!collapsed && <span className="truncate">{board.title}</span>}
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          )}
 
           {/* Boards */}
           <SidebarGroup>
