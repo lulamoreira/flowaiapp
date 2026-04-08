@@ -4,22 +4,35 @@ import { PriorityBadge } from './PriorityBadge';
 import { useAppStore } from '@/store/useAppStore';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { GripVertical } from 'lucide-react';
 
 interface TaskRowProps {
   task: Task;
   groupColor: string;
   onClick: () => void;
+  draggable?: boolean;
+  onDragStart?: (e: React.DragEvent) => void;
+  onDragEnd?: () => void;
+  isDragging?: boolean;
 }
 
-export function TaskRow({ task, groupColor, onClick }: TaskRowProps) {
+export function TaskRow({ task, groupColor, onClick, draggable, onDragStart, onDragEnd, isDragging }: TaskRowProps) {
   const { state } = useAppStore();
   const assignee = state.users.find(u => u.id === task.assignee);
 
   return (
     <div
-      className="flex items-center border-b border-border hover:bg-muted/30 cursor-pointer transition-colors group"
+      className={`flex items-center border-b border-border hover:bg-muted/30 cursor-pointer transition-all group ${
+        isDragging ? 'opacity-40 scale-[0.98]' : ''
+      }`}
       onClick={onClick}
+      draggable={draggable}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
     >
+      <div className="w-7 flex items-center justify-center">
+        <GripVertical className="h-3.5 w-3.5 text-muted-foreground/30 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab" />
+      </div>
       <div className="w-1 self-stretch" style={{ backgroundColor: groupColor }} />
       <div className="flex-1 px-3 py-2.5 text-sm font-medium text-foreground min-w-[200px] truncate">
         {task.title}
