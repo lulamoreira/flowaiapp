@@ -39,10 +39,6 @@ const BoardPage = () => {
     toast.success('Novo grupo criado');
   };
 
-  const [editingTitle, setEditingTitle] = useState(false);
-  const [editingDesc, setEditingDesc] = useState(false);
-  const [titleDraft, setTitleDraft] = useState(board.title);
-  const [descDraft, setDescDraft] = useState(board.description);
 
   const saveTitle = () => {
     if (titleDraft.trim()) {
