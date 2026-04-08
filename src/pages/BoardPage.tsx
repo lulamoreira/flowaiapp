@@ -2,6 +2,7 @@ import { useParams } from 'react-router-dom';
 import { useAppStore } from '@/store/useAppStore';
 import { Header } from '@/components/layout/Header';
 import { BoardTable } from '@/components/board/BoardTable';
+import { BoardKanban } from '@/components/board/BoardKanban';
 import { BoardCharts } from '@/components/board/BoardCharts';
 import { AutomationPanel } from '@/components/automation/AutomationPanel';
 import { useState } from 'react';
