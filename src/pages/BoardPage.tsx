@@ -3,22 +3,23 @@ import { useAppStore } from '@/store/useAppStore';
 import { Header } from '@/components/layout/Header';
 import { BoardTable } from '@/components/board/BoardTable';
 import { BoardKanban } from '@/components/board/BoardKanban';
+import { BoardCalendar } from '@/components/board/BoardCalendar';
 import { BoardCharts } from '@/components/board/BoardCharts';
 import { AutomationPanel } from '@/components/automation/AutomationPanel';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { BarChart3, Zap, Table, Columns3, Plus, Pencil, Check, X } from 'lucide-react';
+import { BarChart3, Zap, Table, Columns3, Plus, Pencil, Check, X, CalendarDays } from 'lucide-react';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+
+type ViewMode = 'table' | 'kanban' | 'calendar' | 'charts' | 'automation';
 
 const BoardPage = () => {
   const { id } = useParams<{ id: string }>();
   const { state, dispatch } = useAppStore();
   const board = state.boards.find(b => b.id === id);
-  const [showCharts, setShowCharts] = useState(false);
-  const [showAutomation, setShowAutomation] = useState(false);
-  const [showKanban, setShowKanban] = useState(false);
+  const [view, setView] = useState<ViewMode>('table');
   const [editingTitle, setEditingTitle] = useState(false);
   const [editingDesc, setEditingDesc] = useState(false);
   const [titleDraft, setTitleDraft] = useState(board?.title ?? '');
@@ -39,7 +40,6 @@ const BoardPage = () => {
     toast.success('Novo grupo criado');
   };
 
-
   const saveTitle = () => {
     if (titleDraft.trim()) {
       dispatch({ type: 'UPDATE_BOARD', payload: { ...board, title: titleDraft.trim() } });
@@ -53,6 +53,14 @@ const BoardPage = () => {
     toast.success('Descrição atualizada');
     setEditingDesc(false);
   };
+
+  const tabs: { key: ViewMode; label: string; icon: React.ReactNode }[] = [
+    { key: 'table', label: 'Tabela', icon: <Table className="h-3.5 w-3.5 mr-1" /> },
+    { key: 'kanban', label: 'Kanban', icon: <Columns3 className="h-3.5 w-3.5 mr-1" /> },
+    { key: 'calendar', label: 'Calendário', icon: <CalendarDays className="h-3.5 w-3.5 mr-1" /> },
+    { key: 'charts', label: 'Gráficos', icon: <BarChart3 className="h-3.5 w-3.5 mr-1" /> },
+    { key: 'automation', label: 'Automações', icon: <Zap className="h-3.5 w-3.5 mr-1" /> },
+  ];
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
@@ -106,43 +114,20 @@ const BoardPage = () => {
             </p>
           )}
         </div>
+
         <div className="flex items-center gap-2 mb-5">
-          <Button
-            variant={!showCharts && !showAutomation && !showKanban ? 'default' : 'ghost'}
-            size="sm"
-            className="h-8 text-xs"
-            onClick={() => { setShowCharts(false); setShowAutomation(false); setShowKanban(false); }}
-          >
-            <Table className="h-3.5 w-3.5 mr-1" />
-            Tabela
-          </Button>
-          <Button
-            variant={showKanban ? 'default' : 'ghost'}
-            size="sm"
-            className="h-8 text-xs"
-            onClick={() => { setShowKanban(true); setShowCharts(false); setShowAutomation(false); }}
-          >
-            <Columns3 className="h-3.5 w-3.5 mr-1" />
-            Kanban
-          </Button>
-          <Button
-            variant={showCharts ? 'default' : 'ghost'}
-            size="sm"
-            className="h-8 text-xs"
-            onClick={() => { setShowCharts(true); setShowAutomation(false); setShowKanban(false); }}
-          >
-            <BarChart3 className="h-3.5 w-3.5 mr-1" />
-            Gráficos
-          </Button>
-          <Button
-            variant={showAutomation ? 'default' : 'ghost'}
-            size="sm"
-            className="h-8 text-xs"
-            onClick={() => { setShowAutomation(true); setShowCharts(false); setShowKanban(false); }}
-          >
-            <Zap className="h-3.5 w-3.5 mr-1" />
-            Automações
-          </Button>
+          {tabs.map(tab => (
+            <Button
+              key={tab.key}
+              variant={view === tab.key ? 'default' : 'ghost'}
+              size="sm"
+              className="h-8 text-xs"
+              onClick={() => setView(tab.key)}
+            >
+              {tab.icon}
+              {tab.label}
+            </Button>
+          ))}
           <div className="ml-auto">
             <Button variant="outline" size="sm" className="h-8 text-xs" onClick={addGroup}>
               <Plus className="h-3.5 w-3.5 mr-1" />
@@ -151,10 +136,11 @@ const BoardPage = () => {
           </div>
         </div>
 
-        {showCharts && <BoardCharts boardId={board.id} />}
-        {showAutomation && <AutomationPanel boardId={board.id} />}
-        {showKanban && <BoardKanban boardId={board.id} />}
-        {!showCharts && !showAutomation && !showKanban && <BoardTable boardId={board.id} />}
+        {view === 'table' && <BoardTable boardId={board.id} />}
+        {view === 'kanban' && <BoardKanban boardId={board.id} />}
+        {view === 'calendar' && <BoardCalendar boardId={board.id} />}
+        {view === 'charts' && <BoardCharts boardId={board.id} />}
+        {view === 'automation' && <AutomationPanel boardId={board.id} />}
       </main>
     </div>
   );
