@@ -13,7 +13,7 @@ import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 
-type ViewMode = 'table' | 'kanban' | 'calendar' | 'charts' | 'automation';
+type ViewMode = 'table' | 'kanban' | 'calendar' | 'automation';
 
 const BoardPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -58,7 +58,6 @@ const BoardPage = () => {
     { key: 'table', label: 'Tabela', icon: <Table className="h-3.5 w-3.5 mr-1" /> },
     { key: 'kanban', label: 'Kanban', icon: <Columns3 className="h-3.5 w-3.5 mr-1" /> },
     { key: 'calendar', label: 'Calendário', icon: <CalendarDays className="h-3.5 w-3.5 mr-1" /> },
-    { key: 'charts', label: 'Gráficos', icon: <BarChart3 className="h-3.5 w-3.5 mr-1" /> },
     { key: 'automation', label: 'Automações', icon: <Zap className="h-3.5 w-3.5 mr-1" /> },
   ];
 
@@ -136,10 +135,14 @@ const BoardPage = () => {
           </div>
         </div>
 
-        {view === 'table' && <BoardTable boardId={board.id} />}
+        {view === 'table' && (
+          <div className="space-y-6">
+            <BoardCharts boardId={board.id} />
+            <BoardTable boardId={board.id} />
+          </div>
+        )}
         {view === 'kanban' && <BoardKanban boardId={board.id} />}
         {view === 'calendar' && <BoardCalendar boardId={board.id} />}
-        {view === 'charts' && <BoardCharts boardId={board.id} />}
         {view === 'automation' && <AutomationPanel boardId={board.id} />}
       </main>
     </div>
