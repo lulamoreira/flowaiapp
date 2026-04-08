@@ -1,16 +1,60 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useAppStore } from '@/store/useAppStore';
+import { Header } from '@/components/layout/Header';
+import { useNavigate } from 'react-router-dom';
+import { format, parseISO } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { LayoutDashboard } from 'lucide-react';
 
-// IMPORTANT: Fully REPLACE this with your own code
-const PlaceholderIndex = () => {
-  // PLACEHOLDER: Replace this entire return statement with the user's app.
-  // The inline background color is intentionally not part of the design system.
+const Index = () => {
+  const { state } = useAppStore();
+  const navigate = useNavigate();
+
   return (
-    <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#fcfbf8' }}>
-      <img data-lovable-blank-page-placeholder="REMOVE_THIS" src="/placeholder.svg" alt="Your app will live here!" />
+    <div className="flex-1 flex flex-col min-h-0">
+      <Header title="Início" />
+      <main className="flex-1 p-6 overflow-y-auto bg-muted/30">
+        <div className="mb-6">
+          <h2 className="text-xl font-bold text-foreground mb-1">Bom dia! 👋</h2>
+          <p className="text-sm text-muted-foreground">Acesse rapidamente seus boards de trabalho</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {state.boards.map(board => {
+            const taskCount = state.tasks.filter(t => t.boardId === board.id).length;
+            const doneCount = state.tasks.filter(t => t.boardId === board.id && t.status === 'done').length;
+            return (
+              <div
+                key={board.id}
+                onClick={() => navigate(`/board/${board.id}`)}
+                className="bg-card border border-border rounded-lg p-5 cursor-pointer hover:shadow-md transition-shadow group"
+              >
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: board.color + '20' }}>
+                    <LayoutDashboard className="h-5 w-5" style={{ color: board.color }} />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-foreground group-hover:text-[#0073ea] transition-colors">{board.title}</h3>
+                    <p className="text-xs text-muted-foreground">{board.description}</p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>{taskCount} tarefas · {doneCount} concluídas</span>
+                  <span>Atualizado {format(parseISO(board.updatedAt), "dd MMM", { locale: ptBR })}</span>
+                </div>
+                {taskCount > 0 && (
+                  <div className="mt-3 h-1.5 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{ width: `${(doneCount / taskCount) * 100}%`, backgroundColor: board.color }}
+                    />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </main>
     </div>
   );
 };
-
-const Index = PlaceholderIndex;
 
 export default Index;
