@@ -7,17 +7,29 @@ import { BoardCharts } from '@/components/board/BoardCharts';
 import { AutomationPanel } from '@/components/automation/AutomationPanel';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { BarChart3, Zap, Table, Columns3 } from 'lucide-react';
+import { BarChart3, Zap, Table, Columns3, Plus } from 'lucide-react';
 
 const BoardPage = () => {
   const { id } = useParams<{ id: string }>();
-  const { state } = useAppStore();
+  const { state, dispatch } = useAppStore();
   const board = state.boards.find(b => b.id === id);
   const [showCharts, setShowCharts] = useState(false);
   const [showAutomation, setShowAutomation] = useState(false);
   const [showKanban, setShowKanban] = useState(false);
 
   if (!board) return <div className="p-6 text-muted-foreground">Board não encontrado</div>;
+
+  const addGroup = () => {
+    const colors = ['#0073ea', '#00c875', '#fdab3d', '#e2445c', '#a25ddc', '#579bfc'];
+    const newGroup = {
+      id: `g${Date.now()}`,
+      title: 'Novo Grupo',
+      color: colors[state.groups.filter(g => g.boardId === id).length % colors.length],
+      boardId: id!,
+      collapsed: false,
+    };
+    dispatch({ type: 'ADD_GROUP', payload: newGroup });
+  };
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
@@ -60,6 +72,12 @@ const BoardPage = () => {
             <Zap className="h-3.5 w-3.5 mr-1" />
             Automações
           </Button>
+          <div className="ml-auto">
+            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={addGroup}>
+              <Plus className="h-3.5 w-3.5 mr-1" />
+              Novo Grupo
+            </Button>
+          </div>
         </div>
 
         {showCharts && <BoardCharts boardId={board.id} />}
