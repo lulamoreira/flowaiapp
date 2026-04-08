@@ -117,10 +117,10 @@ export function BoardTable({ boardId }: BoardTableProps) {
       <div className="flex items-center text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border pb-2">
         <div className="w-7" />
         <div className="w-1" />
-        <div className="flex-1 px-3 min-w-[200px]">Tarefa</div>
+        <div className="flex-1 px-3 min-w-[200px]">Item</div>
+        <div className="w-[140px] px-2 text-center">Responsável</div>
         <div className="w-[130px] px-2 text-center">Status</div>
         <div className="w-[110px] px-2 text-center">Prioridade</div>
-        <div className="w-[120px] px-2">Responsável</div>
         <div className="w-[100px] px-2">Data</div>
       </div>
 
