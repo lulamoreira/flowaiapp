@@ -11,7 +11,7 @@ import { BarChart3, Zap, Table, Columns3 } from 'lucide-react';
 
 const BoardPage = () => {
   const { id } = useParams<{ id: string }>();
-  const { state } = useAppStore();
+  const { state, dispatch } = useAppStore();
   const board = state.boards.find(b => b.id === id);
   const [showCharts, setShowCharts] = useState(false);
   const [showAutomation, setShowAutomation] = useState(false);
