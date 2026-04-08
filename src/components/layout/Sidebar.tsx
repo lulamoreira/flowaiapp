@@ -1,4 +1,4 @@
-import { LayoutDashboard, BarChart3, Plus } from 'lucide-react';
+import { LayoutDashboard, BarChart3, Plus, Pencil, Trash2 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAppStore } from '@/store/useAppStore';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -101,7 +101,7 @@ export function AppSidebar() {
             <SidebarGroupContent>
               <SidebarMenu>
                 {appState.boards.map(board => (
-                  <SidebarMenuItem key={board.id}>
+                  <SidebarMenuItem key={board.id} className="group/board">
                     <SidebarMenuButton asChild>
                       <NavLink
                         to={`/board/${board.id}`}
@@ -109,7 +109,33 @@ export function AppSidebar() {
                         activeClassName="bg-[#3c4260] text-white"
                       >
                         <div className="w-3 h-3 rounded-sm shrink-0" style={{ backgroundColor: board.color }} />
-                        {!collapsed && <span className="truncate">{board.title}</span>}
+                        {!collapsed && <span className="truncate flex-1">{board.title}</span>}
+                        {!collapsed && (
+                          <span className="flex items-center gap-0.5 opacity-0 group-hover/board:opacity-100 transition-opacity ml-auto">
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault(); e.stopPropagation();
+                                const name = prompt('Renomear board:', board.title);
+                                if (name?.trim()) dispatch({ type: 'UPDATE_BOARD', payload: { ...board, title: name.trim() } });
+                              }}
+                              className="p-0.5 hover:text-white"
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault(); e.stopPropagation();
+                                if (confirm(`Excluir board "${board.title}" e todas suas tarefas?`)) {
+                                  dispatch({ type: 'DELETE_BOARD', payload: board.id });
+                                  navigate('/');
+                                }
+                              }}
+                              className="p-0.5 hover:text-red-400"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          </span>
+                        )}
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
