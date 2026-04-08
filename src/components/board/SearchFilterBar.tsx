@@ -1,7 +1,7 @@
-import { Search, Filter } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { TaskStatus, TaskPriority, STATUS_CONFIG, PRIORITY_CONFIG } from '@/types';
+import { STATUS_CONFIG, PRIORITY_CONFIG } from '@/types';
 import { User } from '@/types';
 
 interface SearchFilterBarProps {
@@ -13,6 +13,8 @@ interface SearchFilterBarProps {
   onPriorityChange: (v: string) => void;
   assigneeFilter: string;
   onAssigneeChange: (v: string) => void;
+  dueDateFilter: string;
+  onDueDateChange: (v: string) => void;
   users: User[];
 }
 
@@ -21,6 +23,7 @@ export function SearchFilterBar({
   statusFilter, onStatusChange,
   priorityFilter, onPriorityChange,
   assigneeFilter, onAssigneeChange,
+  dueDateFilter, onDueDateChange,
   users,
 }: SearchFilterBarProps) {
   return (
@@ -65,6 +68,19 @@ export function SearchFilterBar({
           {users.map(u => (
             <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
           ))}
+        </SelectContent>
+      </Select>
+      <Select value={dueDateFilter} onValueChange={onDueDateChange}>
+        <SelectTrigger className="w-[150px] h-9 text-xs">
+          <SelectValue placeholder="Data de entrega" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">Todas as datas</SelectItem>
+          <SelectItem value="overdue">Atrasadas</SelectItem>
+          <SelectItem value="today">Hoje</SelectItem>
+          <SelectItem value="this_week">Esta semana</SelectItem>
+          <SelectItem value="next_week">Próxima semana</SelectItem>
+          <SelectItem value="no_date">Sem data</SelectItem>
         </SelectContent>
       </Select>
     </div>
