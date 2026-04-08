@@ -19,6 +19,10 @@ const BoardPage = () => {
   const [showCharts, setShowCharts] = useState(false);
   const [showAutomation, setShowAutomation] = useState(false);
   const [showKanban, setShowKanban] = useState(false);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [editingDesc, setEditingDesc] = useState(false);
+  const [titleDraft, setTitleDraft] = useState(board?.title ?? '');
+  const [descDraft, setDescDraft] = useState(board?.description ?? '');
 
   if (!board) return <div className="p-6 text-muted-foreground">Board não encontrado</div>;
 
