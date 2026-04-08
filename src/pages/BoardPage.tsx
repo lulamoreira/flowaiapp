@@ -19,6 +19,18 @@ const BoardPage = () => {
 
   if (!board) return <div className="p-6 text-muted-foreground">Board não encontrado</div>;
 
+  const addGroup = () => {
+    const colors = ['#0073ea', '#00c875', '#fdab3d', '#e2445c', '#a25ddc', '#579bfc'];
+    const newGroup = {
+      id: `g${Date.now()}`,
+      title: 'Novo Grupo',
+      color: colors[state.groups.filter(g => g.boardId === id).length % colors.length],
+      boardId: id!,
+      collapsed: false,
+    };
+    dispatch({ type: 'ADD_GROUP', payload: newGroup });
+  };
+
   return (
     <div className="flex-1 flex flex-col min-h-0">
       <Header title={board.title} />
