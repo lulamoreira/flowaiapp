@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { startOfDay, endOfDay, startOfWeek, endOfWeek, addWeeks, parseISO, isWithinInterval, isBefore } from 'date-fns';
 import { useAppStore } from '@/store/useAppStore';
 import { Task } from '@/types';
 import { GroupHeader } from './GroupHeader';
@@ -17,6 +18,7 @@ export function BoardTable({ boardId }: BoardTableProps) {
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [assigneeFilter, setAssigneeFilter] = useState('all');
+  const [dueDateFilter, setDueDateFilter] = useState('all');
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [dragOverGroupId, setDragOverGroupId] = useState<string | null>(null);
@@ -25,14 +27,29 @@ export function BoardTable({ boardId }: BoardTableProps) {
   const allTasks = state.tasks.filter(t => t.boardId === boardId);
 
   const filteredTasks = useMemo(() => {
+    const today = startOfDay(new Date());
+    const todayEnd = endOfDay(new Date());
+    const weekEnd = endOfWeek(today, { weekStartsOn: 1 });
+    const nextWeekStart = addWeeks(startOfWeek(today, { weekStartsOn: 1 }), 1);
+    const nextWeekEnd = endOfWeek(nextWeekStart, { weekStartsOn: 1 });
+
     return allTasks.filter(t => {
       if (search && !t.title.toLowerCase().includes(search.toLowerCase())) return false;
       if (statusFilter !== 'all' && t.status !== statusFilter) return false;
       if (priorityFilter !== 'all' && t.priority !== priorityFilter) return false;
       if (assigneeFilter !== 'all' && t.assignee !== assigneeFilter) return false;
+      if (dueDateFilter !== 'all') {
+        if (dueDateFilter === 'no_date') return !t.dueDate;
+        if (!t.dueDate) return false;
+        const d = parseISO(t.dueDate);
+        if (dueDateFilter === 'overdue') return isBefore(d, today) && t.status !== 'done';
+        if (dueDateFilter === 'today') return isWithinInterval(d, { start: today, end: todayEnd });
+        if (dueDateFilter === 'this_week') return isWithinInterval(d, { start: today, end: weekEnd });
+        if (dueDateFilter === 'next_week') return isWithinInterval(d, { start: nextWeekStart, end: nextWeekEnd });
+      }
       return true;
     });
-  }, [allTasks, search, statusFilter, priorityFilter, assigneeFilter]);
+  }, [allTasks, search, statusFilter, priorityFilter, assigneeFilter, dueDateFilter]);
 
   const addTask = (groupId: string) => {
     const newTask: Task = {
@@ -91,6 +108,8 @@ export function BoardTable({ boardId }: BoardTableProps) {
         onPriorityChange={setPriorityFilter}
         assigneeFilter={assigneeFilter}
         onAssigneeChange={setAssigneeFilter}
+        dueDateFilter={dueDateFilter}
+        onDueDateChange={setDueDateFilter}
         users={state.users}
       />
 
