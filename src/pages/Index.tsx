@@ -3,11 +3,25 @@ import { Header } from '@/components/layout/Header';
 import { useNavigate } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { LayoutDashboard } from 'lucide-react';
+import { LayoutDashboard, Plus } from 'lucide-react';
+import { Board } from '@/types';
 
 const Index = () => {
-  const { state } = useAppStore();
+  const { state, dispatch } = useAppStore();
   const navigate = useNavigate();
+
+  const handleCreateBoard = () => {
+    const colors = ['#0073ea', '#00c875', '#fdab3d', '#e2445c', '#a25ddc', '#579bfc'];
+    const board: Board = {
+      id: `b${Date.now()}`,
+      title: 'Novo Board',
+      description: '',
+      color: colors[state.boards.length % colors.length],
+      updatedAt: new Date().toISOString().split('T')[0],
+    };
+    dispatch({ type: 'ADD_BOARD', payload: board });
+    navigate(`/board/${board.id}`);
+  };
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
@@ -51,7 +65,16 @@ const Index = () => {
               </div>
             );
           })}
-        </div>
+          {/* New board card */}
+          <div
+            onClick={handleCreateBoard}
+            className="bg-card border border-dashed border-border rounded-lg p-5 cursor-pointer hover:shadow-md hover:border-primary/50 transition-all flex items-center justify-center min-h-[120px]"
+          >
+            <div className="flex flex-col items-center gap-2 text-muted-foreground">
+              <Plus className="h-8 w-8" />
+              <span className="text-sm font-medium">Novo Board</span>
+            </div>
+          </div>
       </main>
     </div>
   );
