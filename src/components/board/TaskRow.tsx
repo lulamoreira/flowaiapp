@@ -1,10 +1,12 @@
-import { Task } from '@/types';
+import { Task, TaskStatus, TaskPriority } from '@/types';
 import { StatusBadge } from './StatusBadge';
 import { PriorityBadge } from './PriorityBadge';
 import { useAppStore } from '@/store/useAppStore';
 import { format, parseISO, differenceInDays, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { GripVertical, AlertTriangle, Clock } from 'lucide-react';
+import { GripVertical, AlertTriangle, Clock, ChevronDown } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { useState } from 'react';
 
 interface TaskRowProps {
   task: Task;
@@ -17,8 +19,13 @@ interface TaskRowProps {
 }
 
 export function TaskRow({ task, groupColor, onClick, draggable, onDragStart, onDragEnd, isDragging }: TaskRowProps) {
-  const { state } = useAppStore();
+  const { state, dispatch } = useAppStore();
   const assignee = state.users.find(u => u.id === task.assignee);
+  const [assigneeOpen, setAssigneeOpen] = useState(false);
+
+  const updateTask = (updates: Partial<Task>) => {
+    dispatch({ type: 'UPDATE_TASK', payload: { ...task, ...updates } });
+  };
 
   return (
     <div
@@ -37,21 +44,62 @@ export function TaskRow({ task, groupColor, onClick, draggable, onDragStart, onD
       <div className="flex-1 px-3 py-2.5 text-sm font-medium text-foreground min-w-[200px] truncate">
         {task.title}
       </div>
+      <div className="w-[140px] px-2 flex justify-center">
+        <Popover open={assigneeOpen} onOpenChange={setAssigneeOpen}>
+          <PopoverTrigger asChild>
+            <button
+              className="flex items-center gap-1.5 hover:bg-muted/50 rounded px-2 py-1 transition-colors"
+              onClick={(e) => { e.stopPropagation(); setAssigneeOpen(true); }}
+            >
+              {assignee ? (
+                <>
+                  <div className="w-6 h-6 rounded-full bg-[#0073ea] text-white text-[10px] font-bold flex items-center justify-center shrink-0">
+                    {assignee.avatar}
+                  </div>
+                  <span className="text-xs text-muted-foreground truncate max-w-[70px]">{assignee.name.split(' ')[0]}</span>
+                </>
+              ) : (
+                <span className="text-xs text-muted-foreground">—</span>
+              )}
+              <ChevronDown className="h-3 w-3 text-muted-foreground/50" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[180px] p-1" align="center" onClick={(e) => e.stopPropagation()}>
+            <button
+              className="w-full flex items-center gap-2 px-3 py-2 rounded text-xs hover:bg-muted/50 transition-colors"
+              onClick={(e) => { e.stopPropagation(); updateTask({ assignee: '' }); setAssigneeOpen(false); }}
+            >
+              <span className="text-muted-foreground">Sem responsável</span>
+            </button>
+            {state.users.map(user => (
+              <button
+                key={user.id}
+                className="w-full flex items-center gap-2 px-3 py-2 rounded text-xs hover:bg-muted/50 transition-colors"
+                onClick={(e) => { e.stopPropagation(); updateTask({ assignee: user.id }); setAssigneeOpen(false); }}
+              >
+                <div className="w-6 h-6 rounded-full bg-[#0073ea] text-white text-[10px] font-bold flex items-center justify-center shrink-0">
+                  {user.avatar}
+                </div>
+                <span className="text-foreground">{user.name}</span>
+              </button>
+            ))}
+          </PopoverContent>
+        </Popover>
+      </div>
       <div className="w-[130px] px-2 flex justify-center">
-        <StatusBadge status={task.status} />
+        <StatusBadge
+          status={task.status}
+          onChange={(status: TaskStatus) => updateTask({
+            status,
+            completedAt: status === 'done' ? new Date().toISOString().split('T')[0] : undefined,
+          })}
+        />
       </div>
       <div className="w-[110px] px-2 flex justify-center">
-        <PriorityBadge priority={task.priority} />
-      </div>
-      <div className="w-[120px] px-2 flex items-center gap-1.5">
-        {assignee && (
-          <>
-            <div className="w-6 h-6 rounded-full bg-[#0073ea] text-white text-[10px] font-bold flex items-center justify-center shrink-0">
-              {assignee.avatar}
-            </div>
-            <span className="text-xs text-muted-foreground truncate">{assignee.name.split(' ')[0]}</span>
-          </>
-        )}
+        <PriorityBadge
+          priority={task.priority}
+          onChange={(priority: TaskPriority) => updateTask({ priority })}
+        />
       </div>
       <div className="w-[100px] px-2 text-xs text-muted-foreground">
         {task.dueDate ? (() => {
