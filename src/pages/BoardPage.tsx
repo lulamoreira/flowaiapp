@@ -6,7 +6,7 @@ import { BoardCharts } from '@/components/board/BoardCharts';
 import { AutomationPanel } from '@/components/automation/AutomationPanel';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { BarChart3, Zap, Table } from 'lucide-react';
+import { BarChart3, Zap, Table, Columns3 } from 'lucide-react';
 
 const BoardPage = () => {
   const { id } = useParams<{ id: string }>();
