@@ -7,7 +7,7 @@ import { BoardCharts } from '@/components/board/BoardCharts';
 import { AutomationPanel } from '@/components/automation/AutomationPanel';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { BarChart3, Zap, Table, Columns3 } from 'lucide-react';
+import { BarChart3, Zap, Table, Columns3, Plus } from 'lucide-react';
 
 const BoardPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -72,6 +72,12 @@ const BoardPage = () => {
             <Zap className="h-3.5 w-3.5 mr-1" />
             Automações
           </Button>
+          <div className="ml-auto">
+            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={addGroup}>
+              <Plus className="h-3.5 w-3.5 mr-1" />
+              Novo Grupo
+            </Button>
+          </div>
         </div>
 
         {showCharts && <BoardCharts boardId={board.id} />}
