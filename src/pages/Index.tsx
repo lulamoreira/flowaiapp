@@ -75,6 +75,7 @@ const Index = () => {
               <span className="text-sm font-medium">Novo Board</span>
             </div>
           </div>
+        </div>
       </main>
     </div>
   );
