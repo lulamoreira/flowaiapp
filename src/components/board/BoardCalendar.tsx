@@ -17,9 +17,11 @@ interface BoardCalendarProps {
 }
 
 export function BoardCalendar({ boardId }: BoardCalendarProps) {
-  const { state } = useAppStore();
+  const { state, dispatch } = useAppStore();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
+  const [dragOverDate, setDragOverDate] = useState<string | null>(null);
 
   const tasks = useMemo(
     () => state.tasks.filter(t => t.boardId === boardId && t.dueDate),
@@ -81,7 +83,19 @@ export function BoardCalendar({ boardId }: BoardCalendarProps) {
               key={i}
               className={`min-h-[100px] border-b border-r border-border p-1.5 transition-colors ${
                 !inMonth ? 'bg-muted/20' : ''
-              } ${today ? 'bg-primary/5' : ''}`}
+              } ${today ? 'bg-primary/5' : ''} ${dragOverDate === dateKey ? 'ring-2 ring-inset ring-primary/50 bg-primary/10' : ''}`}
+              onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setDragOverDate(dateKey); }}
+              onDragLeave={() => setDragOverDate(null)}
+              onDrop={e => {
+                e.preventDefault();
+                setDragOverDate(null);
+                if (!draggedTaskId) return;
+                const task = state.tasks.find(t => t.id === draggedTaskId);
+                if (task && task.dueDate !== dateKey) {
+                  dispatch({ type: 'UPDATE_TASK', payload: { ...task, dueDate: dateKey } });
+                }
+                setDraggedTaskId(null);
+              }}
             >
               <div className={`text-xs font-medium mb-1 ${
                 today ? 'text-primary font-bold' : inMonth ? 'text-foreground' : 'text-muted-foreground/50'
@@ -95,8 +109,13 @@ export function BoardCalendar({ boardId }: BoardCalendarProps) {
                   return (
                     <div
                       key={task.id}
+                      draggable
+                      onDragStart={e => { setDraggedTaskId(task.id); e.dataTransfer.effectAllowed = 'move'; }}
+                      onDragEnd={() => { setDraggedTaskId(null); setDragOverDate(null); }}
                       onClick={() => setSelectedTask(task)}
-                      className="text-[10px] leading-tight px-1.5 py-0.5 rounded cursor-pointer truncate hover:opacity-80 transition-opacity text-white font-medium"
+                      className={`text-[10px] leading-tight px-1.5 py-0.5 rounded cursor-grab truncate hover:opacity-80 transition-all text-white font-medium ${
+                        draggedTaskId === task.id ? 'opacity-40 scale-95' : ''
+                      }`}
                       style={{ backgroundColor: group?.color || statusConfig.color }}
                       title={task.title}
                     >
