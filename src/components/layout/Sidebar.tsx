@@ -3,6 +3,7 @@ import { NavLink } from '@/components/NavLink';
 import { useAppStore } from '@/store/useAppStore';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { Board } from '@/types';
 import {
   Sidebar,
@@ -49,6 +50,7 @@ export function AppSidebar() {
     setNewBoardColor(BOARD_COLORS[0]);
     setShowNewBoard(false);
     navigate(`/board/${board.id}`);
+    toast.success(`Board "${board.title}" criado com sucesso`);
   };
 
   return (
@@ -116,7 +118,10 @@ export function AppSidebar() {
                               onClick={(e) => {
                                 e.preventDefault(); e.stopPropagation();
                                 const name = prompt('Renomear board:', board.title);
-                                if (name?.trim()) dispatch({ type: 'UPDATE_BOARD', payload: { ...board, title: name.trim() } });
+                                if (name?.trim()) {
+                                  dispatch({ type: 'UPDATE_BOARD', payload: { ...board, title: name.trim() } });
+                                  toast.success(`Board renomeado para "${name.trim()}"`);
+                                }
                               }}
                               className="p-0.5 hover:text-white"
                             >
@@ -128,6 +133,7 @@ export function AppSidebar() {
                                 if (confirm(`Excluir board "${board.title}" e todas suas tarefas?`)) {
                                   dispatch({ type: 'DELETE_BOARD', payload: board.id });
                                   navigate('/');
+                                  toast.success(`Board "${board.title}" excluído`);
                                 }
                               }}
                               className="p-0.5 hover:text-red-400"

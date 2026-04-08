@@ -8,6 +8,7 @@ import { AutomationPanel } from '@/components/automation/AutomationPanel';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { BarChart3, Zap, Table, Columns3, Plus } from 'lucide-react';
+import { toast } from 'sonner';
 
 const BoardPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -29,6 +30,7 @@ const BoardPage = () => {
       collapsed: false,
     };
     dispatch({ type: 'ADD_GROUP', payload: newGroup });
+    toast.success('Novo grupo criado');
   };
 
   return (
