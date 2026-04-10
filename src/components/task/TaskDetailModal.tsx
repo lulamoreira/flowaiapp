@@ -12,6 +12,7 @@ import { Plus, Trash2, Paperclip, X, Upload, Download } from 'lucide-react';
 import { createNotification } from '@/lib/notifications';
 import { useAuth } from '@/hooks/useAuth';
 import { TaskComments } from '@/components/task/TaskComments';
+import { TaskTimeTracking } from '@/components/task/TaskTimeTracking';
 import { toast } from 'sonner';
 
 interface TaskDetailModalProps {
@@ -338,6 +339,9 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
               onChange={handleFileUpload}
             />
           </div>
+
+          {/* Time Tracking */}
+          <TaskTimeTracking taskId={current.id} />
 
           {/* Comments */}
           <TaskComments taskId={current.id} />
