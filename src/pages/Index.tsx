@@ -7,6 +7,7 @@ import { LayoutGrid, CheckCircle2, Clock, AlertCircle, Star, Plus } from 'lucide
 import { Board } from '@/types';
 import { useMemo } from 'react';
 import { toast } from 'sonner';
+import { useDeadlineNotifier } from '@/hooks/useDeadlineNotifier';
 
 const Index = () => {
   const { state, dispatch } = useAppStore();
