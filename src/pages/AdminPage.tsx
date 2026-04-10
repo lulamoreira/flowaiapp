@@ -147,12 +147,14 @@ export default function AdminPage() {
     if (error) {
       toast.error('Erro ao criar convite: ' + error.message);
     } else if (data) {
-      const registerUrl = `${window.location.origin}/register?token=${data.token}`;
+      const registerUrl = `${window.location.origin}/register?token=${data.token}&name=${encodeURIComponent(inviteName)}&role=${inviteRole}`;
       const subject = encodeURIComponent('Convite para o FlowAI');
-      const body = encodeURIComponent(`Olá!\n\nVocê foi convidado para participar do FlowAI.\n\nClique no link para se cadastrar:\n${registerUrl}\n\nEste convite expira em 72 horas.\n\nAguardamos você!`);
+      const body = encodeURIComponent(`Olá${inviteName ? ' ' + inviteName : ''}!\n\nVocê foi convidado para participar do FlowAI.\n\nClique no link para se cadastrar:\n${registerUrl}\n\nVocê pode acessar com Google, Apple ou criar uma senha.\n\nEste convite expira em 72 horas.\n\nAguardamos você!`);
       window.open(`mailto:${inviteEmail}?subject=${subject}&body=${body}`);
       toast.success('Convite criado! O email será aberto para envio.');
       setInviteEmail('');
+      setInviteName('');
+      setInviteRole('viewer');
       setInviteOpen(false);
       fetchAll();
     }
