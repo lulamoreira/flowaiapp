@@ -41,7 +41,7 @@ export function AppSidebar() {
   const handleCreateBoard = () => {
     if (!newBoardTitle.trim()) return;
     const board: Board = {
-      id: `b${Date.now()}`,
+      id: crypto.randomUUID(),
       title: newBoardTitle.trim(),
       description: '',
       color: newBoardColor,

@@ -38,6 +38,83 @@ export type Database = {
         }
         Relationships: []
       }
+      automation_rules: {
+        Row: {
+          action_type: string
+          action_value: string
+          board_id: string
+          created_at: string
+          enabled: boolean
+          id: string
+          label: string
+          trigger_type: string
+          trigger_value: string
+        }
+        Insert: {
+          action_type: string
+          action_value: string
+          board_id: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          label?: string
+          trigger_type: string
+          trigger_value: string
+        }
+        Update: {
+          action_type?: string
+          action_value?: string
+          board_id?: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          label?: string
+          trigger_type?: string
+          trigger_value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_rules_board_id_fkey"
+            columns: ["board_id"]
+            isOneToOne: false
+            referencedRelation: "boards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      boards: {
+        Row: {
+          color: string
+          created_at: string
+          created_by: string
+          description: string
+          favorite: boolean
+          id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          created_by: string
+          description?: string
+          favorite?: boolean
+          id?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          created_by?: string
+          description?: string
+          favorite?: boolean
+          id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       custom_functions: {
         Row: {
           created_at: string
@@ -192,6 +269,110 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      task_groups: {
+        Row: {
+          board_id: string
+          color: string
+          created_at: string
+          id: string
+          position: number
+          title: string
+        }
+        Insert: {
+          board_id: string
+          color?: string
+          created_at?: string
+          id?: string
+          position?: number
+          title: string
+        }
+        Update: {
+          board_id?: string
+          color?: string
+          created_at?: string
+          id?: string
+          position?: number
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_groups_board_id_fkey"
+            columns: ["board_id"]
+            isOneToOne: false
+            referencedRelation: "boards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tasks: {
+        Row: {
+          assignee: string | null
+          attachments: Json
+          board_id: string
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          description: string
+          due_date: string | null
+          group_id: string
+          id: string
+          priority: string
+          status: string
+          subtasks: Json
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assignee?: string | null
+          attachments?: Json
+          board_id: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          due_date?: string | null
+          group_id: string
+          id?: string
+          priority?: string
+          status?: string
+          subtasks?: Json
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assignee?: string | null
+          attachments?: Json
+          board_id?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          due_date?: string | null
+          group_id?: string
+          id?: string
+          priority?: string
+          status?: string
+          subtasks?: Json
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_board_id_fkey"
+            columns: ["board_id"]
+            isOneToOne: false
+            referencedRelation: "boards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "task_groups"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_custom_functions: {
         Row: {

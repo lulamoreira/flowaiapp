@@ -32,7 +32,7 @@ const Index = () => {
   const handleCreateBoard = () => {
     const colors = ['#a25ddc', '#0073ea', '#00c875', '#fdab3d', '#e2445c', '#579bfc'];
     const board: Board = {
-      id: `b${Date.now()}`,
+      id: crypto.randomUUID(),
       title: 'Novo Board',
       description: '',
       color: colors[state.boards.length % colors.length],
