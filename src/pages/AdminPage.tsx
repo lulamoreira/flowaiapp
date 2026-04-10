@@ -96,6 +96,8 @@ export default function AdminPage() {
   const [logUserFilter, setLogUserFilter] = useState('all');
   const [logDateFrom, setLogDateFrom] = useState<Date | undefined>(undefined);
   const [logDateTo, setLogDateTo] = useState<Date | undefined>(undefined);
+  const [logPage, setLogPage] = useState(1);
+  const LOG_PER_PAGE = 20;
 
   const filteredActivityLog = useMemo(() => {
     return activityLog.filter(log => {
@@ -117,6 +119,15 @@ export default function AdminPage() {
       return true;
     });
   }, [activityLog, logSearch, logUserFilter, logDateFrom, logDateTo, users]);
+
+  // Reset page when filters change
+  useEffect(() => { setLogPage(1); }, [logSearch, logUserFilter, logDateFrom, logDateTo]);
+
+  const logTotalPages = Math.max(1, Math.ceil(filteredActivityLog.length / LOG_PER_PAGE));
+  const paginatedActivityLog = useMemo(() => {
+    const start = (logPage - 1) * LOG_PER_PAGE;
+    return filteredActivityLog.slice(start, start + LOG_PER_PAGE);
+  }, [filteredActivityLog, logPage]);
 
   useEffect(() => {
     if (!loading) return;
@@ -553,7 +564,7 @@ export default function AdminPage() {
 
               <div className="text-xs text-muted-foreground">{filteredActivityLog.length} registro(s)</div>
 
-              <div className="bg-card border border-border rounded-xl overflow-hidden max-h-[55vh] overflow-y-auto">
+              <div className="bg-card border border-border rounded-xl overflow-hidden">
                 <table className="w-full text-sm">
                   <thead className="sticky top-0 bg-card z-10">
                     <tr className="border-b border-border bg-muted/50">
@@ -564,7 +575,7 @@ export default function AdminPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredActivityLog.map(log => {
+                    {paginatedActivityLog.map(log => {
                       const logUser = users.find(u => u.user_id === log.user_id);
                       return (
                         <tr key={log.id} className="border-b border-border last:border-0 hover:bg-muted/30">
@@ -581,12 +592,52 @@ export default function AdminPage() {
                         </tr>
                       );
                     })}
-                    {filteredActivityLog.length === 0 && (
+                    {paginatedActivityLog.length === 0 && (
                       <tr><td colSpan={4} className="p-6 text-center text-muted-foreground">Nenhuma atividade encontrada</td></tr>
                     )}
                   </tbody>
                 </table>
               </div>
+
+              {/* Pagination */}
+              {logTotalPages > 1 && (
+                <div className="flex items-center justify-between pt-3">
+                  <p className="text-xs text-muted-foreground">
+                    Página {logPage} de {logTotalPages}
+                  </p>
+                  <div className="flex items-center gap-1">
+                    <Button variant="outline" size="sm" className="h-8 text-xs" disabled={logPage <= 1} onClick={() => setLogPage(p => p - 1)}>
+                      Anterior
+                    </Button>
+                    {Array.from({ length: Math.min(logTotalPages, 5) }, (_, i) => {
+                      let page: number;
+                      if (logTotalPages <= 5) {
+                        page = i + 1;
+                      } else if (logPage <= 3) {
+                        page = i + 1;
+                      } else if (logPage >= logTotalPages - 2) {
+                        page = logTotalPages - 4 + i;
+                      } else {
+                        page = logPage - 2 + i;
+                      }
+                      return (
+                        <Button
+                          key={page}
+                          variant={page === logPage ? 'default' : 'outline'}
+                          size="sm"
+                          className="h-8 w-8 text-xs p-0"
+                          onClick={() => setLogPage(page)}
+                        >
+                          {page}
+                        </Button>
+                      );
+                    })}
+                    <Button variant="outline" size="sm" className="h-8 text-xs" disabled={logPage >= logTotalPages} onClick={() => setLogPage(p => p + 1)}>
+                      Próxima
+                    </Button>
+                  </div>
+                </div>
+              )}
             </TabsContent>
           )}
         </Tabs>
