@@ -12,7 +12,12 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { Users, Mail, History, Shield, UserPlus, Settings, Trash2, Pencil, Activity } from 'lucide-react';
+import { Users, Mail, History, Shield, UserPlus, Settings, Trash2, Pencil, Activity, Search, CalendarIcon, X } from 'lucide-react';
+import { format, parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 import type { Database } from '@/integrations/supabase/types';
 
 type AppRole = Database['public']['Enums']['app_role'];
