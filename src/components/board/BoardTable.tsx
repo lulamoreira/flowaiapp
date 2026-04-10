@@ -72,7 +72,6 @@ export function BoardTable({ boardId }: BoardTableProps) {
       status: 'not_started',
       priority: 'none',
       assignee: '',
-      dueDate: '',
       groupId,
       boardId,
       subtasks: [],

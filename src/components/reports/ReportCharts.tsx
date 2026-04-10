@@ -23,8 +23,8 @@ export function ReportCharts() {
   const byWeek = useMemo(() => {
     const weeks: Record<string, number> = {};
     doneTasks.forEach(t => {
-      if (t.completedAt) {
-        const week = t.completedAt.substring(0, 7);
+      if (t.actualEnd) {
+        const week = t.actualEnd.substring(0, 7);
         weeks[week] = (weeks[week] || 0) + 1;
       }
     });

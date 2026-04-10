@@ -213,8 +213,8 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
               </Select>
             </div>
             <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1 block">Data de entrega</label>
-              <Input type="date" value={current.dueDate} onChange={e => update({ dueDate: e.target.value })} className="h-9" />
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Fim planejado</label>
+              <Input type="datetime-local" value={current.plannedEnd || ''} onChange={e => update({ plannedEnd: e.target.value || undefined })} className="h-9" />
             </div>
           </div>
 
