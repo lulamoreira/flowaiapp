@@ -15,7 +15,26 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [resetMode, setResetMode] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
+  const [showSignup, setShowSignup] = useState(false);
+  const [signupEmail, setSignupEmail] = useState('');
+  const [signupPassword, setSignupPassword] = useState('');
+  const [signupName, setSignupName] = useState('');
 
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    const { error } = await supabase.auth.signUp({
+      email: signupEmail,
+      password: signupPassword,
+      options: {
+        data: { full_name: signupName },
+        emailRedirectTo: window.location.origin,
+      },
+    });
+    if (error) toast.error(error.message);
+    else toast.success('Conta criada com sucesso!');
+    setLoading(false);
+  };
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -153,11 +172,41 @@ export default function LoginPage() {
             </TabsContent>
           </Tabs>
 
-          <p className="text-xs text-muted-foreground text-center mt-6">
-            O acesso é por convite. Solicite ao seu administrador.
-          </p>
+          <div className="border-t border-border mt-6 pt-4">
+            <p className="text-xs text-muted-foreground text-center mb-3">Não tem conta?</p>
+            <Button variant="outline" className="w-full" onClick={() => setShowSignup(true)}>
+              Criar conta de teste
+            </Button>
+          </div>
         </div>
       </div>
+      {showSignup && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
+          <div className="bg-card border border-border rounded-2xl p-8 shadow-lg w-full max-w-md">
+            <h2 className="text-lg font-semibold text-foreground mb-4">Criar conta de teste</h2>
+            <form onSubmit={handleSignup} className="space-y-4">
+              <div>
+                <Label htmlFor="signup-name">Nome completo</Label>
+                <Input id="signup-name" value={signupName} onChange={e => setSignupName(e.target.value)} required placeholder="Seu nome" />
+              </div>
+              <div>
+                <Label htmlFor="signup-email">Email</Label>
+                <Input id="signup-email" type="email" value={signupEmail} onChange={e => setSignupEmail(e.target.value)} required placeholder="seu@email.com" />
+              </div>
+              <div>
+                <Label htmlFor="signup-password">Senha</Label>
+                <Input id="signup-password" type="password" value={signupPassword} onChange={e => setSignupPassword(e.target.value)} required placeholder="Mínimo 6 caracteres" minLength={6} />
+              </div>
+              <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={loading}>
+                {loading ? 'Criando...' : 'Criar conta'}
+              </Button>
+              <Button type="button" variant="ghost" className="w-full" onClick={() => setShowSignup(false)}>
+                Voltar ao login
+              </Button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
