@@ -29,7 +29,9 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
   const { user } = useAuth();
   const [newSubtask, setNewSubtask] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [dragging, setDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const dropRef = useRef<HTMLDivElement>(null);
 
   if (!task) return null;
 
@@ -72,14 +74,12 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
     update({ subtasks: current.subtasks.filter(s => s.id !== id) });
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
+  const uploadFiles = async (files: File[]) => {
+    if (files.length === 0) return;
     setUploading(true);
     const newAttachments: Attachment[] = [];
 
-    for (const file of Array.from(files)) {
+    for (const file of files) {
       const filePath = `${current.id}/${Date.now()}_${file.name}`;
       const { error } = await supabase.storage
         .from('task-attachments')
@@ -110,6 +110,32 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
 
     setUploading(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    await uploadFiles(Array.from(files));
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragging(false);
+    const files = Array.from(e.dataTransfer.files);
+    await uploadFiles(files);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragging(false);
   };
 
   const removeAttachment = async (att: Attachment) => {
