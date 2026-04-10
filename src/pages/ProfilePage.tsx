@@ -67,6 +67,7 @@ const ProfilePage = () => {
       if (updateError) throw updateError;
 
       await refreshProfile();
+      logActivity('Alterou avatar');
       toast.success('Avatar atualizado!');
     } catch (err: any) {
       toast.error('Erro ao enviar avatar: ' + err.message);

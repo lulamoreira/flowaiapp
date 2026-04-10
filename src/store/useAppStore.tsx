@@ -316,6 +316,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           }
           case 'UPDATE_TASK': {
             const t = action.payload;
+            const oldTask = state.tasks.find(tk => tk.id === t.id);
             await supabase.from('tasks').update({
               title: t.title,
               description: t.description,
@@ -332,6 +333,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
               attachments: t.attachments as any,
               position: t.position ?? 0,
             }).eq('id', t.id);
+            if (oldTask && oldTask.status !== t.status) {
+              logActivity('Alterou status de tarefa', { task: t.title, from: oldTask.status, to: t.status });
+            }
             break;
           }
           case 'DELETE_TASK':
