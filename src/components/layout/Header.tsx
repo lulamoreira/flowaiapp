@@ -1,10 +1,10 @@
-import { Search, Bell, UserPlus, Moon, Sun, AlertTriangle, Clock } from 'lucide-react';
+import { Bell, UserPlus, Moon, Sun, Check } from 'lucide-react';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { InviteDialog } from '@/components/invite/InviteDialog';
-import { useAppStore } from '@/store/useAppStore';
-import { differenceInDays, parseISO, startOfDay, format } from 'date-fns';
+import { useNotifications } from '@/hooks/useNotifications';
+import { formatDistanceToNow, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   Popover,
@@ -19,8 +19,9 @@ interface HeaderProps {
 
 export function Header({ title }: HeaderProps) {
   const [inviteOpen, setInviteOpen] = useState(false);
-  const { state } = useAppStore();
   const navigate = useNavigate();
+  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+
   const [dark, setDark] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('flowai-theme') === 'dark' ||
@@ -33,21 +34,6 @@ export function Header({ title }: HeaderProps) {
     document.documentElement.classList.toggle('dark', dark);
     localStorage.setItem('flowai-theme', dark ? 'dark' : 'light');
   }, [dark]);
-
-  const alerts = useMemo(() => {
-    const today = startOfDay(new Date());
-    return state.tasks
-      .filter(t => t.dueDate && t.status !== 'done')
-      .map(t => {
-        const days = differenceInDays(parseISO(t.dueDate), today);
-        return { ...t, daysLeft: days };
-      })
-      .filter(t => t.daysLeft <= 2)
-      .sort((a, b) => a.daysLeft - b.daysLeft);
-  }, [state.tasks]);
-
-  const overdueCount = alerts.filter(a => a.daysLeft < 0).length;
-  const soonCount = alerts.filter(a => a.daysLeft >= 0).length;
 
   return (
     <>
@@ -70,62 +56,57 @@ export function Header({ title }: HeaderProps) {
             <PopoverTrigger asChild>
               <Button variant="ghost" size="icon" className="text-muted-foreground relative">
                 <Bell className="h-4 w-4" />
-                {alerts.length > 0 && (
+                {unreadCount > 0 && (
                   <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold flex items-center justify-center">
-                    {alerts.length}
+                    {unreadCount}
                   </span>
                 )}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-80 p-0" align="end">
-              <div className="px-4 py-3 border-b border-border">
-                <h4 className="text-sm font-semibold text-foreground">Notificações</h4>
-                <p className="text-xs text-muted-foreground">
-                  {overdueCount > 0 && <span className="text-destructive font-medium">{overdueCount} atrasada{overdueCount > 1 ? 's' : ''}</span>}
-                  {overdueCount > 0 && soonCount > 0 && ' · '}
-                  {soonCount > 0 && <span className="text-orange-500 font-medium">{soonCount} próxima{soonCount > 1 ? 's' : ''} do prazo</span>}
-                  {alerts.length === 0 && 'Nenhuma notificação'}
-                </p>
+              <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+                <div>
+                  <h4 className="text-sm font-semibold text-foreground">Notificações</h4>
+                  <p className="text-xs text-muted-foreground">
+                    {unreadCount > 0 ? `${unreadCount} não lida${unreadCount > 1 ? 's' : ''}` : 'Nenhuma notificação'}
+                  </p>
+                </div>
+                {unreadCount > 0 && (
+                  <Button variant="ghost" size="sm" className="text-xs h-7" onClick={markAllAsRead}>
+                    <Check className="h-3 w-3 mr-1" />
+                    Ler todas
+                  </Button>
+                )}
               </div>
               <div className="max-h-[300px] overflow-y-auto">
-                {alerts.length === 0 && (
+                {notifications.length === 0 && (
                   <div className="px-4 py-6 text-center text-sm text-muted-foreground">
                     Tudo em dia! 🎉
                   </div>
                 )}
-                {alerts.map(task => {
-                  const overdue = task.daysLeft < 0;
-                  const board = state.boards.find(b => b.id === task.boardId);
-                  return (
-                    <div
-                      key={task.id}
-                      className="px-4 py-2.5 border-b border-border last:border-0 hover:bg-muted/50 cursor-pointer transition-colors"
-                      onClick={() => navigate(`/board/${task.boardId}`)}
-                    >
-                      <div className="flex items-start gap-2">
-                        {overdue ? (
-                          <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
-                        ) : (
-                          <Clock className="h-4 w-4 text-orange-500 shrink-0 mt-0.5" />
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-foreground truncate">{task.title}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {board?.title} · {overdue
-                              ? `Atrasada ${Math.abs(task.daysLeft)} dia${Math.abs(task.daysLeft) > 1 ? 's' : ''}`
-                              : task.daysLeft === 0
-                                ? 'Vence hoje'
-                                : `Vence em ${task.daysLeft} dia${task.daysLeft > 1 ? 's' : ''}`
-                            }
-                          </p>
-                        </div>
-                        <span className="text-[10px] text-muted-foreground shrink-0">
-                          {format(parseISO(task.dueDate), 'dd MMM', { locale: ptBR })}
-                        </span>
+                {notifications.map(notif => (
+                  <div
+                    key={notif.id}
+                    className={`px-4 py-2.5 border-b border-border last:border-0 hover:bg-muted/50 cursor-pointer transition-colors ${!notif.read ? 'bg-primary/5' : ''}`}
+                    onClick={() => {
+                      markAsRead(notif.id);
+                      if (notif.link) navigate(notif.link);
+                    }}
+                  >
+                    <div className="flex items-start gap-2">
+                      {!notif.read && (
+                        <span className="w-2 h-2 rounded-full bg-primary shrink-0 mt-1.5" />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">{notif.title}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-2">{notif.message}</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                          {formatDistanceToNow(parseISO(notif.created_at), { addSuffix: true, locale: ptBR })}
+                        </p>
                       </div>
                     </div>
-                  );
-                })}
+                  </div>
+                ))}
               </div>
             </PopoverContent>
           </Popover>
