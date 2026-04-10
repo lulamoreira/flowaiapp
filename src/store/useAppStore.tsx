@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useReducer, useEffect, ReactNode, useCallback } from 'react';
 import { Board, TaskGroup, Task, User, AutomationRule } from '@/types';
 import { mockBoards, mockGroups, mockTasks, mockUsers, mockAutomations } from '@/data/mockData';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AppState {
   boards: Board[];
