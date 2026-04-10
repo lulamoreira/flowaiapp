@@ -1,5 +1,7 @@
 import { useState } from 'react';
+import { Navigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import { lovable } from '@/integrations/lovable';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +11,7 @@ import { toast } from 'sonner';
 import { Mail, Lock, Wand2 } from 'lucide-react';
 
 export default function LoginPage() {
+  const { user } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [magicEmail, setMagicEmail] = useState('');
@@ -73,6 +76,8 @@ export default function LoginPage() {
     setLoading(false);
     setResetMode(false);
   };
+
+  if (user) return <Navigate to="/" replace />;
 
   if (resetMode) {
     return (
