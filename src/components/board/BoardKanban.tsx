@@ -151,7 +151,21 @@ export function BoardKanban({ boardId }: BoardKanbanProps) {
   );
 
   return (
-    <div className="flex gap-4 overflow-x-auto pb-4 min-h-[60vh]">
+    <div className="space-y-4">
+      <SearchFilterBar
+        search={search}
+        onSearchChange={setSearch}
+        statusFilter={statusFilter}
+        onStatusChange={setStatusFilter}
+        priorityFilter={priorityFilter}
+        onPriorityChange={setPriorityFilter}
+        assigneeFilter={assigneeFilter}
+        onAssigneeChange={setAssigneeFilter}
+        dueDateFilter={dueDateFilter}
+        onDueDateChange={setDueDateFilter}
+        users={state.users}
+      />
+      <div className="flex gap-4 overflow-x-auto pb-4 min-h-[60vh]">
       {COLUMNS.map(status => {
         const config = STATUS_CONFIG[status];
         const columnTasks = tasksByStatus[status];
