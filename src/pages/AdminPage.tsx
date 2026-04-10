@@ -564,7 +564,7 @@ export default function AdminPage() {
 
               <div className="text-xs text-muted-foreground">{filteredActivityLog.length} registro(s)</div>
 
-              <div className="bg-card border border-border rounded-xl overflow-hidden max-h-[55vh] overflow-y-auto">
+              <div className="bg-card border border-border rounded-xl overflow-hidden">
                 <table className="w-full text-sm">
                   <thead className="sticky top-0 bg-card z-10">
                     <tr className="border-b border-border bg-muted/50">
@@ -575,7 +575,7 @@ export default function AdminPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredActivityLog.map(log => {
+                    {paginatedActivityLog.map(log => {
                       const logUser = users.find(u => u.user_id === log.user_id);
                       return (
                         <tr key={log.id} className="border-b border-border last:border-0 hover:bg-muted/30">
@@ -592,12 +592,52 @@ export default function AdminPage() {
                         </tr>
                       );
                     })}
-                    {filteredActivityLog.length === 0 && (
+                    {paginatedActivityLog.length === 0 && (
                       <tr><td colSpan={4} className="p-6 text-center text-muted-foreground">Nenhuma atividade encontrada</td></tr>
                     )}
                   </tbody>
                 </table>
               </div>
+
+              {/* Pagination */}
+              {logTotalPages > 1 && (
+                <div className="flex items-center justify-between pt-3">
+                  <p className="text-xs text-muted-foreground">
+                    Página {logPage} de {logTotalPages}
+                  </p>
+                  <div className="flex items-center gap-1">
+                    <Button variant="outline" size="sm" className="h-8 text-xs" disabled={logPage <= 1} onClick={() => setLogPage(p => p - 1)}>
+                      Anterior
+                    </Button>
+                    {Array.from({ length: Math.min(logTotalPages, 5) }, (_, i) => {
+                      let page: number;
+                      if (logTotalPages <= 5) {
+                        page = i + 1;
+                      } else if (logPage <= 3) {
+                        page = i + 1;
+                      } else if (logPage >= logTotalPages - 2) {
+                        page = logTotalPages - 4 + i;
+                      } else {
+                        page = logPage - 2 + i;
+                      }
+                      return (
+                        <Button
+                          key={page}
+                          variant={page === logPage ? 'default' : 'outline'}
+                          size="sm"
+                          className="h-8 w-8 text-xs p-0"
+                          onClick={() => setLogPage(page)}
+                        >
+                          {page}
+                        </Button>
+                      );
+                    })}
+                    <Button variant="outline" size="sm" className="h-8 text-xs" disabled={logPage >= logTotalPages} onClick={() => setLogPage(p => p + 1)}>
+                      Próxima
+                    </Button>
+                  </div>
+                </div>
+              )}
             </TabsContent>
           )}
         </Tabs>
