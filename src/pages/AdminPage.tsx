@@ -126,9 +126,9 @@ export default function AdminPage() {
     }));
     setCustomFunctions(funcsWithPerms);
 
-    // Fetch activity log (admin only)
-    if (isAdmin) {
-      const { data: logs } = await supabase.from('activity_log').select('*').order('created_at', { ascending: false }).limit(100);
+    // Fetch activity log (admin and coordinator)
+    if (isAdminOrCoordinator) {
+      const { data: logs } = await supabase.from('activity_log').select('*').order('created_at', { ascending: false }).limit(200);
       setActivityLog(logs || []);
     }
 
