@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Plus, Trash2, Paperclip, X, Upload, Download } from 'lucide-react';
 import { createNotification } from '@/lib/notifications';
 import { useAuth } from '@/hooks/useAuth';
+import { TaskComments } from '@/components/task/TaskComments';
 import { toast } from 'sonner';
 
 interface TaskDetailModalProps {
@@ -321,6 +322,9 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
               onChange={handleFileUpload}
             />
           </div>
+
+          {/* Comments */}
+          <TaskComments taskId={current.id} />
         </div>
       </DialogContent>
     </Dialog>
