@@ -91,6 +91,33 @@ export default function AdminPage() {
   const [assignUserId, setAssignUserId] = useState('');
   const [assignFuncId, setAssignFuncId] = useState('');
 
+  // Activity log filters
+  const [logSearch, setLogSearch] = useState('');
+  const [logUserFilter, setLogUserFilter] = useState('all');
+  const [logDateFrom, setLogDateFrom] = useState<Date | undefined>(undefined);
+  const [logDateTo, setLogDateTo] = useState<Date | undefined>(undefined);
+
+  const filteredActivityLog = useMemo(() => {
+    return activityLog.filter(log => {
+      if (logSearch) {
+        const q = logSearch.toLowerCase();
+        const logUser = users.find(u => u.user_id === log.user_id);
+        const details = log.details ? (typeof log.details === 'string' ? log.details : JSON.stringify(log.details)) : '';
+        if (!log.action.toLowerCase().includes(q) && !details.toLowerCase().includes(q) && !(logUser?.full_name || '').toLowerCase().includes(q)) return false;
+      }
+      if (logUserFilter !== 'all' && log.user_id !== logUserFilter) return false;
+      if (logDateFrom) {
+        const logDate = new Date(log.created_at);
+        if (logDate < startOfDay(logDateFrom)) return false;
+      }
+      if (logDateTo) {
+        const logDate = new Date(log.created_at);
+        if (logDate > endOfDay(logDateTo)) return false;
+      }
+      return true;
+    });
+  }, [activityLog, logSearch, logUserFilter, logDateFrom, logDateTo, users]);
+
   useEffect(() => {
     fetchAll();
   }, []);
