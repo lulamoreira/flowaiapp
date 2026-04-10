@@ -40,10 +40,11 @@ export function BoardKanban({ boardId }: BoardKanbanProps) {
       if (priorityFilter !== 'all' && t.priority !== priorityFilter) return false;
       if (assigneeFilter !== 'all' && t.assignee !== assigneeFilter) return false;
       if (dueDateFilter !== 'all') {
-        if (dueDateFilter === 'no_date' && t.dueDate) return false;
-        if (dueDateFilter === 'no_date' && !t.dueDate) return true;
-        if (!t.dueDate) return false;
-        const d = parseISO(t.dueDate);
+        const dd = t.plannedEnd ? t.plannedEnd.substring(0, 10) : '';
+        if (dueDateFilter === 'no_date' && dd) return false;
+        if (dueDateFilter === 'no_date' && !dd) return true;
+        if (!dd) return false;
+        const d = parseISO(dd);
         if (dueDateFilter === 'overdue' && !isPast(d)) return false;
         if (dueDateFilter === 'today' && !isToday(d)) return false;
         if (dueDateFilter === 'this_week' && !isThisWeek(d, { locale: ptBR })) return false;
@@ -246,10 +247,10 @@ export function BoardKanban({ boardId }: BoardKanbanProps) {
                                 </span>
                               </div>
                             )}
-                            {task.dueDate && (
+                            {task.plannedEnd && (
                               <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
                                 <Calendar className="h-3 w-3" />
-                                {format(parseISO(task.dueDate), 'dd MMM', { locale: ptBR })}
+                                {format(parseISO(task.plannedEnd), 'dd MMM', { locale: ptBR })}
                               </div>
                             )}
                           </div>

@@ -51,9 +51,10 @@ export function BoardTable({ boardId }: BoardTableProps) {
       if (priorityFilter !== 'all' && t.priority !== priorityFilter) return false;
       if (assigneeFilter !== 'all' && t.assignee !== assigneeFilter) return false;
       if (dueDateFilter !== 'all') {
-        if (dueDateFilter === 'no_date') return !t.dueDate;
-        if (!t.dueDate) return false;
-        const d = parseISO(t.dueDate);
+        const dd = t.plannedEnd ? t.plannedEnd.substring(0, 10) : '';
+        if (dueDateFilter === 'no_date') return !dd;
+        if (!dd) return false;
+        const d = parseISO(dd);
         if (dueDateFilter === 'overdue') return isBefore(d, today) && t.status !== 'done';
         if (dueDateFilter === 'today') return isWithinInterval(d, { start: today, end: todayEnd });
         if (dueDateFilter === 'this_week') return isWithinInterval(d, { start: today, end: weekEnd });
