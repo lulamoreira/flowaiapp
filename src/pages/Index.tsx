@@ -8,11 +8,24 @@ import { Board } from '@/types';
 import { useMemo } from 'react';
 import { toast } from 'sonner';
 import { useDeadlineNotifier } from '@/hooks/useDeadlineNotifier';
+import { useAuth } from '@/hooks/useAuth';
 
 const Index = () => {
   const { state, dispatch } = useAppStore();
   const navigate = useNavigate();
+  const { profile, roles } = useAuth();
   useDeadlineNotifier();
+
+  const firstName = useMemo(() => {
+    if (!profile?.full_name) return '';
+    return profile.full_name.split(' ')[0];
+  }, [profile]);
+
+  const roleLabel = useMemo(() => {
+    if (roles.includes('admin')) return 'Administrador';
+    if (roles.includes('coordinator')) return 'Coordenador';
+    return 'Visualizador';
+  }, [roles]);
 
   const allTasks = state.tasks;
   const stats = useMemo(() => ({
@@ -123,8 +136,11 @@ const Index = () => {
       <Header title="Home" />
       <main className="flex-1 overflow-y-auto bg-muted/30">
         <div className="bg-gradient-to-r from-[#9b59b6] via-[#8e44ed] to-[#6c6ff5] px-8 py-10">
-          <h2 className="text-2xl font-bold text-white mb-1">{greeting}! 👋</h2>
-          <p className="text-white/70 text-sm">Acompanhe rapidamente os seus projetos e tarefas</p>
+          <h2 className="text-2xl font-bold text-white mb-1">{greeting}{firstName ? `, ${firstName}` : ''}! 👋</h2>
+          <div className="flex items-center gap-3">
+            <p className="text-white/70 text-sm">Acompanhe rapidamente os seus projetos e tarefas</p>
+            <span className="text-xs bg-white/20 text-white px-2.5 py-0.5 rounded-full font-medium">{roleLabel}</span>
+          </div>
         </div>
 
         <div className="px-8 py-6 space-y-8">
