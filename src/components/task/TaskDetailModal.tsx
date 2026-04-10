@@ -9,6 +9,8 @@ import { Task, STATUS_CONFIG, PRIORITY_CONFIG, TaskStatus, TaskPriority, Subtask
 import { useAppStore } from '@/store/useAppStore';
 import { supabase } from '@/integrations/supabase/client';
 import { Plus, Trash2, Paperclip, X, Upload, Download } from 'lucide-react';
+import { createNotification } from '@/lib/notifications';
+import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
 interface TaskDetailModalProps {
@@ -24,6 +26,7 @@ function formatFileSize(bytes: number): string {
 
 export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
   const { state, dispatch } = useAppStore();
+  const { user } = useAuth();
   const [newSubtask, setNewSubtask] = useState('');
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -34,6 +37,24 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
 
   const update = (updates: Partial<Task>) => {
     dispatch({ type: 'UPDATE_TASK', payload: { ...current, ...updates } });
+  };
+
+  const handleAssigneeChange = (newAssigneeId: string) => {
+    const actualId = newAssigneeId === 'none' ? '' : newAssigneeId;
+    const previousAssignee = current.assignee;
+    update({ assignee: actualId });
+
+    // Notify the new assignee (if different from current user)
+    if (actualId && actualId !== previousAssignee && actualId !== user?.id) {
+      const board = state.boards.find(b => b.id === current.boardId);
+      const assignerName = state.users.find(u => u.id === user?.id)?.name || 'Alguém';
+      createNotification({
+        userId: actualId,
+        title: '👤 Tarefa atribuída a você',
+        message: `${assignerName} atribuiu "${current.title}" a você no quadro ${board?.title || ''}.`,
+        link: `/board/${current.boardId}`,
+      });
+    }
   };
 
   const addSubtask = () => {
@@ -154,7 +175,7 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Responsável</label>
-              <Select value={current.assignee || 'none'} onValueChange={v => update({ assignee: v === 'none' ? '' : v })}>
+              <Select value={current.assignee || 'none'} onValueChange={handleAssigneeChange}>
                 <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">Nenhum</SelectItem>
