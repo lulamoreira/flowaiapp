@@ -11,10 +11,12 @@ export default function RegisterPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const token = searchParams.get('token');
+  const prefilledName = searchParams.get('name') || '';
+  const prefilledRole = searchParams.get('role') || 'viewer';
   const [invitation, setInvitation] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [fullName, setFullName] = useState('');
+  const [fullName, setFullName] = useState(prefilledName);
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
