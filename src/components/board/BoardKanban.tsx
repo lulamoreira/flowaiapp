@@ -267,6 +267,7 @@ export function BoardKanban({ boardId }: BoardKanbanProps) {
       })}
 
       <TaskDetailModal task={selectedTask} onClose={() => setSelectedTask(null)} />
+      </div>
     </div>
   );
 }
