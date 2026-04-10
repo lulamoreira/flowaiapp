@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useReducer, useEffect, ReactNode, useCallback, useState } from 'react';
 import { Board, TaskGroup, Task, User, AutomationRule } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
+import { logActivity } from '@/lib/activityLog';
 import { useAuth } from '@/hooks/useAuth';
 
 interface AppState {
