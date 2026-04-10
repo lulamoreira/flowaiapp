@@ -115,6 +115,44 @@ export type Database = {
         }
         Relationships: []
       }
+      custom_fields: {
+        Row: {
+          board_id: string
+          created_at: string
+          field_name: string
+          field_options: Json
+          field_type: string
+          id: string
+          position: number
+        }
+        Insert: {
+          board_id: string
+          created_at?: string
+          field_name: string
+          field_options?: Json
+          field_type?: string
+          id?: string
+          position?: number
+        }
+        Update: {
+          board_id?: string
+          created_at?: string
+          field_name?: string
+          field_options?: Json
+          field_type?: string
+          id?: string
+          position?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_fields_board_id_fkey"
+            columns: ["board_id"]
+            isOneToOne: false
+            referencedRelation: "boards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       custom_functions: {
         Row: {
           created_at: string
@@ -170,6 +208,54 @@ export type Database = {
             columns: ["function_id"]
             isOneToOne: false
             referencedRelation: "custom_functions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      intake_forms: {
+        Row: {
+          board_id: string
+          created_at: string
+          description: string
+          enabled: boolean
+          id: string
+          public_token: string
+          target_group_id: string | null
+          title: string
+        }
+        Insert: {
+          board_id: string
+          created_at?: string
+          description?: string
+          enabled?: boolean
+          id?: string
+          public_token?: string
+          target_group_id?: string | null
+          title?: string
+        }
+        Update: {
+          board_id?: string
+          created_at?: string
+          description?: string
+          enabled?: boolean
+          id?: string
+          public_token?: string
+          target_group_id?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intake_forms_board_id_fkey"
+            columns: ["board_id"]
+            isOneToOne: true
+            referencedRelation: "boards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intake_forms_target_group_id_fkey"
+            columns: ["target_group_id"]
+            isOneToOne: false
+            referencedRelation: "task_groups"
             referencedColumns: ["id"]
           },
         ]
@@ -298,6 +384,45 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "task_comments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_custom_values: {
+        Row: {
+          created_at: string
+          field_id: string
+          id: string
+          task_id: string
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          field_id: string
+          id?: string
+          task_id: string
+          value?: string
+        }
+        Update: {
+          created_at?: string
+          field_id?: string
+          id?: string
+          task_id?: string
+          value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_custom_values_field_id_fkey"
+            columns: ["field_id"]
+            isOneToOne: false
+            referencedRelation: "custom_fields"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_custom_values_task_id_fkey"
             columns: ["task_id"]
             isOneToOne: false
             referencedRelation: "tasks"
