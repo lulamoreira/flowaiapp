@@ -1,6 +1,7 @@
-import { LayoutDashboard, BarChart3, Plus, Pencil, Trash2, Star } from 'lucide-react';
+import { LayoutDashboard, BarChart3, Plus, Pencil, Trash2, Star, Shield } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAppStore } from '@/store/useAppStore';
+import { useAuth } from '@/hooks/useAuth';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { toast } from 'sonner';
