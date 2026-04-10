@@ -1,6 +1,7 @@
-import { LayoutDashboard, BarChart3, Plus, Pencil, Trash2, Star } from 'lucide-react';
+import { LayoutDashboard, BarChart3, Plus, Pencil, Trash2, Star, Shield, LogOut } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAppStore } from '@/store/useAppStore';
+import { useAuth } from '@/hooks/useAuth';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -31,6 +32,7 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
   const { state: appState, dispatch } = useAppStore();
+  const { isAdminOrCoordinator, isAdmin, signOut } = useAuth();
   const navigate = useNavigate();
   const [showNewBoard, setShowNewBoard] = useState(false);
   const [newBoardTitle, setNewBoardTitle] = useState('');
@@ -85,6 +87,16 @@ export function AppSidebar() {
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+                {isAdminOrCoordinator && (
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <NavLink to="/admin" className="text-[#c3c6d4] hover:bg-[#3c4260] hover:text-white rounded-md" activeClassName="bg-[#3c4260] text-white">
+                        <Shield className="h-4 w-4 shrink-0" />
+                        {!collapsed && <span>{isAdmin ? 'Admin' : 'Coordenação'}</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -176,6 +188,17 @@ export function AppSidebar() {
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
+
+          {/* Sign out */}
+          <div className="mt-auto px-4 py-3 border-t border-[#3c4260]">
+            <button
+              onClick={signOut}
+              className="flex items-center gap-2 text-[#9699a8] hover:text-white text-sm w-full transition-colors"
+            >
+              <LogOut className="h-4 w-4 shrink-0" />
+              {!collapsed && <span>Sair</span>}
+            </button>
+          </div>
         </SidebarContent>
       </Sidebar>
 
