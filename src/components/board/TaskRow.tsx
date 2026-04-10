@@ -91,7 +91,7 @@ export function TaskRow({ task, groupColor, onClick, draggable, onDragStart, onD
           status={task.status}
           onChange={(status: TaskStatus) => updateTask({
             status,
-            completedAt: status === 'done' ? new Date().toISOString().split('T')[0] : undefined,
+            actualEnd: status === 'done' ? new Date().toISOString() : undefined,
           })}
         />
       </div>
@@ -102,15 +102,15 @@ export function TaskRow({ task, groupColor, onClick, draggable, onDragStart, onD
         />
       </div>
       <div className="w-[100px] px-2 text-xs text-muted-foreground">
-        {task.dueDate ? (() => {
-          const days = differenceInDays(parseISO(task.dueDate), startOfDay(new Date()));
+        {task.plannedEnd ? (() => {
+          const days = differenceInDays(parseISO(task.plannedEnd), startOfDay(new Date()));
           const overdue = days < 0 && task.status !== 'done';
           const soon = days >= 0 && days <= 2 && task.status !== 'done';
           return (
             <span className={`flex items-center gap-1 ${overdue ? 'text-destructive font-semibold' : soon ? 'text-orange-500 font-medium' : ''}`}>
               {overdue && <AlertTriangle className="h-3 w-3" />}
               {soon && <Clock className="h-3 w-3" />}
-              {format(parseISO(task.dueDate), 'dd MMM', { locale: ptBR })}
+              {format(parseISO(task.plannedEnd), 'dd MMM', { locale: ptBR })}
             </span>
           );
         })() : '-'}

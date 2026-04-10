@@ -22,13 +22,15 @@ export interface Task {
   status: TaskStatus;
   priority: TaskPriority;
   assignee: string;
-  dueDate: string;
+  plannedStart?: string;
+  plannedEnd?: string;
+  actualStart?: string;
+  actualEnd?: string;
   groupId: string;
   boardId: string;
   subtasks: Subtask[];
   attachments: Attachment[];
   createdAt: string;
-  completedAt?: string;
   position?: number;
 }
 

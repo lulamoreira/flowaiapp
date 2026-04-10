@@ -24,7 +24,7 @@ export function BoardCalendar({ boardId }: BoardCalendarProps) {
   const [dragOverDate, setDragOverDate] = useState<string | null>(null);
 
   const tasks = useMemo(
-    () => state.tasks.filter(t => t.boardId === boardId && t.dueDate),
+    () => state.tasks.filter(t => t.boardId === boardId && t.plannedEnd),
     [state.tasks, boardId]
   );
 
@@ -37,7 +37,7 @@ export function BoardCalendar({ boardId }: BoardCalendarProps) {
   const tasksByDate = useMemo(() => {
     const map = new Map<string, Task[]>();
     tasks.forEach(t => {
-      const key = t.dueDate;
+      const key = t.plannedEnd ? t.plannedEnd.substring(0, 10) : '';
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(t);
     });
@@ -91,8 +91,8 @@ export function BoardCalendar({ boardId }: BoardCalendarProps) {
                 setDragOverDate(null);
                 if (!draggedTaskId) return;
                 const task = state.tasks.find(t => t.id === draggedTaskId);
-                if (task && task.dueDate !== dateKey) {
-                  dispatch({ type: 'UPDATE_TASK', payload: { ...task, dueDate: dateKey } });
+                if (task && (task.plannedEnd || '').substring(0, 10) !== dateKey) {
+                  dispatch({ type: 'UPDATE_TASK', payload: { ...task, plannedEnd: dateKey } });
                 }
                 setDraggedTaskId(null);
               }}

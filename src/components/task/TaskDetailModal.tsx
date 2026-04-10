@@ -198,23 +198,39 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
             </div>
           </div>
 
-          {/* Assignee & Date */}
+          {/* Assignee */}
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">Responsável</label>
+            <Select value={current.assignee || 'none'} onValueChange={handleAssigneeChange}>
+              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Nenhum</SelectItem>
+                {state.users.map(u => (
+                  <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Dates */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1 block">Responsável</label>
-              <Select value={current.assignee || 'none'} onValueChange={handleAssigneeChange}>
-                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Nenhum</SelectItem>
-                  {state.users.map(u => (
-                    <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Início planejado</label>
+              <Input type="datetime-local" value={current.plannedStart || ''} onChange={e => update({ plannedStart: e.target.value || undefined })} className="h-9" />
             </div>
             <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1 block">Data de entrega</label>
-              <Input type="date" value={current.dueDate} onChange={e => update({ dueDate: e.target.value })} className="h-9" />
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Fim planejado</label>
+              <Input type="datetime-local" value={current.plannedEnd || ''} onChange={e => update({ plannedEnd: e.target.value || undefined })} className="h-9" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Início real</label>
+              <Input type="datetime-local" value={current.actualStart || ''} onChange={e => update({ actualStart: e.target.value || undefined })} className="h-9" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Fim real</label>
+              <Input type="datetime-local" value={current.actualEnd || ''} onChange={e => update({ actualEnd: e.target.value || undefined })} className="h-9" />
             </div>
           </div>
 

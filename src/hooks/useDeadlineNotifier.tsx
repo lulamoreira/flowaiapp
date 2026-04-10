@@ -25,11 +25,11 @@ export function useDeadlineNotifier() {
       lastCheck.current = todayStr;
 
       const tasksWithDeadline = state.tasks.filter(
-        t => t.dueDate && t.status !== 'done'
+        t => t.plannedEnd && t.status !== 'done'
       );
 
       for (const task of tasksWithDeadline) {
-        const days = differenceInDays(parseISO(task.dueDate), today);
+        const days = differenceInDays(parseISO(task.plannedEnd!), today);
 
         if (days < 0) {
           // Overdue

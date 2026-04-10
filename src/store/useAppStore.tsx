@@ -116,13 +116,15 @@ function dbToTask(row: any): Task {
     status: row.status,
     priority: row.priority,
     assignee: row.assignee || '',
-    dueDate: row.due_date || '',
+    plannedStart: row.planned_start || undefined,
+    plannedEnd: row.planned_end || undefined,
+    actualStart: row.actual_start || undefined,
+    actualEnd: row.actual_end || undefined,
     groupId: row.group_id,
     boardId: row.board_id,
     subtasks: row.subtasks || [],
     attachments: row.attachments || [],
     createdAt: row.created_at?.split('T')[0] || '',
-    completedAt: row.completed_at?.split('T')[0] || undefined,
     position: row.position ?? 0,
   };
 }
@@ -299,13 +301,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
               status: t.status,
               priority: t.priority,
               assignee: t.assignee || null,
-              due_date: t.dueDate || null,
+              planned_start: t.plannedStart || null,
+              planned_end: t.plannedEnd || null,
+              actual_start: t.actualStart || null,
+              actual_end: t.actualEnd || null,
               group_id: t.groupId,
               board_id: t.boardId,
               subtasks: t.subtasks as any,
               attachments: t.attachments as any,
               created_by: user?.id,
-              completed_at: t.completedAt || null,
             });
             logActivity('Criou tarefa', { task: t.title });
             break;
@@ -318,12 +322,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
               status: t.status,
               priority: t.priority,
               assignee: t.assignee || null,
-              due_date: t.dueDate || null,
+              planned_start: t.plannedStart || null,
+              planned_end: t.plannedEnd || null,
+              actual_start: t.actualStart || null,
+              actual_end: t.actualEnd || null,
               group_id: t.groupId,
               board_id: t.boardId,
               subtasks: t.subtasks as any,
               attachments: t.attachments as any,
-              completed_at: t.completedAt || null,
               position: t.position ?? 0,
             }).eq('id', t.id);
             break;
