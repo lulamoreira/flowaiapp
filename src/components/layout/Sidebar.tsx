@@ -1,4 +1,4 @@
-import { LayoutDashboard, BarChart3, Plus, Pencil, Trash2, Star, Shield } from 'lucide-react';
+import { LayoutDashboard, BarChart3, Plus, Pencil, Trash2, Star, Shield, LogOut } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAppStore } from '@/store/useAppStore';
 import { useAuth } from '@/hooks/useAuth';
@@ -188,6 +188,17 @@ export function AppSidebar() {
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
+
+          {/* Sign out */}
+          <div className="mt-auto px-4 py-3 border-t border-[#3c4260]">
+            <button
+              onClick={signOut}
+              className="flex items-center gap-2 text-[#9699a8] hover:text-white text-sm w-full transition-colors"
+            >
+              <LogOut className="h-4 w-4 shrink-0" />
+              {!collapsed && <span>Sair</span>}
+            </button>
+          </div>
         </SidebarContent>
       </Sidebar>
 
