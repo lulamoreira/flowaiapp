@@ -12,6 +12,7 @@ import { useDeadlineNotifier } from '@/hooks/useDeadlineNotifier';
 const Index = () => {
   const { state, dispatch } = useAppStore();
   const navigate = useNavigate();
+  useDeadlineNotifier();
 
   const allTasks = state.tasks;
   const stats = useMemo(() => ({
