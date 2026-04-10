@@ -98,6 +98,23 @@ const AppContext = createContext<{ state: AppState; dispatch: React.Dispatch<Act
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, null, loadState);
 
+  // Sync users from DB profiles
+  useEffect(() => {
+    const fetchUsers = async () => {
+      const { data: profiles } = await supabase.from('profiles').select('*');
+      if (profiles && profiles.length > 0) {
+        const dbUsers: User[] = profiles.map(p => ({
+          id: p.user_id,
+          name: p.full_name || 'Sem nome',
+          email: '',
+          avatar: (p.full_name || '??').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase(),
+        }));
+        dispatch({ type: 'SET_STATE', payload: { ...state, users: dbUsers } });
+      }
+    };
+    fetchUsers();
+  }, []);
+
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }, [state]);
