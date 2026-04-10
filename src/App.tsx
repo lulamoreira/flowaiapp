@@ -16,6 +16,7 @@ import LoginPage from "./pages/LoginPage.tsx";
 import RegisterPage from "./pages/RegisterPage.tsx";
 import ResetPasswordPage from "./pages/ResetPasswordPage.tsx";
 import NotFound from "./pages/NotFound.tsx";
+import ProfilePage from "./pages/ProfilePage.tsx";
 
 const queryClient = new QueryClient();
 
@@ -43,6 +44,7 @@ const App = () => (
                         <Routes>
                           <Route path="/" element={<Index />} />
                           <Route path="/board/:id" element={<BoardPage />} />
+                          <Route path="/profile" element={<ProfilePage />} />
                           <Route path="/reports" element={<ReportsPage />} />
                           <Route path="/admin" element={
                             <ProtectedRoute requiredRoles={['admin', 'coordinator']}>
