@@ -87,6 +87,16 @@ export function AppSidebar() {
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+                {isAdminOrCoordinator && (
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <NavLink to="/admin" className="text-[#c3c6d4] hover:bg-[#3c4260] hover:text-white rounded-md" activeClassName="bg-[#3c4260] text-white">
+                        <Shield className="h-4 w-4 shrink-0" />
+                        {!collapsed && <span>{isAdmin ? 'Admin' : 'Coordenação'}</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
