@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { lovable } from '@/integrations/lovable';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -96,13 +97,11 @@ export default function RegisterPage() {
 
   const handleSocialRegister = async (provider: 'google' | 'apple') => {
     if (!invitation) return;
-    // Store token in localStorage so we can process it after OAuth redirect
     localStorage.setItem('flowai-invite-token', token || '');
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: { redirectTo: `${window.location.origin}/register?token=${token}` },
+    const result = await lovable.auth.signInWithOAuth(provider, {
+      redirect_uri: `${window.location.origin}/register?token=${token}`,
     });
-    if (error) toast.error(error.message);
+    if (result?.error) toast.error(String(result.error));
   };
 
   if (loading) {
