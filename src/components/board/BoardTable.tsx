@@ -53,7 +53,7 @@ export function BoardTable({ boardId }: BoardTableProps) {
 
   const addTask = (groupId: string) => {
     const newTask: Task = {
-      id: `t${Date.now()}`,
+      id: crypto.randomUUID(),
       title: 'Nova tarefa',
       description: '',
       status: 'not_started',

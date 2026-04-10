@@ -33,7 +33,7 @@ export function AutomationPanel({ boardId }: AutomationPanelProps) {
       : `mudar status para ${STATUS_CONFIG[actionValue as keyof typeof STATUS_CONFIG]?.label}`;
 
     const rule: AutomationRule = {
-      id: `auto${Date.now()}`,
+      id: crypto.randomUUID(),
       boardId,
       triggerType,
       triggerValue,
