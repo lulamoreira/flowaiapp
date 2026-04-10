@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useReducer, useEffect, ReactNode, useCallback, useState } from 'react';
 import { Board, TaskGroup, Task, User, AutomationRule } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
+import { logActivity } from '@/lib/activityLog';
 import { useAuth } from '@/hooks/useAuth';
 
 interface AppState {
@@ -247,6 +248,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
               favorite: b.favorite || false,
               created_by: user?.id,
             });
+            logActivity('Criou quadro', { board: b.title });
             break;
           }
           case 'UPDATE_BOARD': {
@@ -261,6 +263,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
           }
           case 'DELETE_BOARD':
             await supabase.from('boards').delete().eq('id', action.payload);
+            logActivity('Excluiu quadro', { boardId: action.payload });
+            break;
             break;
 
           case 'ADD_GROUP': {
@@ -303,6 +307,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
               created_by: user?.id,
               completed_at: t.completedAt || null,
             });
+            logActivity('Criou tarefa', { task: t.title });
             break;
           }
           case 'UPDATE_TASK': {
@@ -325,6 +330,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           }
           case 'DELETE_TASK':
             await supabase.from('tasks').delete().eq('id', action.payload);
+            logActivity('Excluiu tarefa', { taskId: action.payload });
             break;
 
           case 'ADD_AUTOMATION': {
