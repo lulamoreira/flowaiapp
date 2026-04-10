@@ -248,6 +248,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
               favorite: b.favorite || false,
               created_by: user?.id,
             });
+            logActivity('Criou quadro', { board: b.title });
             break;
           }
           case 'UPDATE_BOARD': {
