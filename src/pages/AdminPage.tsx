@@ -120,7 +120,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     fetchAll();
-  }, []);
+  }, [isAdminOrCoordinator]);
 
   const fetchAll = async () => {
     setLoading(true);
