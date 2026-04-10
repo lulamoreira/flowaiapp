@@ -330,6 +330,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           }
           case 'DELETE_TASK':
             await supabase.from('tasks').delete().eq('id', action.payload);
+            logActivity('Excluiu tarefa', { taskId: action.payload });
             break;
 
           case 'ADD_AUTOMATION': {
