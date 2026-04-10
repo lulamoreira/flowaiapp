@@ -263,23 +263,38 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
           {/* Attachments */}
           <div>
             <label className="text-xs font-medium text-muted-foreground mb-2 block">Anexos</label>
-            <div className="space-y-1.5">
-              {current.attachments.map(att => (
-                <div key={att.id} className="flex items-center gap-2 text-sm text-foreground bg-muted/50 rounded px-3 py-1.5 group">
-                  <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
-                  {att.url ? (
-                    <a href={att.url} target="_blank" rel="noopener noreferrer" className="flex-1 hover:underline text-primary">
-                      {att.name}
-                    </a>
-                  ) : (
-                    <span className="flex-1">{att.name}</span>
-                  )}
-                  <span className="text-xs text-muted-foreground">{att.size}</span>
-                  <button onClick={() => removeAttachment(att)} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive">
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              ))}
+            <div className="space-y-2">
+              {current.attachments.map(att => {
+                const isImage = /\.(jpe?g|png|gif|webp)$/i.test(att.name);
+                return (
+                  <div key={att.id} className="relative group">
+                    {isImage && att.url ? (
+                      <a href={att.url} target="_blank" rel="noopener noreferrer" className="block">
+                        <img
+                          src={att.url}
+                          alt={att.name}
+                          className="w-full max-h-48 object-cover rounded-md border border-border"
+                          loading="lazy"
+                        />
+                      </a>
+                    ) : null}
+                    <div className="flex items-center gap-2 text-sm text-foreground bg-muted/50 rounded px-3 py-1.5">
+                      <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
+                      {att.url ? (
+                        <a href={att.url} target="_blank" rel="noopener noreferrer" className="flex-1 hover:underline text-primary truncate">
+                          {att.name}
+                        </a>
+                      ) : (
+                        <span className="flex-1 truncate">{att.name}</span>
+                      )}
+                      <span className="text-xs text-muted-foreground shrink-0">{att.size}</span>
+                      <button onClick={() => removeAttachment(att)} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive shrink-0">
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
             <div
               ref={dropRef}
