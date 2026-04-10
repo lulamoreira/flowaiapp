@@ -65,6 +65,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         if (session?.user) {
           setTimeout(() => fetchProfile(session.user.id), 0);
+          if (event === 'SIGNED_IN') {
+            logActivity('Login', { method: 'auth', email: session.user.email });
+          }
         } else {
           setProfile(null);
           setRoles([]);
@@ -86,6 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [fetchProfile]);
 
   const signOut = async () => {
+    await logActivity('Logout');
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
