@@ -263,6 +263,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
           }
           case 'DELETE_BOARD':
             await supabase.from('boards').delete().eq('id', action.payload);
+            logActivity('Excluiu quadro', { boardId: action.payload });
+            break;
             break;
 
           case 'ADD_GROUP': {
