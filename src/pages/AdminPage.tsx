@@ -454,29 +454,40 @@ export default function AdminPage() {
             </div>
           </TabsContent>
 
-          {/* ACTIVITY TAB (Admin only) */}
-          {isAdmin && (
+          {/* ACTIVITY TAB (Admin & Coordinator) */}
+          {isAdminOrCoordinator && (
             <TabsContent value="activity" className="space-y-4">
               <h3 className="text-lg font-semibold text-foreground">Log de Atividades</h3>
-              <div className="bg-card border border-border rounded-xl overflow-hidden">
+              <div className="bg-card border border-border rounded-xl overflow-hidden max-h-[60vh] overflow-y-auto">
                 <table className="w-full text-sm">
-                  <thead>
+                  <thead className="sticky top-0 bg-card z-10">
                     <tr className="border-b border-border bg-muted/50">
-                      <th className="text-left p-3 font-medium text-muted-foreground">Data</th>
+                      <th className="text-left p-3 font-medium text-muted-foreground w-[160px]">Data</th>
+                      <th className="text-left p-3 font-medium text-muted-foreground w-[140px]">Usuário</th>
                       <th className="text-left p-3 font-medium text-muted-foreground">Ação</th>
                       <th className="text-left p-3 font-medium text-muted-foreground">Detalhes</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {activityLog.map(log => (
-                      <tr key={log.id} className="border-b border-border last:border-0">
-                        <td className="p-3 text-muted-foreground">{new Date(log.created_at).toLocaleString('pt-BR')}</td>
-                        <td className="p-3 font-medium text-foreground">{log.action}</td>
-                        <td className="p-3 text-muted-foreground text-xs">{JSON.stringify(log.details)}</td>
-                      </tr>
-                    ))}
+                    {activityLog.map(log => {
+                      const logUser = users.find(u => u.user_id === log.user_id);
+                      return (
+                        <tr key={log.id} className="border-b border-border last:border-0 hover:bg-muted/30">
+                          <td className="p-3 text-muted-foreground text-xs whitespace-nowrap">
+                            {new Date(log.created_at).toLocaleString('pt-BR')}
+                          </td>
+                          <td className="p-3 text-foreground text-xs font-medium">
+                            {logUser?.full_name || 'Sistema'}
+                          </td>
+                          <td className="p-3 font-medium text-foreground text-xs">{log.action}</td>
+                          <td className="p-3 text-muted-foreground text-xs max-w-[300px] truncate">
+                            {log.details ? (typeof log.details === 'string' ? log.details : JSON.stringify(log.details)) : '—'}
+                          </td>
+                        </tr>
+                      );
+                    })}
                     {activityLog.length === 0 && (
-                      <tr><td colSpan={3} className="p-6 text-center text-muted-foreground">Nenhuma atividade registrada</td></tr>
+                      <tr><td colSpan={4} className="p-6 text-center text-muted-foreground">Nenhuma atividade registrada</td></tr>
                     )}
                   </tbody>
                 </table>
