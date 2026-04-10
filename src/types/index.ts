@@ -29,6 +29,7 @@ export interface Task {
   attachments: Attachment[];
   createdAt: string;
   completedAt?: string;
+  position?: number;
 }
 
 export interface TaskGroup {

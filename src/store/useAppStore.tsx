@@ -122,6 +122,7 @@ function dbToTask(row: any): Task {
     attachments: row.attachments || [],
     createdAt: row.created_at?.split('T')[0] || '',
     completedAt: row.completed_at?.split('T')[0] || undefined,
+    position: row.position ?? 0,
   };
 }
 
@@ -149,7 +150,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const [boardsRes, groupsRes, tasksRes, automationsRes, profilesRes] = await Promise.all([
         supabase.from('boards').select('*').order('created_at'),
         supabase.from('task_groups').select('*').order('position'),
-        supabase.from('tasks').select('*').order('created_at'),
+        supabase.from('tasks').select('*').order('position').order('created_at'),
         supabase.from('automation_rules').select('*'),
         supabase.from('profiles').select('*'),
       ]);
@@ -215,7 +216,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         break;
       }
       case 'tasks': {
-        const { data } = await supabase.from('tasks').select('*').order('created_at');
+        const { data } = await supabase.from('tasks').select('*').order('position').order('created_at');
         if (data) dispatch({ type: 'SET_STATE', payload: { tasks: data.map(dbToTask) } });
         break;
       }
@@ -318,6 +319,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
               subtasks: t.subtasks as any,
               attachments: t.attachments as any,
               completed_at: t.completedAt || null,
+              position: t.position ?? 0,
             }).eq('id', t.id);
             break;
           }
