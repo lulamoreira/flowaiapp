@@ -153,9 +153,12 @@ export default function LoginPage() {
             </TabsContent>
           </Tabs>
 
-          <p className="text-xs text-muted-foreground text-center mt-6">
-            O acesso é por convite. Solicite ao seu administrador.
-          </p>
+          <div className="border-t border-border mt-6 pt-4">
+            <p className="text-xs text-muted-foreground text-center mb-3">Não tem conta?</p>
+            <Button variant="outline" className="w-full" onClick={() => setShowSignup(true)}>
+              Criar conta de teste
+            </Button>
+          </div>
         </div>
       </div>
     </div>
