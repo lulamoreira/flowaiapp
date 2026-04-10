@@ -325,6 +325,13 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
 
           {/* Comments */}
           <TaskComments taskId={current.id} />
+
+          {/* Close button */}
+          <div className="flex justify-end pt-4 border-t border-border mt-4">
+            <Button variant="outline" onClick={onClose}>
+              Fechar
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
