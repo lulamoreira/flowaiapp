@@ -77,6 +77,13 @@ export default function RegisterPage() {
         date_of_birth: dateOfBirth || null,
       }).eq('user_id', authData.user.id);
 
+      // Apply the role from the invite URL (default viewer is set by trigger)
+      if (prefilledRole && prefilledRole !== 'viewer') {
+        await supabase.from('user_roles').update({
+          role: prefilledRole as any,
+        }).eq('user_id', authData.user.id);
+      }
+
       // Mark invitation as accepted
       await supabase.from('invitations').update({
         status: 'accepted' as const,
@@ -87,8 +94,8 @@ export default function RegisterPage() {
       await supabase.from('notifications').insert({
         user_id: invitation.invited_by,
         title: 'Novo cadastro',
-        message: `${fullName} acabou de se cadastrar com seu convite. Clique aqui para atribuir uma função.`,
-        link: `/admin/users`,
+        message: `${fullName} acabou de se cadastrar com seu convite.`,
+        link: `/admin`,
       });
     }
 
