@@ -30,7 +30,7 @@ const BoardPage = () => {
   const addGroup = () => {
     const colors = ['#0073ea', '#00c875', '#fdab3d', '#e2445c', '#a25ddc', '#579bfc'];
     const newGroup = {
-      id: `g${Date.now()}`,
+      id: crypto.randomUUID(),
       title: 'Novo Grupo',
       color: colors[state.groups.filter(g => g.boardId === id).length % colors.length],
       boardId: id!,
