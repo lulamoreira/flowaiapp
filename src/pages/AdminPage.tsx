@@ -96,6 +96,8 @@ export default function AdminPage() {
   const [logUserFilter, setLogUserFilter] = useState('all');
   const [logDateFrom, setLogDateFrom] = useState<Date | undefined>(undefined);
   const [logDateTo, setLogDateTo] = useState<Date | undefined>(undefined);
+  const [logPage, setLogPage] = useState(1);
+  const LOG_PER_PAGE = 20;
 
   const filteredActivityLog = useMemo(() => {
     return activityLog.filter(log => {
