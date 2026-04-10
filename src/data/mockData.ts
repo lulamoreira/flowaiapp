@@ -1,12 +1,6 @@
 import { Board, TaskGroup, Task, User, AutomationRule } from '@/types';
 
-export const mockUsers: User[] = [
-  { id: 'u1', name: 'Ana Silva', email: 'ana@flowai.com', avatar: 'AS' },
-  { id: 'u2', name: 'Bruno Costa', email: 'bruno@flowai.com', avatar: 'BC' },
-  { id: 'u3', name: 'Carla Mendes', email: 'carla@flowai.com', avatar: 'CM' },
-  { id: 'u4', name: 'Diego Santos', email: 'diego@flowai.com', avatar: 'DS' },
-  { id: 'u5', name: 'Elena Oliveira', email: 'elena@flowai.com', avatar: 'EO' },
-];
+export const mockUsers: User[] = [];
 
 export const mockBoards: Board[] = [
   { id: 'b1', title: 'Projeto Website', description: 'Redesign do site corporativo', color: '#0073ea', updatedAt: '2026-04-07' },
