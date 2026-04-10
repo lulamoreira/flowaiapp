@@ -3,7 +3,8 @@ import { useAppStore } from '@/store/useAppStore';
 import { Task, TaskStatus, STATUS_CONFIG } from '@/types';
 import { PriorityBadge } from './PriorityBadge';
 import { TaskDetailModal } from '@/components/task/TaskDetailModal';
-import { format, parseISO } from 'date-fns';
+import { SearchFilterBar } from './SearchFilterBar';
+import { format, parseISO, isToday, isPast, isThisWeek, addWeeks, startOfWeek, endOfWeek } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { GripVertical, Calendar } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -21,10 +22,40 @@ export function BoardKanban({ boardId }: BoardKanbanProps) {
   const [dragOverColumn, setDragOverColumn] = useState<TaskStatus | null>(null);
   const [dropIndicator, setDropIndicator] = useState<{ status: TaskStatus; index: number } | null>(null);
 
-  const tasks = useMemo(
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [priorityFilter, setPriorityFilter] = useState('all');
+  const [assigneeFilter, setAssigneeFilter] = useState('all');
+  const [dueDateFilter, setDueDateFilter] = useState('all');
+
+  const allTasks = useMemo(
     () => state.tasks.filter(t => t.boardId === boardId),
     [state.tasks, boardId]
   );
+
+  const tasks = useMemo(() => {
+    return allTasks.filter(t => {
+      if (search && !t.title.toLowerCase().includes(search.toLowerCase()) && !t.description.toLowerCase().includes(search.toLowerCase())) return false;
+      if (statusFilter !== 'all' && t.status !== statusFilter) return false;
+      if (priorityFilter !== 'all' && t.priority !== priorityFilter) return false;
+      if (assigneeFilter !== 'all' && t.assignee !== assigneeFilter) return false;
+      if (dueDateFilter !== 'all') {
+        if (dueDateFilter === 'no_date' && t.dueDate) return false;
+        if (dueDateFilter === 'no_date' && !t.dueDate) return true;
+        if (!t.dueDate) return false;
+        const d = parseISO(t.dueDate);
+        if (dueDateFilter === 'overdue' && !isPast(d)) return false;
+        if (dueDateFilter === 'today' && !isToday(d)) return false;
+        if (dueDateFilter === 'this_week' && !isThisWeek(d, { locale: ptBR })) return false;
+        if (dueDateFilter === 'next_week') {
+          const nextStart = startOfWeek(addWeeks(new Date(), 1), { locale: ptBR });
+          const nextEnd = endOfWeek(addWeeks(new Date(), 1), { locale: ptBR });
+          if (d < nextStart || d > nextEnd) return false;
+        }
+      }
+      return true;
+    });
+  }, [allTasks, search, statusFilter, priorityFilter, assigneeFilter, dueDateFilter]);
 
   const tasksByStatus = useMemo(() => {
     const map: Record<TaskStatus, Task[]> = {
