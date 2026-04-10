@@ -119,8 +119,17 @@ export default function AdminPage() {
   }, [activityLog, logSearch, logUserFilter, logDateFrom, logDateTo, users]);
 
   useEffect(() => {
+    if (!loading) return;
     fetchAll();
   }, []);
+
+  // Re-fetch activity log when role becomes available
+  useEffect(() => {
+    if (isAdminOrCoordinator && activityLog.length === 0) {
+      supabase.from('activity_log').select('*').order('created_at', { ascending: false }).limit(200)
+        .then(({ data }) => { if (data) setActivityLog(data); });
+    }
+  }, [isAdminOrCoordinator]);
 
   const fetchAll = async () => {
     setLoading(true);
