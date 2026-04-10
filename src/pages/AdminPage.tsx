@@ -65,6 +65,8 @@ export default function AdminPage() {
   // Invite dialog
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteName, setInviteName] = useState('');
+  const [inviteRole, setInviteRole] = useState<AppRole>('viewer');
   const [inviteSending, setInviteSending] = useState(false);
 
   // Role dialog
@@ -145,12 +147,14 @@ export default function AdminPage() {
     if (error) {
       toast.error('Erro ao criar convite: ' + error.message);
     } else if (data) {
-      const registerUrl = `${window.location.origin}/register?token=${data.token}`;
+      const registerUrl = `${window.location.origin}/register?token=${data.token}&name=${encodeURIComponent(inviteName)}&role=${inviteRole}`;
       const subject = encodeURIComponent('Convite para o FlowAI');
-      const body = encodeURIComponent(`Olá!\n\nVocê foi convidado para participar do FlowAI.\n\nClique no link para se cadastrar:\n${registerUrl}\n\nEste convite expira em 72 horas.\n\nAguardamos você!`);
+      const body = encodeURIComponent(`Olá${inviteName ? ' ' + inviteName : ''}!\n\nVocê foi convidado para participar do FlowAI.\n\nClique no link para se cadastrar:\n${registerUrl}\n\nVocê pode acessar com Google, Apple ou criar uma senha.\n\nEste convite expira em 72 horas.\n\nAguardamos você!`);
       window.open(`mailto:${inviteEmail}?subject=${subject}&body=${body}`);
       toast.success('Convite criado! O email será aberto para envio.');
       setInviteEmail('');
+      setInviteName('');
+      setInviteRole('viewer');
       setInviteOpen(false);
       fetchAll();
     }
@@ -485,14 +489,30 @@ export default function AdminPage() {
       {/* Invite Dialog */}
       <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Enviar Convite</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Cadastrar / Convidar Usuário</DialogTitle></DialogHeader>
           <div className="space-y-4 pt-2">
             <div>
-              <Label>Email do convidado</Label>
-              <Input type="email" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} placeholder="email@exemplo.com"
-                onKeyDown={e => e.key === 'Enter' && handleSendInvite()} />
+              <Label>Email *</Label>
+              <Input type="email" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} placeholder="email@exemplo.com" />
             </div>
-            <p className="text-xs text-muted-foreground">O convite expira em 72 horas e é de uso único.</p>
+            <div>
+              <Label>Nome completo</Label>
+              <Input value={inviteName} onChange={e => setInviteName(e.target.value)} placeholder="Nome do usuário" />
+            </div>
+            <div>
+              <Label>Papel</Label>
+              <Select value={inviteRole} onValueChange={v => setInviteRole(v as AppRole)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {isAdmin && <SelectItem value="admin">Admin</SelectItem>}
+                  <SelectItem value="coordinator">Coordenador</SelectItem>
+                  <SelectItem value="viewer">Visualizador</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              O convite será criado e um email será aberto para envio. O usuário poderá acessar com Google/Apple ou criar uma senha.
+            </p>
             <Button onClick={handleSendInvite} className="w-full bg-primary" disabled={inviteSending || !inviteEmail.trim()}>
               <Mail className="h-4 w-4 mr-2" />
               {inviteSending ? 'Enviando...' : 'Enviar Convite'}

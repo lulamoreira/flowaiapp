@@ -1,22 +1,32 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Task, STATUS_CONFIG, PRIORITY_CONFIG, TaskStatus, TaskPriority, Subtask } from '@/types';
+import { Task, STATUS_CONFIG, PRIORITY_CONFIG, TaskStatus, TaskPriority, Subtask, Attachment } from '@/types';
 import { useAppStore } from '@/store/useAppStore';
-import { Plus, Trash2, Paperclip, X } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { Plus, Trash2, Paperclip, X, Upload, Download } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface TaskDetailModalProps {
   task: Task | null;
   onClose: () => void;
 }
 
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
 export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
   const { state, dispatch } = useAppStore();
   const [newSubtask, setNewSubtask] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!task) return null;
 
@@ -41,9 +51,56 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
     update({ subtasks: current.subtasks.filter(s => s.id !== id) });
   };
 
-  const addAttachment = () => {
-    const name = `documento-${Date.now()}.pdf`;
-    update({ attachments: [...current.attachments, { id: `a${Date.now()}`, name, size: '1.2 MB', addedAt: new Date().toISOString().split('T')[0] }] });
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploading(true);
+    const newAttachments: Attachment[] = [];
+
+    for (const file of Array.from(files)) {
+      const filePath = `${current.id}/${Date.now()}_${file.name}`;
+      const { error } = await supabase.storage
+        .from('task-attachments')
+        .upload(filePath, file);
+
+      if (error) {
+        toast.error(`Erro ao enviar ${file.name}: ${error.message}`);
+        continue;
+      }
+
+      const { data: urlData } = supabase.storage
+        .from('task-attachments')
+        .getPublicUrl(filePath);
+
+      newAttachments.push({
+        id: `a${Date.now()}_${Math.random().toString(36).slice(2)}`,
+        name: file.name,
+        size: formatFileSize(file.size),
+        addedAt: new Date().toISOString().split('T')[0],
+        url: urlData.publicUrl,
+      });
+    }
+
+    if (newAttachments.length > 0) {
+      update({ attachments: [...current.attachments, ...newAttachments] });
+      toast.success(`${newAttachments.length} arquivo(s) enviado(s)`);
+    }
+
+    setUploading(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const removeAttachment = async (att: Attachment) => {
+    if (att.url) {
+      // Extract path from URL
+      const urlParts = att.url.split('/task-attachments/');
+      if (urlParts[1]) {
+        await supabase.storage.from('task-attachments').remove([decodeURIComponent(urlParts[1])]);
+      }
+    }
+    update({ attachments: current.attachments.filter(a => a.id !== att.id) });
+    toast.success('Anexo removido');
   };
 
   const assignee = state.users.find(u => u.id === current.assignee);
@@ -161,16 +218,38 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
             <label className="text-xs font-medium text-muted-foreground mb-2 block">Anexos</label>
             <div className="space-y-1.5">
               {current.attachments.map(att => (
-                <div key={att.id} className="flex items-center gap-2 text-sm text-foreground bg-muted/50 rounded px-3 py-1.5">
+                <div key={att.id} className="flex items-center gap-2 text-sm text-foreground bg-muted/50 rounded px-3 py-1.5 group">
                   <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="flex-1">{att.name}</span>
+                  {att.url ? (
+                    <a href={att.url} target="_blank" rel="noopener noreferrer" className="flex-1 hover:underline text-primary">
+                      {att.name}
+                    </a>
+                  ) : (
+                    <span className="flex-1">{att.name}</span>
+                  )}
                   <span className="text-xs text-muted-foreground">{att.size}</span>
+                  <button onClick={() => removeAttachment(att)} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive">
+                    <X className="h-3.5 w-3.5" />
+                  </button>
                 </div>
               ))}
             </div>
-            <Button size="sm" variant="outline" className="mt-2 h-8 text-xs" onClick={addAttachment}>
-              <Paperclip className="h-3.5 w-3.5 mr-1" />
-              Simular anexo
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              className="hidden"
+              onChange={handleFileUpload}
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              className="mt-2 h-8 text-xs gap-1"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+            >
+              <Upload className="h-3.5 w-3.5" />
+              {uploading ? 'Enviando...' : 'Adicionar anexo'}
             </Button>
           </div>
         </div>

@@ -12,6 +12,7 @@ export interface Attachment {
   name: string;
   size: string;
   addedAt: string;
+  url?: string;
 }
 
 export interface Task {
