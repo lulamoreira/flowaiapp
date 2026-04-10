@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { Mail, Lock, Wand2 } from 'lucide-react';
 
 export default function LoginPage() {
+  const { user } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [magicEmail, setMagicEmail] = useState('');
