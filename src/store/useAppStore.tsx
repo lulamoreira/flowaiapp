@@ -170,6 +170,63 @@ export function AppProvider({ children }: { children: ReactNode }) {
     load();
   }, []);
 
+  // Realtime subscriptions
+  useEffect(() => {
+    const channel = supabase
+      .channel('app-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'boards' }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          dispatch({ type: 'SET_STATE', payload: { boards: undefined } }); // trigger re-fetch
+          refetch('boards');
+        } else if (payload.eventType === 'UPDATE') {
+          dispatch({ type: 'SET_STATE', payload: { boards: undefined } });
+          refetch('boards');
+        } else if (payload.eventType === 'DELETE') {
+          dispatch({ type: 'SET_STATE', payload: { boards: undefined } });
+          refetch('boards');
+        }
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'task_groups' }, () => {
+        refetch('groups');
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => {
+        refetch('tasks');
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'automation_rules' }, () => {
+        refetch('automations');
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const refetch = async (type: 'boards' | 'groups' | 'tasks' | 'automations') => {
+    switch (type) {
+      case 'boards': {
+        const { data } = await supabase.from('boards').select('*').order('created_at');
+        if (data) dispatch({ type: 'SET_STATE', payload: { boards: data.map(dbToBoard) } });
+        break;
+      }
+      case 'groups': {
+        const { data } = await supabase.from('task_groups').select('*').order('position');
+        if (data) dispatch({ type: 'SET_STATE', payload: { groups: data.map(dbToGroup) } });
+        break;
+      }
+      case 'tasks': {
+        const { data } = await supabase.from('tasks').select('*').order('created_at');
+        if (data) dispatch({ type: 'SET_STATE', payload: { tasks: data.map(dbToTask) } });
+        break;
+      }
+      case 'automations': {
+        const { data } = await supabase.from('automation_rules').select('*');
+        if (data) dispatch({ type: 'SET_STATE', payload: { automations: data.map(dbToAutomation) } });
+        break;
+      }
+    }
+  };
+
   // DB-syncing dispatch wrapper
   const wrappedDispatch = useCallback((action: Action) => {
     dispatch(action);
