@@ -29,7 +29,9 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
   const { user } = useAuth();
   const [newSubtask, setNewSubtask] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [dragging, setDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const dropRef = useRef<HTMLDivElement>(null);
 
   if (!task) return null;
 
@@ -72,14 +74,12 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
     update({ subtasks: current.subtasks.filter(s => s.id !== id) });
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
+  const uploadFiles = async (files: File[]) => {
+    if (files.length === 0) return;
     setUploading(true);
     const newAttachments: Attachment[] = [];
 
-    for (const file of Array.from(files)) {
+    for (const file of files) {
       const filePath = `${current.id}/${Date.now()}_${file.name}`;
       const { error } = await supabase.storage
         .from('task-attachments')
@@ -110,6 +110,32 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
 
     setUploading(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    await uploadFiles(Array.from(files));
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragging(false);
+    const files = Array.from(e.dataTransfer.files);
+    await uploadFiles(files);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragging(false);
   };
 
   const removeAttachment = async (att: Attachment) => {
@@ -255,6 +281,23 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
                 </div>
               ))}
             </div>
+            <div
+              ref={dropRef}
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onClick={() => !uploading && fileInputRef.current?.click()}
+              className={`mt-2 border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${
+                dragging
+                  ? 'border-primary bg-primary/10'
+                  : 'border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/30'
+              }`}
+            >
+              <Upload className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
+              <p className="text-xs text-muted-foreground">
+                {uploading ? 'Enviando...' : dragging ? 'Solte os arquivos aqui' : 'Arraste arquivos aqui ou clique para selecionar'}
+              </p>
+            </div>
             <input
               ref={fileInputRef}
               type="file"
@@ -262,16 +305,6 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
               className="hidden"
               onChange={handleFileUpload}
             />
-            <Button
-              size="sm"
-              variant="outline"
-              className="mt-2 h-8 text-xs gap-1"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-            >
-              <Upload className="h-3.5 w-3.5" />
-              {uploading ? 'Enviando...' : 'Adicionar anexo'}
-            </Button>
           </div>
         </div>
       </DialogContent>
