@@ -352,6 +352,7 @@ export type Database = {
           due_date: string | null
           group_id: string
           id: string
+          position: number
           priority: string
           status: string
           subtasks: Json
@@ -369,6 +370,7 @@ export type Database = {
           due_date?: string | null
           group_id: string
           id?: string
+          position?: number
           priority?: string
           status?: string
           subtasks?: Json
@@ -386,6 +388,7 @@ export type Database = {
           due_date?: string | null
           group_id?: string
           id?: string
+          position?: number
           priority?: string
           status?: string
           subtasks?: Json
