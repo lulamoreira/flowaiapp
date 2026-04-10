@@ -15,7 +15,26 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [resetMode, setResetMode] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
+  const [showSignup, setShowSignup] = useState(false);
+  const [signupEmail, setSignupEmail] = useState('');
+  const [signupPassword, setSignupPassword] = useState('');
+  const [signupName, setSignupName] = useState('');
 
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    const { error } = await supabase.auth.signUp({
+      email: signupEmail,
+      password: signupPassword,
+      options: {
+        data: { full_name: signupName },
+        emailRedirectTo: window.location.origin,
+      },
+    });
+    if (error) toast.error(error.message);
+    else toast.success('Conta criada com sucesso!');
+    setLoading(false);
+  };
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
