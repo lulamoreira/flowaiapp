@@ -32,6 +32,7 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
   const { state: appState, dispatch } = useAppStore();
+  const { isAdminOrCoordinator, isAdmin, signOut } = useAuth();
   const navigate = useNavigate();
   const [showNewBoard, setShowNewBoard] = useState(false);
   const [newBoardTitle, setNewBoardTitle] = useState('');
