@@ -307,6 +307,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
               created_by: user?.id,
               completed_at: t.completedAt || null,
             });
+            logActivity('Criou tarefa', { task: t.title });
             break;
           }
           case 'UPDATE_TASK': {
