@@ -17,6 +17,7 @@ import RegisterPage from "./pages/RegisterPage.tsx";
 import ResetPasswordPage from "./pages/ResetPasswordPage.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import ProfilePage from "./pages/ProfilePage.tsx";
+import IntakeFormPage from "./pages/IntakeFormPage.tsx";
 
 const queryClient = new QueryClient();
 
