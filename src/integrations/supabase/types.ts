@@ -342,16 +342,18 @@ export type Database = {
       }
       tasks: {
         Row: {
+          actual_end: string | null
+          actual_start: string | null
           assignee: string | null
           attachments: Json
           board_id: string
-          completed_at: string | null
           created_at: string
           created_by: string | null
           description: string
-          due_date: string | null
           group_id: string
           id: string
+          planned_end: string | null
+          planned_start: string | null
           position: number
           priority: string
           status: string
@@ -360,16 +362,18 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          actual_end?: string | null
+          actual_start?: string | null
           assignee?: string | null
           attachments?: Json
           board_id: string
-          completed_at?: string | null
           created_at?: string
           created_by?: string | null
           description?: string
-          due_date?: string | null
           group_id: string
           id?: string
+          planned_end?: string | null
+          planned_start?: string | null
           position?: number
           priority?: string
           status?: string
@@ -378,16 +382,18 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          actual_end?: string | null
+          actual_start?: string | null
           assignee?: string | null
           attachments?: Json
           board_id?: string
-          completed_at?: string | null
           created_at?: string
           created_by?: string | null
           description?: string
-          due_date?: string | null
           group_id?: string
           id?: string
+          planned_end?: string | null
+          planned_start?: string | null
           position?: number
           priority?: string
           status?: string
