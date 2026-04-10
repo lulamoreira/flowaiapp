@@ -1,4 +1,4 @@
-import { LayoutDashboard, BarChart3, Plus, Pencil, Trash2, Star, Shield, LogOut } from 'lucide-react';
+import { LayoutDashboard, BarChart3, Plus, Pencil, Trash2, Star, Shield, LogOut, User } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAppStore } from '@/store/useAppStore';
 import { useAuth } from '@/hooks/useAuth';
@@ -189,11 +189,18 @@ export function AppSidebar() {
             </SidebarGroupContent>
           </SidebarGroup>
 
-          {/* Sign out */}
-          <div className="mt-auto px-4 py-3 border-t border-[#3c4260]">
+          {/* User section */}
+          <div className="mt-auto px-4 py-3 border-t border-[#3c4260] space-y-1">
+            <button
+              onClick={() => navigate('/profile')}
+              className="flex items-center gap-2 text-[#c3c6d4] hover:text-white text-sm w-full transition-colors rounded-md px-1 py-1.5 hover:bg-[#3c4260]"
+            >
+              <User className="h-4 w-4 shrink-0" />
+              {!collapsed && <span>Meu Perfil</span>}
+            </button>
             <button
               onClick={signOut}
-              className="flex items-center gap-2 text-[#9699a8] hover:text-white text-sm w-full transition-colors"
+              className="flex items-center gap-2 text-[#9699a8] hover:text-white text-sm w-full transition-colors px-1 py-1.5"
             >
               <LogOut className="h-4 w-4 shrink-0" />
               {!collapsed && <span>Sair</span>}
