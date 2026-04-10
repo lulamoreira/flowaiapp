@@ -65,6 +65,8 @@ export default function AdminPage() {
   // Invite dialog
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteName, setInviteName] = useState('');
+  const [inviteRole, setInviteRole] = useState<AppRole>('viewer');
   const [inviteSending, setInviteSending] = useState(false);
 
   // Role dialog
