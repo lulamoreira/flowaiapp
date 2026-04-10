@@ -120,6 +120,15 @@ export default function AdminPage() {
     });
   }, [activityLog, logSearch, logUserFilter, logDateFrom, logDateTo, users]);
 
+  // Reset page when filters change
+  useEffect(() => { setLogPage(1); }, [logSearch, logUserFilter, logDateFrom, logDateTo]);
+
+  const logTotalPages = Math.max(1, Math.ceil(filteredActivityLog.length / LOG_PER_PAGE));
+  const paginatedActivityLog = useMemo(() => {
+    const start = (logPage - 1) * LOG_PER_PAGE;
+    return filteredActivityLog.slice(start, start + LOG_PER_PAGE);
+  }, [filteredActivityLog, logPage]);
+
   useEffect(() => {
     if (!loading) return;
     fetchAll();
