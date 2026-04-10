@@ -490,7 +490,61 @@ export default function AdminPage() {
           {isAdminOrCoordinator && (
             <TabsContent value="activity" className="space-y-4">
               <h3 className="text-lg font-semibold text-foreground">Log de Atividades</h3>
-              <div className="bg-card border border-border rounded-xl overflow-hidden max-h-[60vh] overflow-y-auto">
+
+              {/* Filters */}
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="relative flex-1 min-w-[200px] max-w-[280px]">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar ação ou detalhe..."
+                    value={logSearch}
+                    onChange={e => setLogSearch(e.target.value)}
+                    className="pl-9 h-9 bg-muted/50 border-0 text-sm"
+                  />
+                </div>
+                <Select value={logUserFilter} onValueChange={setLogUserFilter}>
+                  <SelectTrigger className="w-[160px] h-9 text-xs">
+                    <SelectValue placeholder="Usuário" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos usuários</SelectItem>
+                    {users.map(u => (
+                      <SelectItem key={u.user_id} value={u.user_id}>{u.full_name || 'Sem nome'}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn("h-9 text-xs gap-1.5 w-[150px] justify-start", !logDateFrom && "text-muted-foreground")}>
+                      <CalendarIcon className="h-3.5 w-3.5" />
+                      {logDateFrom ? format(logDateFrom, 'dd/MM/yyyy') : 'Data início'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={logDateFrom} onSelect={setLogDateFrom} initialFocus className={cn("p-3 pointer-events-auto")} locale={ptBR} />
+                  </PopoverContent>
+                </Popover>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn("h-9 text-xs gap-1.5 w-[150px] justify-start", !logDateTo && "text-muted-foreground")}>
+                      <CalendarIcon className="h-3.5 w-3.5" />
+                      {logDateTo ? format(logDateTo, 'dd/MM/yyyy') : 'Data fim'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={logDateTo} onSelect={setLogDateTo} initialFocus className={cn("p-3 pointer-events-auto")} locale={ptBR} />
+                  </PopoverContent>
+                </Popover>
+                {(logSearch || logUserFilter !== 'all' || logDateFrom || logDateTo) && (
+                  <Button variant="ghost" size="sm" className="h-9 text-xs gap-1" onClick={() => { setLogSearch(''); setLogUserFilter('all'); setLogDateFrom(undefined); setLogDateTo(undefined); }}>
+                    <X className="h-3.5 w-3.5" /> Limpar
+                  </Button>
+                )}
+              </div>
+
+              <div className="text-xs text-muted-foreground">{filteredActivityLog.length} registro(s)</div>
+
+              <div className="bg-card border border-border rounded-xl overflow-hidden max-h-[55vh] overflow-y-auto">
                 <table className="w-full text-sm">
                   <thead className="sticky top-0 bg-card z-10">
                     <tr className="border-b border-border bg-muted/50">
@@ -501,7 +555,7 @@ export default function AdminPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {activityLog.map(log => {
+                    {filteredActivityLog.map(log => {
                       const logUser = users.find(u => u.user_id === log.user_id);
                       return (
                         <tr key={log.id} className="border-b border-border last:border-0 hover:bg-muted/30">
@@ -518,8 +572,8 @@ export default function AdminPage() {
                         </tr>
                       );
                     })}
-                    {activityLog.length === 0 && (
-                      <tr><td colSpan={4} className="p-6 text-center text-muted-foreground">Nenhuma atividade registrada</td></tr>
+                    {filteredActivityLog.length === 0 && (
+                      <tr><td colSpan={4} className="p-6 text-center text-muted-foreground">Nenhuma atividade encontrada</td></tr>
                     )}
                   </tbody>
                 </table>
