@@ -281,6 +281,23 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
                 </div>
               ))}
             </div>
+            <div
+              ref={dropRef}
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onClick={() => !uploading && fileInputRef.current?.click()}
+              className={`mt-2 border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${
+                dragging
+                  ? 'border-primary bg-primary/10'
+                  : 'border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/30'
+              }`}
+            >
+              <Upload className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
+              <p className="text-xs text-muted-foreground">
+                {uploading ? 'Enviando...' : dragging ? 'Solte os arquivos aqui' : 'Arraste arquivos aqui ou clique para selecionar'}
+              </p>
+            </div>
             <input
               ref={fileInputRef}
               type="file"
@@ -288,16 +305,6 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
               className="hidden"
               onChange={handleFileUpload}
             />
-            <Button
-              size="sm"
-              variant="outline"
-              className="mt-2 h-8 text-xs gap-1"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-            >
-              <Upload className="h-3.5 w-3.5" />
-              {uploading ? 'Enviando...' : 'Adicionar anexo'}
-            </Button>
           </div>
         </div>
       </DialogContent>
