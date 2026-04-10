@@ -5,10 +5,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Progress } from '@/components/ui/progress';
 import { Task, STATUS_CONFIG, PRIORITY_CONFIG, TaskStatus, TaskPriority, Subtask, Attachment } from '@/types';
 import { useAppStore } from '@/store/useAppStore';
 import { supabase } from '@/integrations/supabase/client';
-import { Plus, Trash2, Paperclip, X, Upload, Download } from 'lucide-react';
+import { Plus, Trash2, Paperclip, X, Upload, ChevronDown, ChevronRight, Sparkles } from 'lucide-react';
 import { createNotification } from '@/lib/notifications';
 import { useAuth } from '@/hooks/useAuth';
 import { TaskComments } from '@/components/task/TaskComments';
@@ -32,6 +33,8 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
   const [newSubtask, setNewSubtask] = useState('');
   const [uploading, setUploading] = useState(false);
   const [dragging, setDragging] = useState(false);
+  const [expandingDesc, setExpandingDesc] = useState(false);
+  const [showSubtaskDetails, setShowSubtaskDetails] = useState<Record<string, boolean>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropRef = useRef<HTMLDivElement>(null);
 
@@ -48,7 +51,6 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
     const previousAssignee = current.assignee;
     update({ assignee: actualId });
 
-    // Notify the new assignee (if different from current user)
     if (actualId && actualId !== previousAssignee && actualId !== user?.id) {
       const board = state.boards.find(b => b.id === current.boardId);
       const assignerName = state.users.find(u => u.id === user?.id)?.name || 'Alguém';
@@ -61,20 +63,40 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
     }
   };
 
+  // Enhanced subtask with assignee, due date, status
   const addSubtask = () => {
     if (!newSubtask.trim()) return;
-    const sub: Subtask = { id: `s${Date.now()}`, title: newSubtask.trim(), completed: false };
+    const sub: Subtask & { assignee?: string; dueDate?: string; status?: string } = {
+      id: `s${Date.now()}`,
+      title: newSubtask.trim(),
+      completed: false,
+    };
     update({ subtasks: [...current.subtasks, sub] });
     setNewSubtask('');
   };
 
   const toggleSubtask = (id: string) => {
-    update({ subtasks: current.subtasks.map(s => s.id === id ? { ...s, completed: !s.completed } : s) });
+    update({
+      subtasks: current.subtasks.map(s =>
+        s.id === id ? { ...s, completed: !s.completed } : s
+      ),
+    });
+  };
+
+  const updateSubtask = (id: string, updates: Partial<Subtask & { assignee?: string; dueDate?: string; status?: string }>) => {
+    update({
+      subtasks: current.subtasks.map(s =>
+        s.id === id ? { ...s, ...updates } : s
+      ),
+    });
   };
 
   const removeSubtask = (id: string) => {
     update({ subtasks: current.subtasks.filter(s => s.id !== id) });
   };
+
+  const completedSubtasks = current.subtasks.filter(s => s.completed).length;
+  const subtaskProgress = current.subtasks.length > 0 ? (completedSubtasks / current.subtasks.length) * 100 : 0;
 
   const uploadFiles = async (files: File[]) => {
     if (files.length === 0) return;
@@ -83,19 +105,9 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
 
     for (const file of files) {
       const filePath = `${current.id}/${Date.now()}_${file.name}`;
-      const { error } = await supabase.storage
-        .from('task-attachments')
-        .upload(filePath, file);
-
-      if (error) {
-        toast.error(`Erro ao enviar ${file.name}: ${error.message}`);
-        continue;
-      }
-
-      const { data: urlData } = supabase.storage
-        .from('task-attachments')
-        .getPublicUrl(filePath);
-
+      const { error } = await supabase.storage.from('task-attachments').upload(filePath, file);
+      if (error) { toast.error(`Erro ao enviar ${file.name}: ${error.message}`); continue; }
+      const { data: urlData } = supabase.storage.from('task-attachments').getPublicUrl(filePath);
       newAttachments.push({
         id: `a${Date.now()}_${Math.random().toString(36).slice(2)}`,
         name: file.name,
@@ -109,7 +121,6 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
       update({ attachments: [...current.attachments, ...newAttachments] });
       toast.success(`${newAttachments.length} arquivo(s) enviado(s)`);
     }
-
     setUploading(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
@@ -121,38 +132,38 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
   };
 
   const handleDrop = async (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragging(false);
-    const files = Array.from(e.dataTransfer.files);
-    await uploadFiles(files);
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragging(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragging(false);
+    e.preventDefault(); e.stopPropagation(); setDragging(false);
+    await uploadFiles(Array.from(e.dataTransfer.files));
   };
 
   const removeAttachment = async (att: Attachment) => {
     if (att.url) {
-      // Extract path from URL
       const urlParts = att.url.split('/task-attachments/');
-      if (urlParts[1]) {
-        await supabase.storage.from('task-attachments').remove([decodeURIComponent(urlParts[1])]);
-      }
+      if (urlParts[1]) await supabase.storage.from('task-attachments').remove([decodeURIComponent(urlParts[1])]);
     }
     update({ attachments: current.attachments.filter(a => a.id !== att.id) });
     toast.success('Anexo removido');
   };
 
-  const assignee = state.users.find(u => u.id === current.assignee);
+  // AI expand description
+  const handleExpandWithAI = async () => {
+    if (!current.title) return;
+    setExpandingDesc(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-expand-description', {
+        body: { title: current.title, description: current.description },
+      });
+      if (data?.expanded) {
+        update({ description: data.expanded });
+        toast.success('Descrição expandida com IA');
+      } else {
+        toast.error('Não foi possível expandir a descrição');
+      }
+    } catch {
+      toast.error('Erro ao conectar com IA');
+    }
+    setExpandingDesc(false);
+  };
 
   return (
     <Dialog open={!!task} onOpenChange={() => onClose()}>
@@ -172,7 +183,7 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Status</label>
-              <Select value={current.status} onValueChange={v => update({ status: v as TaskStatus, ...(v === 'done' ? { completedAt: new Date().toISOString().split('T')[0] } : { completedAt: undefined }) })}>
+              <Select value={current.status} onValueChange={v => update({ status: v as TaskStatus })}>
                 <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {Object.entries(STATUS_CONFIG).map(([k, v]) => (
@@ -235,9 +246,21 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
             </div>
           </div>
 
-          {/* Description */}
+          {/* Description with AI expand */}
           <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">Descrição</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-xs font-medium text-muted-foreground">Descrição</label>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 text-[10px] gap-1"
+                onClick={handleExpandWithAI}
+                disabled={expandingDesc}
+              >
+                <Sparkles className="h-3 w-3" />
+                {expandingDesc ? 'Expandindo...' : 'Expandir com IA'}
+              </Button>
+            </div>
             <Textarea
               value={current.description}
               onChange={e => update({ description: e.target.value })}
@@ -246,21 +269,66 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
             />
           </div>
 
-          {/* Subtasks */}
+          {/* Subtasks with hierarchy */}
           <div>
-            <label className="text-xs font-medium text-muted-foreground mb-2 block">
-              Subtarefas ({current.subtasks.filter(s => s.completed).length}/{current.subtasks.length})
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">
+              Subtarefas ({completedSubtasks}/{current.subtasks.length})
             </label>
-            <div className="space-y-1.5">
-              {current.subtasks.map(sub => (
-                <div key={sub.id} className="flex items-center gap-2 group">
-                  <Checkbox checked={sub.completed} onCheckedChange={() => toggleSubtask(sub.id)} />
-                  <span className={`text-sm flex-1 ${sub.completed ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
-                    {sub.title}
-                  </span>
-                  <button onClick={() => removeSubtask(sub.id)} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive">
-                    <X className="h-3.5 w-3.5" />
-                  </button>
+            {current.subtasks.length > 0 && (
+              <Progress value={subtaskProgress} className="h-1.5 mb-2" />
+            )}
+            <div className="space-y-1">
+              {current.subtasks.map((sub: any) => (
+                <div key={sub.id} className="group">
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => setShowSubtaskDetails(prev => ({ ...prev, [sub.id]: !prev[sub.id] }))} className="text-muted-foreground">
+                      {showSubtaskDetails[sub.id] ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                    </button>
+                    <Checkbox checked={sub.completed} onCheckedChange={() => toggleSubtask(sub.id)} />
+                    <span className={`text-sm flex-1 ${sub.completed ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
+                      {sub.title}
+                    </span>
+                    {sub.assignee && (
+                      <span className="text-[10px] text-muted-foreground bg-muted rounded px-1.5 py-0.5">
+                        {state.users.find(u => u.id === sub.assignee)?.name?.split(' ')[0] || ''}
+                      </span>
+                    )}
+                    {sub.dueDate && (
+                      <span className="text-[10px] text-muted-foreground">{sub.dueDate?.substring(0, 10)}</span>
+                    )}
+                    <button onClick={() => removeSubtask(sub.id)} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive">
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  {showSubtaskDetails[sub.id] && (
+                    <div className="ml-8 mt-1 mb-2 grid grid-cols-3 gap-2">
+                      <div>
+                        <label className="text-[10px] text-muted-foreground">Responsável</label>
+                        <Select value={sub.assignee || 'none'} onValueChange={v => updateSubtask(sub.id, { assignee: v === 'none' ? undefined : v })}>
+                          <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Nenhum</SelectItem>
+                            {state.users.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-muted-foreground">Entrega</label>
+                        <Input type="date" value={sub.dueDate || ''} onChange={e => updateSubtask(sub.id, { dueDate: e.target.value || undefined })} className="h-7 text-xs" />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-muted-foreground">Status</label>
+                        <Select value={sub.status || 'pending'} onValueChange={v => updateSubtask(sub.id, { status: v, completed: v === 'done' })}>
+                          <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pending">Pendente</SelectItem>
+                            <SelectItem value="working">Trabalhando</SelectItem>
+                            <SelectItem value="done">Concluído</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -286,22 +354,15 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
                 const isImage = /\.(jpe?g|png|gif|webp)$/i.test(att.name);
                 return (
                   <div key={att.id} className="relative group">
-                    {isImage && att.url ? (
+                    {isImage && att.url && (
                       <a href={att.url} target="_blank" rel="noopener noreferrer" className="block">
-                        <img
-                          src={att.url}
-                          alt={att.name}
-                          className="w-full max-h-48 object-cover rounded-md border border-border"
-                          loading="lazy"
-                        />
+                        <img src={att.url} alt={att.name} className="w-full max-h-48 object-cover rounded-md border border-border" loading="lazy" />
                       </a>
-                    ) : null}
+                    )}
                     <div className="flex items-center gap-2 text-sm text-foreground bg-muted/50 rounded px-3 py-1.5">
                       <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
                       {att.url ? (
-                        <a href={att.url} target="_blank" rel="noopener noreferrer" className="flex-1 hover:underline text-primary truncate">
-                          {att.name}
-                        </a>
+                        <a href={att.url} target="_blank" rel="noopener noreferrer" className="flex-1 hover:underline text-primary truncate">{att.name}</a>
                       ) : (
                         <span className="flex-1 truncate">{att.name}</span>
                       )}
@@ -317,27 +378,17 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
             <div
               ref={dropRef}
               onDrop={handleDrop}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
+              onDragOver={e => { e.preventDefault(); e.stopPropagation(); setDragging(true); }}
+              onDragLeave={e => { e.preventDefault(); e.stopPropagation(); setDragging(false); }}
               onClick={() => !uploading && fileInputRef.current?.click()}
-              className={`mt-2 border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${
-                dragging
-                  ? 'border-primary bg-primary/10'
-                  : 'border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/30'
-              }`}
+              className={`mt-2 border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${dragging ? 'border-primary bg-primary/10' : 'border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/30'}`}
             >
               <Upload className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
               <p className="text-xs text-muted-foreground">
-                {uploading ? 'Enviando...' : dragging ? 'Solte os arquivos aqui' : 'Arraste arquivos aqui ou clique para selecionar'}
+                {uploading ? 'Enviando...' : dragging ? 'Solte os arquivos aqui' : 'Arraste arquivos ou clique para selecionar'}
               </p>
             </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              className="hidden"
-              onChange={handleFileUpload}
-            />
+            <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileUpload} />
           </div>
 
           {/* Time Tracking */}
@@ -346,11 +397,9 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
           {/* Comments */}
           <TaskComments taskId={current.id} />
 
-          {/* Close button */}
+          {/* Close */}
           <div className="flex justify-end pt-4 border-t border-border mt-4">
-            <Button variant="outline" onClick={onClose}>
-              Fechar
-            </Button>
+            <Button variant="outline" onClick={onClose}>Fechar</Button>
           </div>
         </div>
       </DialogContent>

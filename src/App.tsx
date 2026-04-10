@@ -17,6 +17,7 @@ import RegisterPage from "./pages/RegisterPage.tsx";
 import ResetPasswordPage from "./pages/ResetPasswordPage.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import ProfilePage from "./pages/ProfilePage.tsx";
+import IntakeFormPage from "./pages/IntakeFormPage.tsx";
 
 const queryClient = new QueryClient();
 
@@ -33,6 +34,7 @@ const App = () => (
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
+              <Route path="/form" element={<IntakeFormPage />} />
 
               {/* Protected routes */}
               <Route path="/*" element={

@@ -5,15 +5,17 @@ import { BoardTable } from '@/components/board/BoardTable';
 import { BoardKanban } from '@/components/board/BoardKanban';
 import { BoardCalendar } from '@/components/board/BoardCalendar';
 import { BoardCharts } from '@/components/board/BoardCharts';
+import { BoardGantt } from '@/components/board/BoardGantt';
+import { BoardWorkload } from '@/components/board/BoardWorkload';
 import { AutomationPanel } from '@/components/automation/AutomationPanel';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { BarChart3, Zap, Table, Columns3, Plus, Pencil, Check, X, CalendarDays } from 'lucide-react';
+import { Zap, Table, Columns3, Plus, Pencil, Check, X, CalendarDays, GanttChart, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 
-type ViewMode = 'table' | 'kanban' | 'calendar' | 'automation';
+type ViewMode = 'table' | 'kanban' | 'calendar' | 'gantt' | 'workload' | 'automation';
 
 const BoardPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -57,7 +59,9 @@ const BoardPage = () => {
   const tabs: { key: ViewMode; label: string; icon: React.ReactNode }[] = [
     { key: 'table', label: 'Tabela', icon: <Table className="h-3.5 w-3.5 mr-1" /> },
     { key: 'kanban', label: 'Kanban', icon: <Columns3 className="h-3.5 w-3.5 mr-1" /> },
+    { key: 'gantt', label: 'Linha do Tempo', icon: <GanttChart className="h-3.5 w-3.5 mr-1" /> },
     { key: 'calendar', label: 'Calendário', icon: <CalendarDays className="h-3.5 w-3.5 mr-1" /> },
+    { key: 'workload', label: 'Equipe', icon: <Users className="h-3.5 w-3.5 mr-1" /> },
     { key: 'automation', label: 'Automações', icon: <Zap className="h-3.5 w-3.5 mr-1" /> },
   ];
 
@@ -114,7 +118,7 @@ const BoardPage = () => {
           )}
         </div>
 
-        <div className="flex items-center gap-2 mb-5">
+        <div className="flex items-center gap-2 mb-5 flex-wrap">
           {tabs.map(tab => (
             <Button
               key={tab.key}
@@ -142,7 +146,9 @@ const BoardPage = () => {
           </div>
         )}
         {view === 'kanban' && <BoardKanban boardId={board.id} />}
+        {view === 'gantt' && <BoardGantt boardId={board.id} />}
         {view === 'calendar' && <BoardCalendar boardId={board.id} />}
+        {view === 'workload' && <BoardWorkload boardId={board.id} />}
         {view === 'automation' && <AutomationPanel boardId={board.id} />}
       </main>
     </div>
