@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { Header } from '@/components/layout/Header';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { logActivity } from '@/lib/activityLog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -66,6 +67,7 @@ const ProfilePage = () => {
       if (updateError) throw updateError;
 
       await refreshProfile();
+      logActivity('Alterou avatar');
       toast.success('Avatar atualizado!');
     } catch (err: any) {
       toast.error('Erro ao enviar avatar: ' + err.message);
@@ -88,6 +90,7 @@ const ProfilePage = () => {
 
       if (error) throw error;
       await refreshProfile();
+      logActivity('Alterou perfil', { fullName: fullName.trim(), dateOfBirth: dateOfBirth || null });
       toast.success('Perfil atualizado com sucesso!');
     } catch (err: any) {
       toast.error('Erro ao salvar: ' + err.message);
