@@ -418,6 +418,53 @@ export type Database = {
           },
         ]
       }
+      time_entries: {
+        Row: {
+          created_at: string
+          description: string
+          duration_seconds: number
+          ended_at: string | null
+          entry_type: string
+          id: string
+          started_at: string | null
+          task_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          duration_seconds?: number
+          ended_at?: string | null
+          entry_type?: string
+          id?: string
+          started_at?: string | null
+          task_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          duration_seconds?: number
+          ended_at?: string | null
+          entry_type?: string
+          id?: string
+          started_at?: string | null
+          task_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_entries_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_custom_functions: {
         Row: {
           assigned_at: string
