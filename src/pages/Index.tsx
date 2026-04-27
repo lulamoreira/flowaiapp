@@ -9,6 +9,7 @@ import { useMemo } from 'react';
 import { toast } from 'sonner';
 import { useDeadlineNotifier } from '@/hooks/useDeadlineNotifier';
 import { useAuth } from '@/hooks/useAuth';
+import { TeamTimelineWidget } from '@/components/home/TeamTimelineWidget';
 
 const Index = () => {
   const { state, dispatch } = useAppStore();
@@ -158,6 +159,9 @@ const Index = () => {
               </div>
             ))}
           </div>
+
+          {/* Linha do tempo da equipe */}
+          <TeamTimelineWidget />
 
           {/* Favoritos */}
           {favoriteBoards.length > 0 && (
