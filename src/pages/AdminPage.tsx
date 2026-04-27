@@ -293,6 +293,22 @@ export default function AdminPage() {
     fetchAll();
   };
 
+  const handleDeleteInvitation = async (inv: Invitation) => {
+    if (inv.status !== 'pending') {
+      toast.error('Apenas convites pendentes podem ser excluídos.');
+      return;
+    }
+    const label = inv.email || (inv as any).invited_name || 'este convite';
+    if (!confirm(`Excluir o convite de ${label}? O link deixará de funcionar.`)) return;
+    const { error } = await supabase.from('invitations').delete().eq('id', inv.id);
+    if (error) {
+      toast.error('Erro ao excluir convite: ' + error.message);
+      return;
+    }
+    toast.success('Convite excluído. O link não funciona mais.');
+    fetchAll();
+  };
+
   const handleAssignFunction = async () => {
     if (!assignUserId || !assignFuncId || !user) return;
     
