@@ -92,19 +92,17 @@ export default function RegisterPage() {
         }).eq('user_id', authData.user.id);
       }
 
-      // Mark invitation as accepted
-      await supabase.from('invitations').update({
-        status: 'accepted' as const,
-        accepted_at: new Date().toISOString(),
-      }).eq('id', invitation.id);
+    }
 
-      // Create notification for inviter
-      await supabase.from('notifications').insert({
-        user_id: invitation.invited_by,
-        title: 'Novo cadastro',
-        message: `${fullName} acabou de se cadastrar com seu convite.`,
-        link: `/admin`,
-      });
+    // Mark invitation as accepted via SECURITY DEFINER RPC.
+    // This works even if the user has no active session yet (email confirmation enabled).
+    // The DB trigger `notify_invitation_accepted` will create the notification for the inviter.
+    const { error: acceptError } = await supabase.rpc('accept_invitation_by_token', {
+      _token: token!,
+      _accepted_user_id: authData.user?.id ?? null,
+    });
+    if (acceptError) {
+      console.error('Failed to mark invitation as accepted:', acceptError);
     }
 
     toast.success('Cadastro realizado com sucesso!');
