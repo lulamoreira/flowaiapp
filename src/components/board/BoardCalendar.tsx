@@ -11,6 +11,7 @@ import {
 import { ptBR } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useScopedTasks } from '@/hooks/useScopedTasks';
 
 interface BoardCalendarProps {
   boardId: string;
