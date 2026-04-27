@@ -3,6 +3,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { parseISO, startOfDay, addDays, differenceInDays, format, isWithinInterval, startOfWeek, addWeeks } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Input } from '@/components/ui/input';
+import { useScopedTasks } from '@/hooks/useScopedTasks';
 
 interface BoardWorkloadProps {
   boardId: string;
