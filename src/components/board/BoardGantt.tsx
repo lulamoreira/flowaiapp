@@ -24,7 +24,11 @@ export function BoardGantt({ boardId }: BoardGanttProps) {
   const [dragging, setDragging] = useState<{ taskId: string; edge: 'start' | 'end' | 'move'; startX: number; origStart: string; origEnd: string } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const tasks = state.tasks.filter(t => t.boardId === boardId);
+  const { filterTasks } = useScopedTasks();
+  const tasks = useMemo(
+    () => filterTasks(state.tasks.filter(t => t.boardId === boardId)),
+    [state.tasks, boardId, filterTasks]
+  );
   const groups = state.groups.filter(g => g.boardId === boardId);
 
   const today = startOfDay(new Date());
