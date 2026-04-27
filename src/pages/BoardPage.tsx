@@ -116,11 +116,13 @@ const BoardPage = () => {
             </div>
           ) : (
             <p
-              className="text-sm text-muted-foreground cursor-pointer hover:text-foreground transition-colors group/desc flex items-center gap-1"
-              onClick={() => { setDescDraft(board.description); setEditingDesc(true); }}
+              className={`text-sm text-muted-foreground transition-colors group/desc flex items-center gap-1 ${canEditBoard ? 'cursor-pointer hover:text-foreground' : ''}`}
+              onClick={() => { if (canEditBoard) { setDescDraft(board.description); setEditingDesc(true); } }}
             >
-              {board.description || 'Clique para adicionar uma descrição...'}
-              <Pencil className="h-3 w-3 opacity-0 group-hover/desc:opacity-100 transition-opacity" />
+              {board.description || (canEditBoard ? 'Clique para adicionar uma descrição...' : 'Sem descrição')}
+              {canEditBoard && (
+                <Pencil className="h-3 w-3 opacity-0 group-hover/desc:opacity-100 transition-opacity" />
+              )}
             </p>
           )}
         </div>
