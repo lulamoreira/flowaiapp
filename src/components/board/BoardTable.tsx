@@ -8,6 +8,7 @@ import { SearchFilterBar } from './SearchFilterBar';
 import { TaskDetailModal } from '@/components/task/TaskDetailModal';
 import { toast } from 'sonner';
 import { GripVertical } from 'lucide-react';
+import { usePermissions } from '@/hooks/usePermissions';
 
 interface BoardTableProps {
   boardId: string;
