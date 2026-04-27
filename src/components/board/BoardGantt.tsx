@@ -6,6 +6,7 @@ import { ptBR } from 'date-fns/locale';
 import { TaskDetailModal } from '@/components/task/TaskDetailModal';
 import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useScopedTasks } from '@/hooks/useScopedTasks';
 
 interface BoardGanttProps {
   boardId: string;
