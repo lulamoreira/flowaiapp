@@ -24,9 +24,10 @@ export function BoardCalendar({ boardId }: BoardCalendarProps) {
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [dragOverDate, setDragOverDate] = useState<string | null>(null);
 
+  const { filterTasks } = useScopedTasks();
   const tasks = useMemo(
-    () => state.tasks.filter(t => t.boardId === boardId && t.plannedEnd),
-    [state.tasks, boardId]
+    () => filterTasks(state.tasks.filter(t => t.boardId === boardId && t.plannedEnd)),
+    [state.tasks, boardId, filterTasks]
   );
 
   const monthStart = startOfMonth(currentMonth);
