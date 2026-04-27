@@ -314,6 +314,7 @@ export default function AdminPage() {
     switch (role) {
       case 'admin': return 'Admin';
       case 'coordinator': return 'Coordenador';
+      case 'user': return 'Usuário';
       case 'viewer': return 'Visualizador';
     }
   };
@@ -322,6 +323,7 @@ export default function AdminPage() {
     switch (role) {
       case 'admin': return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
       case 'coordinator': return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400';
+      case 'user': return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
       case 'viewer': return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
     }
   };
@@ -668,6 +670,7 @@ export default function AdminPage() {
                 <SelectContent>
                   {isAdmin && <SelectItem value="admin">Admin</SelectItem>}
                   <SelectItem value="coordinator">Coordenador</SelectItem>
+                  <SelectItem value="user">Usuário</SelectItem>
                   <SelectItem value="viewer">Visualizador</SelectItem>
                 </SelectContent>
               </Select>
@@ -694,6 +697,7 @@ export default function AdminPage() {
               <SelectContent>
                 {isAdmin && <SelectItem value="admin">Admin</SelectItem>}
                 <SelectItem value="coordinator">Coordenador</SelectItem>
+                <SelectItem value="user">Usuário</SelectItem>
                 <SelectItem value="viewer">Visualizador</SelectItem>
               </SelectContent>
             </Select>
