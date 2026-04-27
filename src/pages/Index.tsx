@@ -226,6 +226,57 @@ const Index = () => {
           </div>
         </div>
       </main>
+
+      {/* Lista de tarefas atribuídas (clicando nos cards) */}
+      <Dialog open={openListStatus !== null} onOpenChange={(o) => { if (!o) setOpenListStatus(null); }}>
+        <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>{listTitle}</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto -mx-6 px-6">
+            {listedTasks.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-8 text-center">Nenhuma tarefa nesta categoria.</p>
+            ) : (
+              <ul className="divide-y divide-border">
+                {listedTasks.map(task => {
+                  const board = state.boards.find(b => b.id === task.boardId);
+                  const statusCfg = STATUS_CONFIG[task.status];
+                  const prioCfg = PRIORITY_CONFIG[task.priority];
+                  return (
+                    <li key={task.id}>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedTask(task)}
+                        className="w-full text-left py-3 px-2 rounded-md hover:bg-muted/50 transition-colors flex items-start gap-3"
+                      >
+                        <span
+                          className="mt-1 inline-block w-2 h-2 rounded-full shrink-0"
+                          style={{ backgroundColor: statusCfg.color }}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium text-foreground truncate">{task.title}</div>
+                          <div className="text-xs text-muted-foreground flex items-center gap-2 mt-0.5 flex-wrap">
+                            {board && <span>📋 {board.title}</span>}
+                            <span style={{ color: statusCfg.color }}>● {statusCfg.label}</span>
+                            <span style={{ color: prioCfg.color }}>● {prioCfg.label}</span>
+                            {task.plannedEnd && (
+                              <span>📅 {format(parseISO(task.plannedEnd), 'dd/MM/yyyy', { locale: ptBR })}</span>
+                            )}
+                          </div>
+                        </div>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {selectedTask && (
+        <TaskDetailModal task={selectedTask} onClose={() => setSelectedTask(null)} />
+      )}
     </div>
   );
 };
