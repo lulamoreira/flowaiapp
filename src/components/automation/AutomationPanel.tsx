@@ -7,6 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Zap, Plus, Trash2 } from 'lucide-react';
+import { usePermissions } from '@/hooks/usePermissions';
 
 interface AutomationPanelProps {
   boardId: string;
