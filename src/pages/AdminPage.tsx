@@ -143,15 +143,13 @@ export default function AdminPage() {
     }
   }, [isAdminOrCoordinator]);
 
-  const fetchAll = async () => {
-    setLoading(true);
-    
+  const fetchAll = useCallback(async () => {
     // Fetch profiles
     const { data: profiles } = await supabase.from('profiles').select('*');
-    
+
     // Fetch roles
     const { data: roles } = await supabase.from('user_roles').select('*');
-    
+
     // Merge
     const usersWithRoles: UserWithRole[] = (profiles || []).map(p => ({
       user_id: p.user_id,
@@ -186,7 +184,23 @@ export default function AdminPage() {
     }
 
     setLoading(false);
-  };
+  }, [isAdminOrCoordinator]);
+
+  // 🔴 Realtime: refresh whenever any admin-relevant table changes (debounced).
+  // Safe for forms — only triggers data refetch, never touches input state.
+  useRealtimeRefresh(
+    [
+      'invitations',
+      'profiles',
+      'user_roles',
+      'custom_functions',
+      'function_permissions',
+      'user_custom_functions',
+      'activity_log',
+    ],
+    fetchAll,
+    { channelName: 'admin-page-rt' }
+  );
 
   const handleSendInvite = async () => {
     if (!inviteEmail.trim() || !user) return;
