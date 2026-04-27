@@ -46,7 +46,14 @@ export function InviteDialog({ open, onOpenChange }: InviteDialogProps) {
         .select('token')
         .single();
       if (error) throw error;
-      const link = `${window.location.origin}/register?token=${data.token}`;
+      // Always use the published public URL for invite links — the preview URL
+      // (lovableproject.com) shows a Lovable login wall to non-collaborators,
+      // which causes invitees to register on Lovable instead of FlowAI.
+      const PUBLIC_BASE_URL = 'https://flowaiapp.lovable.app';
+      const isPreview = window.location.hostname.includes('lovableproject.com')
+        || window.location.hostname.includes('lovable.dev');
+      const baseUrl = isPreview ? PUBLIC_BASE_URL : window.location.origin;
+      const link = `${baseUrl}/register?token=${data.token}`;
       setGeneratedLink(link);
       toast.success(`Link gerado para ${name}`);
     } catch (err: any) {
