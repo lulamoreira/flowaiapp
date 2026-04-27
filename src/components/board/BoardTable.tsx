@@ -8,6 +8,7 @@ import { SearchFilterBar } from './SearchFilterBar';
 import { TaskDetailModal } from '@/components/task/TaskDetailModal';
 import { toast } from 'sonner';
 import { GripVertical } from 'lucide-react';
+import { usePermissions } from '@/hooks/usePermissions';
 
 interface BoardTableProps {
   boardId: string;
@@ -15,6 +16,9 @@ interface BoardTableProps {
 
 export function BoardTable({ boardId }: BoardTableProps) {
   const { state, dispatch } = useAppStore();
+  const { canEdit, canDelete } = usePermissions();
+  const canEditTasks = canEdit('tasks');
+  const canDeleteTasks = canDelete('tasks');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
@@ -209,11 +213,11 @@ export function BoardTable({ boardId }: BoardTableProps) {
             >
               <div className="flex items-center">
                 <div
-                  draggable
-                  onDragStart={e => handleGroupDragStart(e, group.id)}
+                  draggable={canEditTasks}
+                  onDragStart={e => canEditTasks && handleGroupDragStart(e, group.id)}
                   onDragEnd={handleDragEnd}
-                  className="px-1 py-2 cursor-grab hover:bg-muted/50 rounded-l-lg transition-colors self-stretch flex items-center"
-                  title="Arrastar para reordenar grupo"
+                  className={`px-1 py-2 rounded-l-lg transition-colors self-stretch flex items-center ${canEditTasks ? 'cursor-grab hover:bg-muted/50' : 'opacity-30'}`}
+                  title={canEditTasks ? 'Arrastar para reordenar grupo' : ''}
                 >
                   <GripVertical className="h-4 w-4 text-muted-foreground/50" />
                 </div>
@@ -222,9 +226,9 @@ export function BoardTable({ boardId }: BoardTableProps) {
                     group={group}
                     taskCount={groupTasks.length}
                     onToggle={() => dispatch({ type: 'TOGGLE_GROUP', payload: group.id })}
-                    onAddTask={() => addTask(group.id)}
-                    onRename={(title) => { dispatch({ type: 'UPDATE_GROUP', payload: { ...group, title } }); toast.success(`Grupo renomeado para "${title}"`); }}
-                    onDelete={() => { dispatch({ type: 'DELETE_GROUP', payload: group.id }); toast.success(`Grupo "${group.title}" excluído`); }}
+                    onAddTask={canEditTasks ? () => addTask(group.id) : undefined}
+                    onRename={canEditTasks ? (title) => { dispatch({ type: 'UPDATE_GROUP', payload: { ...group, title } }); toast.success(`Grupo renomeado para "${title}"`); } : undefined}
+                    onDelete={canDeleteTasks ? () => { dispatch({ type: 'DELETE_GROUP', payload: group.id }); toast.success(`Grupo "${group.title}" excluído`); } : undefined}
                   />
                 </div>
               </div>
@@ -234,8 +238,8 @@ export function BoardTable({ boardId }: BoardTableProps) {
                   task={task}
                   groupColor={group.color}
                   onClick={() => setSelectedTask(task)}
-                  draggable
-                  onDragStart={e => handleDragStart(e, task.id)}
+                  draggable={canEditTasks}
+                  onDragStart={canEditTasks ? e => handleDragStart(e, task.id) : undefined}
                   onDragEnd={handleDragEnd}
                   isDragging={draggedTaskId === task.id}
                 />

@@ -14,6 +14,7 @@ import { Zap, Table, Columns3, Plus, Pencil, Check, X, CalendarDays, GanttChart,
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { usePermissions } from '@/hooks/usePermissions';
 
 type ViewMode = 'table' | 'kanban' | 'calendar' | 'gantt' | 'workload' | 'automation';
 
@@ -26,6 +27,10 @@ const BoardPage = () => {
   const [editingDesc, setEditingDesc] = useState(false);
   const [titleDraft, setTitleDraft] = useState(board?.title ?? '');
   const [descDraft, setDescDraft] = useState(board?.description ?? '');
+  const { canEdit, canDelete } = usePermissions();
+  const canEditBoard = canEdit('boards');
+  const canEditTasks = canEdit('tasks');
+  const canDeleteTasks = canDelete('tasks');
 
   if (!board) return <div className="p-6 text-muted-foreground">Board não encontrado</div>;
 
@@ -85,11 +90,13 @@ const BoardPage = () => {
             </div>
           ) : (
             <h2
-              className="text-xl font-bold text-foreground flex items-center gap-2 group/title cursor-pointer mb-1"
-              onClick={() => { setTitleDraft(board.title); setEditingTitle(true); }}
+              className={`text-xl font-bold text-foreground flex items-center gap-2 group/title mb-1 ${canEditBoard ? 'cursor-pointer' : ''}`}
+              onClick={() => { if (canEditBoard) { setTitleDraft(board.title); setEditingTitle(true); } }}
             >
               {board.title}
-              <Pencil className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover/title:opacity-100 transition-opacity" />
+              {canEditBoard && (
+                <Pencil className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover/title:opacity-100 transition-opacity" />
+              )}
             </h2>
           )}
           {editingDesc ? (
@@ -109,11 +116,13 @@ const BoardPage = () => {
             </div>
           ) : (
             <p
-              className="text-sm text-muted-foreground cursor-pointer hover:text-foreground transition-colors group/desc flex items-center gap-1"
-              onClick={() => { setDescDraft(board.description); setEditingDesc(true); }}
+              className={`text-sm text-muted-foreground transition-colors group/desc flex items-center gap-1 ${canEditBoard ? 'cursor-pointer hover:text-foreground' : ''}`}
+              onClick={() => { if (canEditBoard) { setDescDraft(board.description); setEditingDesc(true); } }}
             >
-              {board.description || 'Clique para adicionar uma descrição...'}
-              <Pencil className="h-3 w-3 opacity-0 group-hover/desc:opacity-100 transition-opacity" />
+              {board.description || (canEditBoard ? 'Clique para adicionar uma descrição...' : 'Sem descrição')}
+              {canEditBoard && (
+                <Pencil className="h-3 w-3 opacity-0 group-hover/desc:opacity-100 transition-opacity" />
+              )}
             </p>
           )}
         </div>
@@ -131,12 +140,14 @@ const BoardPage = () => {
               {tab.label}
             </Button>
           ))}
-          <div className="ml-auto">
-            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={addGroup}>
-              <Plus className="h-3.5 w-3.5 mr-1" />
-              Novo Grupo
-            </Button>
-          </div>
+          {canEditTasks && (
+            <div className="ml-auto">
+              <Button variant="outline" size="sm" className="h-8 text-xs" onClick={addGroup}>
+                <Plus className="h-3.5 w-3.5 mr-1" />
+                Novo Grupo
+              </Button>
+            </div>
+          )}
         </div>
 
         {view === 'table' && (

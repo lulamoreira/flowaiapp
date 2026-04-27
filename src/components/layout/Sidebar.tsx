@@ -2,6 +2,7 @@ import { LayoutDashboard, BarChart3, Plus, Pencil, Trash2, Star, Shield, LogOut,
 import { NavLink } from '@/components/NavLink';
 import { useAppStore } from '@/store/useAppStore';
 import { useAuth } from '@/hooks/useAuth';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -33,6 +34,9 @@ export function AppSidebar() {
   const collapsed = state === 'collapsed';
   const { state: appState, dispatch } = useAppStore();
   const { isAdminOrCoordinator, isAdmin, signOut } = useAuth();
+  const { canEdit, canDelete } = usePermissions();
+  const canEditBoards = canEdit('boards');
+  const canDeleteBoards = canDelete('boards');
   const navigate = useNavigate();
   const [showNewBoard, setShowNewBoard] = useState(false);
   const [newBoardTitle, setNewBoardTitle] = useState('');
@@ -132,12 +136,14 @@ export function AppSidebar() {
           <SidebarGroup>
             <SidebarGroupLabel className="text-[#9699a8] text-xs uppercase tracking-wider px-4 flex items-center justify-between">
               {!collapsed && <span>Boards</span>}
-              <button
-                onClick={() => setShowNewBoard(true)}
-                className="text-[#9699a8] hover:text-white transition-colors"
-              >
-                <Plus className="h-4 w-4" />
-              </button>
+              {canEditBoards && (
+                <button
+                  onClick={() => setShowNewBoard(true)}
+                  className="text-[#9699a8] hover:text-white transition-colors"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+              )}
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
@@ -153,32 +159,36 @@ export function AppSidebar() {
                         {!collapsed && <span className="truncate flex-1">{board.title}</span>}
                         {!collapsed && (
                           <span className="flex items-center gap-0.5 opacity-0 group-hover/board:opacity-100 transition-opacity ml-auto">
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault(); e.stopPropagation();
-                                const name = prompt('Renomear board:', board.title);
-                                if (name?.trim()) {
-                                  dispatch({ type: 'UPDATE_BOARD', payload: { ...board, title: name.trim() } });
-                                  toast.success(`Board renomeado para "${name.trim()}"`);
-                                }
-                              }}
-                              className="p-0.5 hover:text-white"
-                            >
-                              <Pencil className="h-3 w-3" />
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault(); e.stopPropagation();
-                                if (confirm(`Excluir board "${board.title}" e todas suas tarefas?`)) {
-                                  dispatch({ type: 'DELETE_BOARD', payload: board.id });
-                                  navigate('/');
-                                  toast.success(`Board "${board.title}" excluído`);
-                                }
-                              }}
-                              className="p-0.5 hover:text-red-400"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </button>
+                            {canEditBoards && (
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault(); e.stopPropagation();
+                                  const name = prompt('Renomear board:', board.title);
+                                  if (name?.trim()) {
+                                    dispatch({ type: 'UPDATE_BOARD', payload: { ...board, title: name.trim() } });
+                                    toast.success(`Board renomeado para "${name.trim()}"`);
+                                  }
+                                }}
+                                className="p-0.5 hover:text-white"
+                              >
+                                <Pencil className="h-3 w-3" />
+                              </button>
+                            )}
+                            {canDeleteBoards && (
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault(); e.stopPropagation();
+                                  if (confirm(`Excluir board "${board.title}" e todas suas tarefas?`)) {
+                                    dispatch({ type: 'DELETE_BOARD', payload: board.id });
+                                    navigate('/');
+                                    toast.success(`Board "${board.title}" excluído`);
+                                  }
+                                }}
+                                className="p-0.5 hover:text-red-400"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </button>
+                            )}
                           </span>
                         )}
                       </NavLink>

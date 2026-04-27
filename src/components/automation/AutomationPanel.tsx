@@ -7,6 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Zap, Plus, Trash2 } from 'lucide-react';
+import { usePermissions } from '@/hooks/usePermissions';
 
 interface AutomationPanelProps {
   boardId: string;
@@ -14,6 +15,9 @@ interface AutomationPanelProps {
 
 export function AutomationPanel({ boardId }: AutomationPanelProps) {
   const { state, dispatch } = useAppStore();
+  const { canEdit, canDelete } = usePermissions();
+  const canEditAuto = canEdit('automations');
+  const canDeleteAuto = canDelete('automations');
   const automations = state.automations.filter(a => a.boardId === boardId);
   const groups = state.groups.filter(g => g.boardId === boardId);
 
@@ -165,15 +169,18 @@ export function AutomationPanel({ boardId }: AutomationPanelProps) {
               <div className="flex items-center gap-3 flex-1">
                 <Switch
                   checked={rule.enabled}
-                  onCheckedChange={() => dispatch({ type: 'TOGGLE_AUTOMATION', payload: rule.id })}
+                  disabled={!canEditAuto}
+                  onCheckedChange={() => canEditAuto && dispatch({ type: 'TOGGLE_AUTOMATION', payload: rule.id })}
                 />
                 <span className={`text-sm ${rule.enabled ? 'text-foreground' : 'text-muted-foreground'}`}>
                   {rule.label}
                 </span>
               </div>
-              <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => dispatch({ type: 'DELETE_AUTOMATION', payload: rule.id })}>
-                <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
-              </Button>
+              {canDeleteAuto && (
+                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => dispatch({ type: 'DELETE_AUTOMATION', payload: rule.id })}>
+                  <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
+                </Button>
+              )}
             </CardContent>
           </Card>
         ))}
@@ -183,6 +190,7 @@ export function AutomationPanel({ boardId }: AutomationPanelProps) {
       </div>
 
       {/* Add rule */}
+      {canEditAuto && (
       <Card className="border-dashed border-border">
         <CardContent className="p-4 space-y-3">
           <p className="text-xs font-medium text-muted-foreground">Nova regra</p>
@@ -224,6 +232,7 @@ export function AutomationPanel({ boardId }: AutomationPanelProps) {
           </Button>
         </CardContent>
       </Card>
+      )}
     </div>
   );
 }
