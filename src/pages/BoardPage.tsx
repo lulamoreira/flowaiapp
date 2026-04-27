@@ -27,6 +27,10 @@ const BoardPage = () => {
   const [editingDesc, setEditingDesc] = useState(false);
   const [titleDraft, setTitleDraft] = useState(board?.title ?? '');
   const [descDraft, setDescDraft] = useState(board?.description ?? '');
+  const { canEdit, canDelete } = usePermissions();
+  const canEditBoard = canEdit('boards');
+  const canEditTasks = canEdit('tasks');
+  const canDeleteTasks = canDelete('tasks');
 
   if (!board) return <div className="p-6 text-muted-foreground">Board não encontrado</div>;
 
