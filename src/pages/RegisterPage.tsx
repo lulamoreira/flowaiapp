@@ -18,6 +18,7 @@ export default function RegisterPage() {
   const [submitting, setSubmitting] = useState(false);
   const [fullName, setFullName] = useState(prefilledName);
   const [dateOfBirth, setDateOfBirth] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
@@ -43,6 +44,8 @@ export default function RegisterPage() {
         setError('Este convite expirou.');
       } else {
         setInvitation(data);
+        if (data.email) setEmail(data.email);
+        if (data.invited_name && !prefilledName) setFullName(data.invited_name);
       }
       setLoading(false);
     };
@@ -53,10 +56,15 @@ export default function RegisterPage() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!invitation) return;
+    const finalEmail = (invitation.email || email).trim().toLowerCase();
+    if (!finalEmail) {
+      toast.error('Informe seu email');
+      return;
+    }
     setSubmitting(true);
 
     const { data: authData, error: signUpError } = await supabase.auth.signUp({
-      email: invitation.email,
+      email: finalEmail,
       password,
       options: {
         data: { full_name: fullName },
@@ -175,8 +183,17 @@ export default function RegisterPage() {
               <Input id="dob" type="date" value={dateOfBirth} onChange={e => setDateOfBirth(e.target.value)} required />
             </div>
             <div>
-              <Label htmlFor="reg-email">Email</Label>
-              <Input id="reg-email" type="email" value={invitation?.email || ''} disabled className="bg-muted" />
+              <Label htmlFor="reg-email">Email *</Label>
+              <Input
+                id="reg-email"
+                type="email"
+                value={invitation?.email || email}
+                onChange={e => setEmail(e.target.value)}
+                disabled={!!invitation?.email}
+                className={invitation?.email ? 'bg-muted' : ''}
+                required
+                placeholder="seu@email.com"
+              />
             </div>
             <div>
               <Label htmlFor="reg-password">Senha *</Label>

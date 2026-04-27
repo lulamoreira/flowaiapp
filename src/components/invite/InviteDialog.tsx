@@ -22,7 +22,7 @@ export function InviteDialog({ open, onOpenChange }: InviteDialogProps) {
   const [addedUsers, setAddedUsers] = useState<string[]>([]);
 
   // Link tab state
-  const [linkEmail, setLinkEmail] = useState('');
+  const [linkName, setLinkName] = useState('');
   const [generating, setGenerating] = useState(false);
   const [generatedLink, setGeneratedLink] = useState('');
   const [copied, setCopied] = useState(false);
@@ -46,18 +46,23 @@ export function InviteDialog({ open, onOpenChange }: InviteDialogProps) {
   };
 
   const generateLink = async () => {
-    if (!linkEmail.trim() || !user) return;
+    const name = linkName.trim();
+    if (!name || !user) return;
+    if (name.length > 50) {
+      toast.error('O nome deve ter no máximo 50 caracteres');
+      return;
+    }
     setGenerating(true);
     try {
       const { data, error } = await supabase
         .from('invitations')
-        .insert({ email: linkEmail.trim().toLowerCase(), invited_by: user.id })
+        .insert({ invited_name: name, invited_by: user.id, email: null })
         .select('token')
         .single();
       if (error) throw error;
       const link = `${window.location.origin}/register?token=${data.token}`;
       setGeneratedLink(link);
-      toast.success('Link gerado com sucesso');
+      toast.success(`Link gerado para ${name}`);
     } catch (err: any) {
       toast.error(err.message || 'Erro ao gerar link');
     } finally {
@@ -75,7 +80,7 @@ export function InviteDialog({ open, onOpenChange }: InviteDialogProps) {
 
   const resetLink = () => {
     setGeneratedLink('');
-    setLinkEmail('');
+    setLinkName('');
     setCopied(false);
   };
 
@@ -154,14 +159,14 @@ export function InviteDialog({ open, onOpenChange }: InviteDialogProps) {
 
           <TabsContent value="link" className="space-y-3 mt-3">
             <p className="text-sm text-muted-foreground">
-              Informe o email do convidado, gere o link e envie por onde preferir (WhatsApp, Slack, etc).
+              Digite o primeiro nome da pessoa, gere o link e envie por onde preferir. Ela mesma informará o email no cadastro.
             </p>
             <Input
-              type="email"
-              placeholder="email@exemplo.com"
-              value={linkEmail}
-              onChange={e => setLinkEmail(e.target.value)}
+              placeholder="Primeiro nome"
+              value={linkName}
+              onChange={e => setLinkName(e.target.value)}
               className="h-9"
+              maxLength={50}
               disabled={!!generatedLink}
               onKeyDown={e => e.key === 'Enter' && !generatedLink && generateLink()}
             />
@@ -169,7 +174,7 @@ export function InviteDialog({ open, onOpenChange }: InviteDialogProps) {
             {!generatedLink ? (
               <Button
                 onClick={generateLink}
-                disabled={!linkEmail.trim() || generating}
+                disabled={!linkName.trim() || generating}
                 className="w-full bg-[#0073ea] hover:bg-[#0060c2] text-white"
               >
                 {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Link2 className="h-4 w-4 mr-2" />}
@@ -189,7 +194,7 @@ export function InviteDialog({ open, onOpenChange }: InviteDialogProps) {
                   </Button>
                 </div>
                 <p className="text-[11px] text-muted-foreground">
-                  Link válido por 72h. Apenas {linkEmail} poderá usá-lo.
+                  Link válido por 72h. Convite associado a <strong>{linkName}</strong>.
                 </p>
                 <Button onClick={resetLink} variant="ghost" size="sm" className="w-full text-xs">
                   Gerar outro link
