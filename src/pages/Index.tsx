@@ -4,12 +4,15 @@ import { useNavigate } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { LayoutGrid, CheckCircle2, Clock, AlertCircle, Star, Plus } from 'lucide-react';
-import { Board } from '@/types';
-import { useMemo } from 'react';
+import { Board, STATUS_CONFIG, PRIORITY_CONFIG, Task, TaskStatus } from '@/types';
+import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { useDeadlineNotifier } from '@/hooks/useDeadlineNotifier';
 import { useAuth } from '@/hooks/useAuth';
 import { TeamTimelineWidget } from '@/components/home/TeamTimelineWidget';
+import { useScopedTasks } from '@/hooks/useScopedTasks';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { TaskDetailModal } from '@/components/task/TaskDetailModal';
 
 const Index = () => {
   const { state, dispatch } = useAppStore();
