@@ -136,12 +136,14 @@ export function AppSidebar() {
           <SidebarGroup>
             <SidebarGroupLabel className="text-[#9699a8] text-xs uppercase tracking-wider px-4 flex items-center justify-between">
               {!collapsed && <span>Boards</span>}
-              <button
-                onClick={() => setShowNewBoard(true)}
-                className="text-[#9699a8] hover:text-white transition-colors"
-              >
-                <Plus className="h-4 w-4" />
-              </button>
+              {canEditBoards && (
+                <button
+                  onClick={() => setShowNewBoard(true)}
+                  className="text-[#9699a8] hover:text-white transition-colors"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+              )}
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
