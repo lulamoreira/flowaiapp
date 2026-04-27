@@ -4,7 +4,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useAppStore } from '@/store/useAppStore';
-import { UserPlus, Mail, Check } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { UserPlus, Mail, Check, Link2, Copy, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface InviteDialogProps {
   open: boolean;
@@ -12,10 +15,17 @@ interface InviteDialogProps {
 }
 
 export function InviteDialog({ open, onOpenChange }: InviteDialogProps) {
-  const { state, dispatch } = useAppStore();
+  const { state } = useAppStore();
+  const { user } = useAuth();
   const [email, setEmail] = useState('');
   const [searchUser, setSearchUser] = useState('');
   const [addedUsers, setAddedUsers] = useState<string[]>([]);
+
+  // Link tab state
+  const [linkEmail, setLinkEmail] = useState('');
+  const [generating, setGenerating] = useState(false);
+  const [generatedLink, setGeneratedLink] = useState('');
+  const [copied, setCopied] = useState(false);
 
   const filteredUsers = state.users.filter(u =>
     u.name.toLowerCase().includes(searchUser.toLowerCase()) ||
@@ -35,23 +45,62 @@ export function InviteDialog({ open, onOpenChange }: InviteDialogProps) {
     setTimeout(() => setAddedUsers(prev => prev.filter(id => id !== userId)), 2000);
   };
 
+  const generateLink = async () => {
+    if (!linkEmail.trim() || !user) return;
+    setGenerating(true);
+    try {
+      const { data, error } = await supabase
+        .from('invitations')
+        .insert({ email: linkEmail.trim().toLowerCase(), invited_by: user.id })
+        .select('token')
+        .single();
+      if (error) throw error;
+      const link = `${window.location.origin}/register?token=${data.token}`;
+      setGeneratedLink(link);
+      toast.success('Link gerado com sucesso');
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao gerar link');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const copyLink = async () => {
+    if (!generatedLink) return;
+    await navigator.clipboard.writeText(generatedLink);
+    setCopied(true);
+    toast.success('Link copiado!');
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const resetLink = () => {
+    setGeneratedLink('');
+    setLinkEmail('');
+    setCopied(false);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) resetLink(); }}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Convidar pessoas</DialogTitle>
         </DialogHeader>
         <Tabs defaultValue="existing" className="mt-2">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="existing" className="text-xs">
               <UserPlus className="h-3.5 w-3.5 mr-1" />
-              Usuário existente
+              Existente
             </TabsTrigger>
             <TabsTrigger value="email" className="text-xs">
               <Mail className="h-3.5 w-3.5 mr-1" />
-              Convite por email
+              Email
+            </TabsTrigger>
+            <TabsTrigger value="link" className="text-xs">
+              <Link2 className="h-3.5 w-3.5 mr-1" />
+              Link
             </TabsTrigger>
           </TabsList>
+
           <TabsContent value="existing" className="space-y-3 mt-3">
             <Input
               placeholder="Buscar usuário..."
@@ -84,6 +133,7 @@ export function InviteDialog({ open, onOpenChange }: InviteDialogProps) {
               ))}
             </div>
           </TabsContent>
+
           <TabsContent value="email" className="space-y-3 mt-3">
             <p className="text-sm text-muted-foreground">
               Envie um convite por email para uma nova pessoa entrar no sistema.
@@ -100,6 +150,52 @@ export function InviteDialog({ open, onOpenChange }: InviteDialogProps) {
               <Mail className="h-4 w-4 mr-2" />
               Enviar convite
             </Button>
+          </TabsContent>
+
+          <TabsContent value="link" className="space-y-3 mt-3">
+            <p className="text-sm text-muted-foreground">
+              Informe o email do convidado, gere o link e envie por onde preferir (WhatsApp, Slack, etc).
+            </p>
+            <Input
+              type="email"
+              placeholder="email@exemplo.com"
+              value={linkEmail}
+              onChange={e => setLinkEmail(e.target.value)}
+              className="h-9"
+              disabled={!!generatedLink}
+              onKeyDown={e => e.key === 'Enter' && !generatedLink && generateLink()}
+            />
+
+            {!generatedLink ? (
+              <Button
+                onClick={generateLink}
+                disabled={!linkEmail.trim() || generating}
+                className="w-full bg-[#0073ea] hover:bg-[#0060c2] text-white"
+              >
+                {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Link2 className="h-4 w-4 mr-2" />}
+                Gerar link de convite
+              </Button>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <Input value={generatedLink} readOnly className="h-9 text-xs font-mono" />
+                  <Button
+                    onClick={copyLink}
+                    variant="outline"
+                    size="sm"
+                    className="h-9 shrink-0"
+                  >
+                    {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                  </Button>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Link válido por 72h. Apenas {linkEmail} poderá usá-lo.
+                </p>
+                <Button onClick={resetLink} variant="ghost" size="sm" className="w-full text-xs">
+                  Gerar outro link
+                </Button>
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </DialogContent>
