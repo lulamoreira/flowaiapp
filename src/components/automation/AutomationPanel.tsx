@@ -15,6 +15,9 @@ interface AutomationPanelProps {
 
 export function AutomationPanel({ boardId }: AutomationPanelProps) {
   const { state, dispatch } = useAppStore();
+  const { canEdit, canDelete } = usePermissions();
+  const canEditAuto = canEdit('automations');
+  const canDeleteAuto = canDelete('automations');
   const automations = state.automations.filter(a => a.boardId === boardId);
   const groups = state.groups.filter(g => g.boardId === boardId);
 
