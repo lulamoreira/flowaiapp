@@ -41,7 +41,11 @@ export function BoardTable({ boardId }: BoardTableProps) {
     }),
     [state.groups, boardId]
   );
-  const allTasks = state.tasks.filter(t => t.boardId === boardId);
+  const { filterTasks } = useScopedTasks();
+  const allTasks = useMemo(
+    () => filterTasks(state.tasks.filter(t => t.boardId === boardId)),
+    [state.tasks, boardId, filterTasks]
+  );
 
   const filteredTasks = useMemo(() => {
     const today = startOfDay(new Date());
