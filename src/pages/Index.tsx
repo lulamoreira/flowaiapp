@@ -168,7 +168,12 @@ const Index = () => {
           {/* Stats */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 -mt-12">
             {statCards.map(stat => (
-              <div key={stat.label} className="bg-card border border-border rounded-xl p-4 flex items-center gap-3 shadow-sm">
+              <button
+                key={stat.label}
+                type="button"
+                onClick={() => setOpenListStatus(stat.status)}
+                className="bg-card border border-border rounded-xl p-4 flex items-center gap-3 shadow-sm text-left hover:shadow-md hover:border-primary/40 transition-all focus:outline-none focus:ring-2 focus:ring-primary/30"
+              >
                 <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: stat.bg }}>
                   <stat.icon className="h-5 w-5" style={{ color: stat.color }} />
                 </div>
@@ -176,7 +181,7 @@ const Index = () => {
                   <div className="text-2xl font-bold text-foreground">{stat.value}</div>
                   <div className="text-xs text-muted-foreground">{stat.label}</div>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
 
