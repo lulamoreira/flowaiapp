@@ -199,6 +199,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'automation_rules' }, () => {
         refetch('automations');
       })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, async () => {
+        const { data } = await supabase.from('profiles').select('*');
+        if (data) {
+          const users: User[] = data.map(p => ({
+            id: p.user_id,
+            name: p.full_name || 'Sem nome',
+            email: '',
+            avatar: (p.full_name || '??').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase(),
+          }));
+          dispatch({ type: 'SET_STATE', payload: { users } });
+        }
+      })
       .subscribe();
 
     return () => {
