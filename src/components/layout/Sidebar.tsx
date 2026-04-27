@@ -34,6 +34,9 @@ export function AppSidebar() {
   const collapsed = state === 'collapsed';
   const { state: appState, dispatch } = useAppStore();
   const { isAdminOrCoordinator, isAdmin, signOut } = useAuth();
+  const { canEdit, canDelete } = usePermissions();
+  const canEditBoards = canEdit('boards');
+  const canDeleteBoards = canDelete('boards');
   const navigate = useNavigate();
   const [showNewBoard, setShowNewBoard] = useState(false);
   const [newBoardTitle, setNewBoardTitle] = useState('');
