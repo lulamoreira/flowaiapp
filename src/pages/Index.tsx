@@ -25,6 +25,7 @@ const Index = () => {
   const roleLabel = useMemo(() => {
     if (roles.includes('admin')) return 'Administrador';
     if (roles.includes('coordinator')) return 'Coordenador';
+    if (roles.includes('user')) return 'Usuário';
     return 'Visualizador';
   }, [roles]);
 
