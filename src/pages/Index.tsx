@@ -4,17 +4,23 @@ import { useNavigate } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { LayoutGrid, CheckCircle2, Clock, AlertCircle, Star, Plus } from 'lucide-react';
-import { Board } from '@/types';
-import { useMemo } from 'react';
+import { Board, STATUS_CONFIG, PRIORITY_CONFIG, Task, TaskStatus } from '@/types';
+import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { useDeadlineNotifier } from '@/hooks/useDeadlineNotifier';
 import { useAuth } from '@/hooks/useAuth';
 import { TeamTimelineWidget } from '@/components/home/TeamTimelineWidget';
+import { useScopedTasks } from '@/hooks/useScopedTasks';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { TaskDetailModal } from '@/components/task/TaskDetailModal';
 
 const Index = () => {
   const { state, dispatch } = useAppStore();
   const navigate = useNavigate();
   const { profile, roles } = useAuth();
+  const { tasks: allTasks, isPrivileged } = useScopedTasks();
+  const [openListStatus, setOpenListStatus] = useState<TaskStatus | 'all' | null>(null);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   useDeadlineNotifier();
 
   const firstName = useMemo(() => {
@@ -29,11 +35,6 @@ const Index = () => {
     return 'Visualizador';
   }, [roles]);
 
-  const isPrivileged = roles.includes('admin') || roles.includes('coordinator');
-  const allTasks = useMemo(
-    () => (isPrivileged ? state.tasks : state.tasks.filter(t => t.assignee === profile?.user_id)),
-    [state.tasks, isPrivileged, profile?.user_id]
-  );
   const stats = useMemo(() => ({
     total: allTasks.length,
     done: allTasks.filter(t => t.status === 'done').length,
@@ -67,12 +68,26 @@ const Index = () => {
     toast.success(board.favorite ? 'Removido dos favoritos' : 'Adicionado aos favoritos');
   };
 
-  const statCards = [
-    { label: 'Total de Tarefas', value: stats.total, icon: LayoutGrid, color: '#0073ea', bg: '#e3f2fd' },
-    { label: 'Concluídas', value: stats.done, icon: CheckCircle2, color: '#00c875', bg: '#e8f5e9' },
-    { label: 'Em Progresso', value: stats.working, icon: Clock, color: '#fdab3d', bg: '#fff3e0' },
-    { label: 'Travadas', value: stats.stuck, icon: AlertCircle, color: '#e2445c', bg: '#fce4ec' },
+  const statCards: { label: string; value: number; icon: typeof LayoutGrid; color: string; bg: string; status: TaskStatus | 'all' }[] = [
+    { label: 'Total de Tarefas', value: stats.total, icon: LayoutGrid, color: '#0073ea', bg: '#e3f2fd', status: 'all' },
+    { label: 'Concluídas', value: stats.done, icon: CheckCircle2, color: '#00c875', bg: '#e8f5e9', status: 'done' },
+    { label: 'Em Progresso', value: stats.working, icon: Clock, color: '#fdab3d', bg: '#fff3e0', status: 'working' },
+    { label: 'Travadas', value: stats.stuck, icon: AlertCircle, color: '#e2445c', bg: '#fce4ec', status: 'stuck' },
   ];
+
+  const listedTasks = useMemo(() => {
+    if (openListStatus === null) return [];
+    if (openListStatus === 'all') return allTasks;
+    return allTasks.filter(t => t.status === openListStatus);
+  }, [openListStatus, allTasks]);
+
+  const listTitle = useMemo(() => {
+    if (openListStatus === 'all') return isPrivileged ? 'Todas as tarefas' : 'Minhas tarefas';
+    if (openListStatus === 'done') return isPrivileged ? 'Tarefas concluídas' : 'Minhas tarefas concluídas';
+    if (openListStatus === 'working') return isPrivileged ? 'Tarefas em progresso' : 'Minhas tarefas em progresso';
+    if (openListStatus === 'stuck') return isPrivileged ? 'Tarefas travadas' : 'Minhas tarefas travadas';
+    return '';
+  }, [openListStatus, isPrivileged]);
 
   const favoriteBoards = useMemo(() =>
     state.boards.filter(b => b.favorite),
@@ -153,7 +168,12 @@ const Index = () => {
           {/* Stats */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 -mt-12">
             {statCards.map(stat => (
-              <div key={stat.label} className="bg-card border border-border rounded-xl p-4 flex items-center gap-3 shadow-sm">
+              <button
+                key={stat.label}
+                type="button"
+                onClick={() => setOpenListStatus(stat.status)}
+                className="bg-card border border-border rounded-xl p-4 flex items-center gap-3 shadow-sm text-left hover:shadow-md hover:border-primary/40 transition-all focus:outline-none focus:ring-2 focus:ring-primary/30"
+              >
                 <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: stat.bg }}>
                   <stat.icon className="h-5 w-5" style={{ color: stat.color }} />
                 </div>
@@ -161,7 +181,7 @@ const Index = () => {
                   <div className="text-2xl font-bold text-foreground">{stat.value}</div>
                   <div className="text-xs text-muted-foreground">{stat.label}</div>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
 
@@ -206,6 +226,57 @@ const Index = () => {
           </div>
         </div>
       </main>
+
+      {/* Lista de tarefas atribuídas (clicando nos cards) */}
+      <Dialog open={openListStatus !== null} onOpenChange={(o) => { if (!o) setOpenListStatus(null); }}>
+        <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>{listTitle}</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto -mx-6 px-6">
+            {listedTasks.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-8 text-center">Nenhuma tarefa nesta categoria.</p>
+            ) : (
+              <ul className="divide-y divide-border">
+                {listedTasks.map(task => {
+                  const board = state.boards.find(b => b.id === task.boardId);
+                  const statusCfg = STATUS_CONFIG[task.status];
+                  const prioCfg = PRIORITY_CONFIG[task.priority];
+                  return (
+                    <li key={task.id}>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedTask(task)}
+                        className="w-full text-left py-3 px-2 rounded-md hover:bg-muted/50 transition-colors flex items-start gap-3"
+                      >
+                        <span
+                          className="mt-1 inline-block w-2 h-2 rounded-full shrink-0"
+                          style={{ backgroundColor: statusCfg.color }}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium text-foreground truncate">{task.title}</div>
+                          <div className="text-xs text-muted-foreground flex items-center gap-2 mt-0.5 flex-wrap">
+                            {board && <span>📋 {board.title}</span>}
+                            <span style={{ color: statusCfg.color }}>● {statusCfg.label}</span>
+                            <span style={{ color: prioCfg.color }}>● {prioCfg.label}</span>
+                            {task.plannedEnd && (
+                              <span>📅 {format(parseISO(task.plannedEnd), 'dd/MM/yyyy', { locale: ptBR })}</span>
+                            )}
+                          </div>
+                        </div>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {selectedTask && (
+        <TaskDetailModal task={selectedTask} onClose={() => setSelectedTask(null)} />
+      )}
     </div>
   );
 };

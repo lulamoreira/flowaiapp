@@ -8,6 +8,7 @@ import { format, parseISO, isToday, isPast, isThisWeek, addWeeks, startOfWeek, e
 import { ptBR } from 'date-fns/locale';
 import { GripVertical, Calendar } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useScopedTasks } from '@/hooks/useScopedTasks';
 
 interface BoardKanbanProps {
   boardId: string;
@@ -28,9 +29,10 @@ export function BoardKanban({ boardId }: BoardKanbanProps) {
   const [assigneeFilter, setAssigneeFilter] = useState('all');
   const [dueDateFilter, setDueDateFilter] = useState('all');
 
+  const { filterTasks } = useScopedTasks();
   const allTasks = useMemo(
-    () => state.tasks.filter(t => t.boardId === boardId),
-    [state.tasks, boardId]
+    () => filterTasks(state.tasks.filter(t => t.boardId === boardId)),
+    [state.tasks, boardId, filterTasks]
   );
 
   const tasks = useMemo(() => {

@@ -11,6 +11,7 @@ import {
 import { ptBR } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useScopedTasks } from '@/hooks/useScopedTasks';
 
 interface BoardCalendarProps {
   boardId: string;
@@ -23,9 +24,10 @@ export function BoardCalendar({ boardId }: BoardCalendarProps) {
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [dragOverDate, setDragOverDate] = useState<string | null>(null);
 
+  const { filterTasks } = useScopedTasks();
   const tasks = useMemo(
-    () => state.tasks.filter(t => t.boardId === boardId && t.plannedEnd),
-    [state.tasks, boardId]
+    () => filterTasks(state.tasks.filter(t => t.boardId === boardId && t.plannedEnd)),
+    [state.tasks, boardId, filterTasks]
   );
 
   const monthStart = startOfMonth(currentMonth);

@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useAppStore } from '@/store/useAppStore';
 import { STATUS_CONFIG, PRIORITY_CONFIG } from '@/types';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
+import { useScopedTasks } from '@/hooks/useScopedTasks';
 
 interface BoardChartsProps {
   boardId: string;
@@ -9,8 +10,12 @@ interface BoardChartsProps {
 
 export function BoardCharts({ boardId }: BoardChartsProps) {
   const { state } = useAppStore();
+  const { filterTasks } = useScopedTasks();
   const groups = state.groups.filter(g => g.boardId === boardId);
-  const tasks = state.tasks.filter(t => t.boardId === boardId);
+  const tasks = useMemo(
+    () => filterTasks(state.tasks.filter(t => t.boardId === boardId)),
+    [state.tasks, boardId, filterTasks]
+  );
 
   const barData = useMemo(() => {
     return groups.map(g => {
