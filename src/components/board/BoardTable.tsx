@@ -9,6 +9,7 @@ import { TaskDetailModal } from '@/components/task/TaskDetailModal';
 import { toast } from 'sonner';
 import { GripVertical } from 'lucide-react';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useScopedTasks } from '@/hooks/useScopedTasks';
 
 interface BoardTableProps {
   boardId: string;
