@@ -29,9 +29,10 @@ export function BoardKanban({ boardId }: BoardKanbanProps) {
   const [assigneeFilter, setAssigneeFilter] = useState('all');
   const [dueDateFilter, setDueDateFilter] = useState('all');
 
+  const { filterTasks } = useScopedTasks();
   const allTasks = useMemo(
-    () => state.tasks.filter(t => t.boardId === boardId),
-    [state.tasks, boardId]
+    () => filterTasks(state.tasks.filter(t => t.boardId === boardId)),
+    [state.tasks, boardId, filterTasks]
   );
 
   const tasks = useMemo(() => {
