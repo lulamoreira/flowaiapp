@@ -238,8 +238,8 @@ export function BoardTable({ boardId }: BoardTableProps) {
                   task={task}
                   groupColor={group.color}
                   onClick={() => setSelectedTask(task)}
-                  draggable
-                  onDragStart={e => handleDragStart(e, task.id)}
+                  draggable={canEditTasks}
+                  onDragStart={canEditTasks ? e => handleDragStart(e, task.id) : undefined}
                   onDragEnd={handleDragEnd}
                   isDragging={draggedTaskId === task.id}
                 />
