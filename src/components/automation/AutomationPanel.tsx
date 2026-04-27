@@ -232,6 +232,7 @@ export function AutomationPanel({ boardId }: AutomationPanelProps) {
           </Button>
         </CardContent>
       </Card>
+      )}
     </div>
   );
 }
