@@ -23,22 +23,12 @@ export function InviteDialog({ open, onOpenChange }: InviteDialogProps) {
   const [generatedLink, setGeneratedLink] = useState('');
   const [copied, setCopied] = useState(false);
 
-  const filteredUsers = state.users.filter(u =>
-    u.name.toLowerCase().includes(searchUser.toLowerCase()) ||
-    u.email.toLowerCase().includes(searchUser.toLowerCase())
-  );
-
   const sendEmailInvite = () => {
     if (!email) return;
     const subject = encodeURIComponent('Convite para entrada no sistema');
     const body = encodeURIComponent(`Olá!\n\nVocê foi convidado para participar do FlowAI, nossa plataforma de gerenciamento de projetos.\n\nAcesse: https://flowai.app\n\nAguardamos você!`);
     window.open(`mailto:${email}?subject=${subject}&body=${body}`);
     setEmail('');
-  };
-
-  const addExistingUser = (userId: string) => {
-    setAddedUsers(prev => [...prev, userId]);
-    setTimeout(() => setAddedUsers(prev => prev.filter(id => id !== userId)), 2000);
   };
 
   const generateLink = async () => {
