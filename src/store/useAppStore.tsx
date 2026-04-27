@@ -213,8 +213,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
       })
       .subscribe();
 
+    const refetchProfiles = async () => {
+      const { data } = await supabase.from('profiles').select('*');
+      if (data) {
+        const users: User[] = data.map(p => ({
+          id: p.user_id,
+          name: p.full_name || 'Sem nome',
+          email: '',
+          avatar: (p.full_name || '??').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase(),
+        }));
+        dispatch({ type: 'SET_STATE', payload: { users } });
+      }
+    };
+
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') refetchProfiles();
+    };
+    window.addEventListener('focus', refetchProfiles);
+    document.addEventListener('visibilitychange', onVisible);
+
     return () => {
       supabase.removeChannel(channel);
+      window.removeEventListener('focus', refetchProfiles);
+      document.removeEventListener('visibilitychange', onVisible);
     };
   }, []);
 
