@@ -169,15 +169,18 @@ export function AutomationPanel({ boardId }: AutomationPanelProps) {
               <div className="flex items-center gap-3 flex-1">
                 <Switch
                   checked={rule.enabled}
-                  onCheckedChange={() => dispatch({ type: 'TOGGLE_AUTOMATION', payload: rule.id })}
+                  disabled={!canEditAuto}
+                  onCheckedChange={() => canEditAuto && dispatch({ type: 'TOGGLE_AUTOMATION', payload: rule.id })}
                 />
                 <span className={`text-sm ${rule.enabled ? 'text-foreground' : 'text-muted-foreground'}`}>
                   {rule.label}
                 </span>
               </div>
-              <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => dispatch({ type: 'DELETE_AUTOMATION', payload: rule.id })}>
-                <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
-              </Button>
+              {canDeleteAuto && (
+                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => dispatch({ type: 'DELETE_AUTOMATION', payload: rule.id })}>
+                  <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
+                </Button>
+              )}
             </CardContent>
           </Card>
         ))}
