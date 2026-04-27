@@ -68,12 +68,26 @@ const Index = () => {
     toast.success(board.favorite ? 'Removido dos favoritos' : 'Adicionado aos favoritos');
   };
 
-  const statCards = [
-    { label: 'Total de Tarefas', value: stats.total, icon: LayoutGrid, color: '#0073ea', bg: '#e3f2fd' },
-    { label: 'Concluídas', value: stats.done, icon: CheckCircle2, color: '#00c875', bg: '#e8f5e9' },
-    { label: 'Em Progresso', value: stats.working, icon: Clock, color: '#fdab3d', bg: '#fff3e0' },
-    { label: 'Travadas', value: stats.stuck, icon: AlertCircle, color: '#e2445c', bg: '#fce4ec' },
+  const statCards: { label: string; value: number; icon: typeof LayoutGrid; color: string; bg: string; status: TaskStatus | 'all' }[] = [
+    { label: 'Total de Tarefas', value: stats.total, icon: LayoutGrid, color: '#0073ea', bg: '#e3f2fd', status: 'all' },
+    { label: 'Concluídas', value: stats.done, icon: CheckCircle2, color: '#00c875', bg: '#e8f5e9', status: 'done' },
+    { label: 'Em Progresso', value: stats.working, icon: Clock, color: '#fdab3d', bg: '#fff3e0', status: 'working' },
+    { label: 'Travadas', value: stats.stuck, icon: AlertCircle, color: '#e2445c', bg: '#fce4ec', status: 'stuck' },
   ];
+
+  const listedTasks = useMemo(() => {
+    if (openListStatus === null) return [];
+    if (openListStatus === 'all') return allTasks;
+    return allTasks.filter(t => t.status === openListStatus);
+  }, [openListStatus, allTasks]);
+
+  const listTitle = useMemo(() => {
+    if (openListStatus === 'all') return isPrivileged ? 'Todas as tarefas' : 'Minhas tarefas';
+    if (openListStatus === 'done') return isPrivileged ? 'Tarefas concluídas' : 'Minhas tarefas concluídas';
+    if (openListStatus === 'working') return isPrivileged ? 'Tarefas em progresso' : 'Minhas tarefas em progresso';
+    if (openListStatus === 'stuck') return isPrivileged ? 'Tarefas travadas' : 'Minhas tarefas travadas';
+    return '';
+  }, [openListStatus, isPrivileged]);
 
   const favoriteBoards = useMemo(() =>
     state.boards.filter(b => b.favorite),
