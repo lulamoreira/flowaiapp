@@ -14,6 +14,7 @@ import { Zap, Table, Columns3, Plus, Pencil, Check, X, CalendarDays, GanttChart,
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { usePermissions } from '@/hooks/usePermissions';
 
 type ViewMode = 'table' | 'kanban' | 'calendar' | 'gantt' | 'workload' | 'automation';
 
