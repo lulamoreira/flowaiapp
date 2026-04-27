@@ -18,6 +18,9 @@ const Index = () => {
   const { state, dispatch } = useAppStore();
   const navigate = useNavigate();
   const { profile, roles } = useAuth();
+  const { tasks: allTasks, isPrivileged } = useScopedTasks();
+  const [openListStatus, setOpenListStatus] = useState<TaskStatus | 'all' | null>(null);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   useDeadlineNotifier();
 
   const firstName = useMemo(() => {
