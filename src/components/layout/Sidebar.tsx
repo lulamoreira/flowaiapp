@@ -159,32 +159,36 @@ export function AppSidebar() {
                         {!collapsed && <span className="truncate flex-1">{board.title}</span>}
                         {!collapsed && (
                           <span className="flex items-center gap-0.5 opacity-0 group-hover/board:opacity-100 transition-opacity ml-auto">
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault(); e.stopPropagation();
-                                const name = prompt('Renomear board:', board.title);
-                                if (name?.trim()) {
-                                  dispatch({ type: 'UPDATE_BOARD', payload: { ...board, title: name.trim() } });
-                                  toast.success(`Board renomeado para "${name.trim()}"`);
-                                }
-                              }}
-                              className="p-0.5 hover:text-white"
-                            >
-                              <Pencil className="h-3 w-3" />
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault(); e.stopPropagation();
-                                if (confirm(`Excluir board "${board.title}" e todas suas tarefas?`)) {
-                                  dispatch({ type: 'DELETE_BOARD', payload: board.id });
-                                  navigate('/');
-                                  toast.success(`Board "${board.title}" excluído`);
-                                }
-                              }}
-                              className="p-0.5 hover:text-red-400"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </button>
+                            {canEditBoards && (
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault(); e.stopPropagation();
+                                  const name = prompt('Renomear board:', board.title);
+                                  if (name?.trim()) {
+                                    dispatch({ type: 'UPDATE_BOARD', payload: { ...board, title: name.trim() } });
+                                    toast.success(`Board renomeado para "${name.trim()}"`);
+                                  }
+                                }}
+                                className="p-0.5 hover:text-white"
+                              >
+                                <Pencil className="h-3 w-3" />
+                              </button>
+                            )}
+                            {canDeleteBoards && (
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault(); e.stopPropagation();
+                                  if (confirm(`Excluir board "${board.title}" e todas suas tarefas?`)) {
+                                    dispatch({ type: 'DELETE_BOARD', payload: board.id });
+                                    navigate('/');
+                                    toast.success(`Board "${board.title}" excluído`);
+                                  }
+                                }}
+                                className="p-0.5 hover:text-red-400"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </button>
+                            )}
                           </span>
                         )}
                       </NavLink>
