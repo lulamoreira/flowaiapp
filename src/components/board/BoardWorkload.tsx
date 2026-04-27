@@ -17,7 +17,11 @@ export function BoardWorkload({ boardId }: BoardWorkloadProps) {
   const [capacityMap, setCapacityMap] = useState<Record<string, number>>({});
   const [viewMode, setViewMode] = useState<'day' | 'week'>('week');
 
-  const tasks = state.tasks.filter(t => t.boardId === boardId);
+  const { filterTasks } = useScopedTasks();
+  const tasks = useMemo(
+    () => filterTasks(state.tasks.filter(t => t.boardId === boardId)),
+    [state.tasks, boardId, filterTasks]
+  );
   const members = state.users.filter(u => tasks.some(t => t.assignee === u.id));
 
   const { periods, loadMap } = useMemo(() => {
