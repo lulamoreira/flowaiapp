@@ -7,7 +7,7 @@ interface GroupHeaderProps {
   group: TaskGroup;
   taskCount: number;
   onToggle: () => void;
-  onAddTask: () => void;
+  onAddTask?: () => void;
   onRename?: (title: string) => void;
   onDelete?: () => void;
 }
