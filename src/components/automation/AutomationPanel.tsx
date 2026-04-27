@@ -190,6 +190,7 @@ export function AutomationPanel({ boardId }: AutomationPanelProps) {
       </div>
 
       {/* Add rule */}
+      {canEditAuto && (
       <Card className="border-dashed border-border">
         <CardContent className="p-4 space-y-3">
           <p className="text-xs font-medium text-muted-foreground">Nova regra</p>
