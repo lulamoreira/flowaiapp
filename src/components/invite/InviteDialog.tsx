@@ -3,10 +3,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { useAppStore } from '@/store/useAppStore';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { UserPlus, Mail, Check, Link2, Copy, Loader2 } from 'lucide-react';
+import { Mail, Check, Link2, Copy, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface InviteDialogProps {
@@ -15,11 +14,8 @@ interface InviteDialogProps {
 }
 
 export function InviteDialog({ open, onOpenChange }: InviteDialogProps) {
-  const { state } = useAppStore();
   const { user } = useAuth();
   const [email, setEmail] = useState('');
-  const [searchUser, setSearchUser] = useState('');
-  const [addedUsers, setAddedUsers] = useState<string[]>([]);
 
   // Link tab state
   const [linkName, setLinkName] = useState('');
