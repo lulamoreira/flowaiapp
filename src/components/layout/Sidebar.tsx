@@ -1,4 +1,4 @@
-import { LayoutDashboard, BarChart3, Plus, Pencil, Trash2, Star, Shield, LogOut, User } from 'lucide-react';
+import { LayoutDashboard, BarChart3, Plus, Pencil, Trash2, Star, Shield, LogOut, User, GanttChartSquare } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAppStore } from '@/store/useAppStore';
 import { useAuth } from '@/hooks/useAuth';
@@ -76,6 +76,14 @@ export function AppSidebar() {
                     <NavLink to="/" end className="text-[#c3c6d4] hover:bg-[#3c4260] hover:text-white rounded-md" activeClassName="bg-[#3c4260] text-white">
                       <LayoutDashboard className="h-4 w-4 shrink-0" />
                       {!collapsed && <span>Início</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink to="/timeline" className="text-[#c3c6d4] hover:bg-[#3c4260] hover:text-white rounded-md" activeClassName="bg-[#3c4260] text-white">
+                      <GanttChartSquare className="h-4 w-4 shrink-0" />
+                      {!collapsed && <span>Linha do Tempo</span>}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
