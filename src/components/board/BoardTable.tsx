@@ -16,6 +16,9 @@ interface BoardTableProps {
 
 export function BoardTable({ boardId }: BoardTableProps) {
   const { state, dispatch } = useAppStore();
+  const { canEdit, canDelete } = usePermissions();
+  const canEditTasks = canEdit('tasks');
+  const canDeleteTasks = canDelete('tasks');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
