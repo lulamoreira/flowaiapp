@@ -76,12 +76,8 @@ export function InviteDialog({ open, onOpenChange }: InviteDialogProps) {
         <DialogHeader>
           <DialogTitle>Convidar pessoas</DialogTitle>
         </DialogHeader>
-        <Tabs defaultValue="existing" className="mt-2">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="existing" className="text-xs">
-              <UserPlus className="h-3.5 w-3.5 mr-1" />
-              Existente
-            </TabsTrigger>
+        <Tabs defaultValue="email" className="mt-2">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="email" className="text-xs">
               <Mail className="h-3.5 w-3.5 mr-1" />
               Email
@@ -91,39 +87,6 @@ export function InviteDialog({ open, onOpenChange }: InviteDialogProps) {
               Link
             </TabsTrigger>
           </TabsList>
-
-          <TabsContent value="existing" className="space-y-3 mt-3">
-            <Input
-              placeholder="Buscar usuário..."
-              value={searchUser}
-              onChange={e => setSearchUser(e.target.value)}
-              className="h-9"
-            />
-            <div className="space-y-1 max-h-[200px] overflow-y-auto">
-              {filteredUsers.map(user => (
-                <div key={user.id} className="flex items-center justify-between px-3 py-2 rounded hover:bg-muted/50">
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-full bg-[#0073ea] text-white text-[10px] font-bold flex items-center justify-center">
-                      {user.avatar}
-                    </div>
-                    <div>
-                      <div className="text-sm font-medium text-foreground">{user.name}</div>
-                      <div className="text-xs text-muted-foreground">{user.email}</div>
-                    </div>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant={addedUsers.includes(user.id) ? 'ghost' : 'outline'}
-                    className="h-7 text-xs"
-                    onClick={() => addExistingUser(user.id)}
-                    disabled={addedUsers.includes(user.id)}
-                  >
-                    {addedUsers.includes(user.id) ? <Check className="h-3.5 w-3.5 text-green-500" /> : 'Adicionar'}
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </TabsContent>
 
           <TabsContent value="email" className="space-y-3 mt-3">
             <p className="text-sm text-muted-foreground">
