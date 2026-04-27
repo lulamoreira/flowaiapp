@@ -8,6 +8,7 @@ import { format, parseISO, isToday, isPast, isThisWeek, addWeeks, startOfWeek, e
 import { ptBR } from 'date-fns/locale';
 import { GripVertical, Calendar } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useScopedTasks } from '@/hooks/useScopedTasks';
 
 interface BoardKanbanProps {
   boardId: string;
