@@ -57,12 +57,14 @@ export function GroupHeader({ group, taskCount, onToggle, onAddTask, onRename, o
         )}
       </div>
       <div className="flex items-center gap-1 opacity-0 group-hover/header:opacity-100 transition-opacity">
-        <button
-          onClick={(e) => { e.stopPropagation(); onAddTask(); }}
-          className="text-muted-foreground hover:text-foreground p-0.5"
-        >
-          <Plus className="h-3.5 w-3.5" />
-        </button>
+        {onAddTask && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onAddTask(); }}
+            className="text-muted-foreground hover:text-foreground p-0.5"
+          >
+            <Plus className="h-3.5 w-3.5" />
+          </button>
+        )}
         {onRename && (
           <button
             onClick={(e) => { e.stopPropagation(); setTitle(group.title); setEditing(true); }}
