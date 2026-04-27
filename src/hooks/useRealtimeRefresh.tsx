@@ -32,8 +32,7 @@ export function useRealtimeRefresh(
 
     tables.forEach((table) => {
       channel.on(
-        // @ts-expect-error - postgres_changes is a valid event in supabase-js
-        'postgres_changes',
+        'postgres_changes' as any,
         { event: '*', schema: 'public', table },
         trigger
       );
