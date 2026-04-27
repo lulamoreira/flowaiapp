@@ -18,7 +18,6 @@ import ResetPasswordPage from "./pages/ResetPasswordPage.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import ProfilePage from "./pages/ProfilePage.tsx";
 import IntakeFormPage from "./pages/IntakeFormPage.tsx";
-import TimelinePage from "./pages/TimelinePage.tsx";
 
 const queryClient = new QueryClient();
 
@@ -48,7 +47,6 @@ const App = () => (
                           <Route path="/" element={<Index />} />
                           <Route path="/board/:id" element={<BoardPage />} />
                           <Route path="/profile" element={<ProfilePage />} />
-                          <Route path="/timeline" element={<TimelinePage />} />
                           <Route path="/reports" element={<ReportsPage />} />
                           <Route path="/admin" element={
                             <ProtectedRoute requiredRoles={['admin', 'coordinator']}>
