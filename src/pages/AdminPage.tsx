@@ -353,7 +353,7 @@ export default function AdminPage() {
           <TabsList className="flex-wrap">
             <TabsTrigger value="users" className="gap-1"><Users className="h-3.5 w-3.5" /> Usuários</TabsTrigger>
             <TabsTrigger value="invites" className="gap-1"><Mail className="h-3.5 w-3.5" /> Convites</TabsTrigger>
-            <TabsTrigger value="functions" className="gap-1"><Shield className="h-3.5 w-3.5" /> Funções</TabsTrigger>
+            <TabsTrigger value="functions" className="gap-1"><Settings className="h-3.5 w-3.5" /> Funções</TabsTrigger>
             {isAdminOrCoordinator && <TabsTrigger value="activity" className="gap-1"><Activity className="h-3.5 w-3.5" /> Log</TabsTrigger>}
           </TabsList>
 
@@ -475,7 +475,7 @@ export default function AdminPage() {
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold text-foreground">Funções Customizadas</h3>
               <Button className="gap-1 bg-primary" onClick={() => openFuncDialog()}>
-                <Shield className="h-4 w-4" /> Nova Função
+                <Settings className="h-4 w-4" /> Nova Função
               </Button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
