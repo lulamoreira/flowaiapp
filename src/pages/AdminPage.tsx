@@ -451,7 +451,12 @@ export default function AdminPage() {
                 <tbody>
                   {invitations.map(inv => (
                     <tr key={inv.id} className="border-b border-border last:border-0 hover:bg-muted/30">
-                      <td className="p-3 font-medium text-foreground">{inv.email}</td>
+                      <td className="p-3 font-medium text-foreground">
+                        {inv.email || (inv as any).invited_name || '—'}
+                        {!inv.email && (inv as any).invited_name && (
+                          <span className="ml-2 text-[10px] text-muted-foreground font-normal">(via link)</span>
+                        )}
+                      </td>
                       <td className="p-3">{statusBadge(inv.status)}</td>
                       <td className="p-3 text-muted-foreground">{new Date(inv.created_at).toLocaleDateString('pt-BR')}</td>
                       <td className="p-3 text-muted-foreground">{new Date(inv.expires_at).toLocaleDateString('pt-BR')}</td>
