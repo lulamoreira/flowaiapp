@@ -293,6 +293,22 @@ export default function AdminPage() {
     fetchAll();
   };
 
+  const handleDeleteInvitation = async (inv: Invitation) => {
+    if (inv.status !== 'pending') {
+      toast.error('Apenas convites pendentes podem ser excluídos.');
+      return;
+    }
+    const label = inv.email || (inv as any).invited_name || 'este convite';
+    if (!confirm(`Excluir o convite de ${label}? O link deixará de funcionar.`)) return;
+    const { error } = await supabase.from('invitations').delete().eq('id', inv.id);
+    if (error) {
+      toast.error('Erro ao excluir convite: ' + error.message);
+      return;
+    }
+    toast.success('Convite excluído. O link não funciona mais.');
+    fetchAll();
+  };
+
   const handleAssignFunction = async () => {
     if (!assignUserId || !assignFuncId || !user) return;
     
@@ -448,6 +464,7 @@ export default function AdminPage() {
                     <th className="text-left p-3 font-medium text-muted-foreground">Status</th>
                     <th className="text-left p-3 font-medium text-muted-foreground">Enviado em</th>
                     <th className="text-left p-3 font-medium text-muted-foreground">Expira em</th>
+                    <th className="text-right p-3 font-medium text-muted-foreground">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -462,10 +479,25 @@ export default function AdminPage() {
                       <td className="p-3">{statusBadge(inv.status)}</td>
                       <td className="p-3 text-muted-foreground">{new Date(inv.created_at).toLocaleDateString('pt-BR')}</td>
                       <td className="p-3 text-muted-foreground">{new Date(inv.expires_at).toLocaleDateString('pt-BR')}</td>
+                      <td className="p-3 text-right">
+                        {inv.status === 'pending' ? (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-destructive hover:text-destructive"
+                            title="Excluir convite (invalida o link)"
+                            onClick={() => handleDeleteInvitation(inv)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        ) : (
+                          <span className="text-[11px] text-muted-foreground">—</span>
+                        )}
+                      </td>
                     </tr>
                   ))}
                   {invitations.length === 0 && (
-                    <tr><td colSpan={4} className="p-6 text-center text-muted-foreground">Nenhum convite enviado</td></tr>
+                    <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">Nenhum convite enviado</td></tr>
                   )}
                 </tbody>
               </table>
