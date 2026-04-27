@@ -264,30 +264,33 @@ export type Database = {
         Row: {
           accepted_at: string | null
           created_at: string
-          email: string
+          email: string | null
           expires_at: string
           id: string
           invited_by: string
+          invited_name: string | null
           status: Database["public"]["Enums"]["invitation_status"]
           token: string
         }
         Insert: {
           accepted_at?: string | null
           created_at?: string
-          email: string
+          email?: string | null
           expires_at?: string
           id?: string
           invited_by: string
+          invited_name?: string | null
           status?: Database["public"]["Enums"]["invitation_status"]
           token?: string
         }
         Update: {
           accepted_at?: string | null
           created_at?: string
-          email?: string
+          email?: string | null
           expires_at?: string
           id?: string
           invited_by?: string
+          invited_name?: string | null
           status?: Database["public"]["Enums"]["invitation_status"]
           token?: string
         }
