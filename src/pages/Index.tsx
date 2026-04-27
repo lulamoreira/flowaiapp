@@ -35,11 +35,6 @@ const Index = () => {
     return 'Visualizador';
   }, [roles]);
 
-  const isPrivileged = roles.includes('admin') || roles.includes('coordinator');
-  const allTasks = useMemo(
-    () => (isPrivileged ? state.tasks : state.tasks.filter(t => t.assignee === profile?.user_id)),
-    [state.tasks, isPrivileged, profile?.user_id]
-  );
   const stats = useMemo(() => ({
     total: allTasks.length,
     done: allTasks.filter(t => t.status === 'done').length,
