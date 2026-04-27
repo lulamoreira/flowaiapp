@@ -90,11 +90,13 @@ const BoardPage = () => {
             </div>
           ) : (
             <h2
-              className="text-xl font-bold text-foreground flex items-center gap-2 group/title cursor-pointer mb-1"
-              onClick={() => { setTitleDraft(board.title); setEditingTitle(true); }}
+              className={`text-xl font-bold text-foreground flex items-center gap-2 group/title mb-1 ${canEditBoard ? 'cursor-pointer' : ''}`}
+              onClick={() => { if (canEditBoard) { setTitleDraft(board.title); setEditingTitle(true); } }}
             >
               {board.title}
-              <Pencil className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover/title:opacity-100 transition-opacity" />
+              {canEditBoard && (
+                <Pencil className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover/title:opacity-100 transition-opacity" />
+              )}
             </h2>
           )}
           {editingDesc ? (
