@@ -2,6 +2,7 @@ import { LayoutDashboard, BarChart3, Plus, Pencil, Trash2, Star, Shield, LogOut,
 import { NavLink } from '@/components/NavLink';
 import { useAppStore } from '@/store/useAppStore';
 import { useAuth } from '@/hooks/useAuth';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { toast } from 'sonner';
