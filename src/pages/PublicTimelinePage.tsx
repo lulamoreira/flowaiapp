@@ -7,7 +7,7 @@ import { Header } from '@/components/layout/Header';
 
 export default function PublicTimelinePage() {
   const { token } = useParams<{ token: string }>();
-  const { dispatch } = useAppStore();
+  const { dispatch }: any = useAppStore();
   const [board, setBoard] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
