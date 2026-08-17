@@ -149,8 +149,8 @@ async function fetchPaginated(table: string, orderCol: string = 'created_at') {
   let hasMore = true;
 
   while (hasMore) {
-    const { data, error, count } = await supabase
-      .from(table)
+    const { data, error, count } = await (supabase
+      .from(table) as any)
       .select('*', { count: 'exact' })
       .order(orderCol)
       .range(from, to);
