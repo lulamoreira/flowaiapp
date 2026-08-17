@@ -33,7 +33,7 @@ Descrição atual: ${description || '(vazia)'}
 
 Forneça a descrição expandida diretamente, sem prefixos ou explicações.`
 
-    const response = await fetch('https://ai.lovable.dev/chat/completions', {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
