@@ -3,7 +3,7 @@ import { Header } from '@/components/layout/Header';
 import { useNavigate } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { LayoutGrid, CheckCircle2, Clock, AlertCircle, Star, Plus } from 'lucide-react';
+import { LayoutGrid, CheckCircle2, Clock, AlertCircle, Star, Plus, FileText } from 'lucide-react';
 import { Board, STATUS_CONFIG, PRIORITY_CONFIG, Task, TaskStatus } from '@/types';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -13,6 +13,8 @@ import { TeamTimelineWidget } from '@/components/home/TeamTimelineWidget';
 import { useScopedTasks } from '@/hooks/useScopedTasks';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { TaskDetailModal } from '@/components/task/TaskDetailModal';
+import { ImportPdfDialog } from '@/components/board/ImportPdfDialog';
+import { Button } from '@/components/ui/button';
 
 const Index = () => {
   const { state, dispatch } = useAppStore();
