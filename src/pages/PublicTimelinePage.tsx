@@ -12,18 +12,16 @@ export default function PublicTimelinePage() {
   useEffect(() => {
     if (!token) return;
     const load = async () => {
-      const { data: b } = await supabase
-        .from('boards' as any)
-        .select('*')
-        .eq('public_token', token)
-        .eq('public_timeline_enabled', true)
-        .single();
+      // @ts-ignore
+      const { data: b } = await supabase.from('boards').select('*').eq('public_token', token).eq('public_timeline_enabled', true).single();
 
       if (b) {
         setBoard(b);
         const [gs, ts] = await Promise.all([
-          supabase.from('task_groups' as any).select('*').eq('board_id', b.id),
-          supabase.from('tasks' as any).select('*').eq('board_id', b.id)
+          // @ts-ignore
+          supabase.from('task_groups').select('*').eq('board_id', b.id),
+          // @ts-ignore
+          supabase.from('tasks').select('*').eq('board_id', b.id)
         ]);
         setData({
           groups: (gs.data || []).map((g: any) => ({
