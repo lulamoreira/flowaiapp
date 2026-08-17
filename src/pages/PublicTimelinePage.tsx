@@ -18,8 +18,8 @@ export default function PublicTimelinePage() {
       const { data: boardData, error: boardError } = await supabase
         .from('boards')
         .select('*')
-        .eq('public_token', token)
-        .eq('public_timeline_enabled', true)
+        .eq('public_token' as any, token)
+        .eq('public_timeline_enabled' as any, true)
         .single();
 
       if (boardData) {

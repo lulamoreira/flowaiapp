@@ -22,7 +22,7 @@ export function PublicTimelineDialog({ boardId, initialEnabled, publicToken }: P
   const togglePublic = async (checked: boolean) => {
     const { error } = await supabase
       .from('boards')
-      .update({ public_timeline_enabled: checked })
+      .update({ public_timeline_enabled: checked } as any)
       .eq('id', boardId);
 
     if (error) {

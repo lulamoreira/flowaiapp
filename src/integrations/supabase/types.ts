@@ -90,6 +90,8 @@ export type Database = {
           description: string
           favorite: boolean
           id: string
+          public_timeline_enabled: boolean | null
+          public_token: string | null
           title: string
           updated_at: string
         }
@@ -100,6 +102,8 @@ export type Database = {
           description?: string
           favorite?: boolean
           id?: string
+          public_timeline_enabled?: boolean | null
+          public_token?: string | null
           title: string
           updated_at?: string
         }
@@ -110,6 +114,8 @@ export type Database = {
           description?: string
           favorite?: boolean
           id?: string
+          public_timeline_enabled?: boolean | null
+          public_token?: string | null
           title?: string
           updated_at?: string
         }
