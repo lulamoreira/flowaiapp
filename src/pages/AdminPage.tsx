@@ -394,11 +394,32 @@ export default function AdminPage() {
           <TabsContent value="users" className="space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold text-foreground">
-                {isAdmin ? 'Gestão Global de Usuários' : 'Minha Equipe'}
+                Quero ter o poder de apagar/editar os usuários
               </h3>
-              <Button className="gap-1 bg-primary" onClick={() => setInviteOpen(true)}>
-                <UserPlus className="h-4 w-4" /> Convidar
-              </Button>
+              <div className="flex items-center gap-2">
+                {selectedUser && (
+                  <Button 
+                    variant="destructive" 
+                    size="sm" 
+                    className="gap-1"
+                    onClick={async () => {
+                      if (!confirm(`Tem certeza que deseja remover ${selectedUser.full_name}?`)) return;
+                      const { error } = await supabase.from('profiles').delete().eq('user_id', selectedUser.user_id);
+                      if (error) toast.error('Erro ao remover usuário: ' + error.message);
+                      else {
+                        toast.success('Usuário removido com sucesso');
+                        setSelectedUser(null);
+                        fetchAll();
+                      }
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" /> Remover Selecionado
+                  </Button>
+                )}
+                <Button className="gap-1 bg-primary" onClick={() => setInviteOpen(true)}>
+                  <UserPlus className="h-4 w-4" /> Convidar
+                </Button>
+              </div>
             </div>
             <div className="bg-card border border-border rounded-xl overflow-hidden">
               <table className="w-full text-sm">
