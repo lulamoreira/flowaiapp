@@ -30,18 +30,18 @@ const App = () => (
       <AuthProvider>
         <AppProvider>
           <BrowserRouter>
-            <Routes>
-              {/* Public routes */}
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/register" element={<RegisterPage />} />
-              <Route path="/reset-password" element={<ResetPasswordPage />} />
-              <Route path="/form" element={<IntakeFormPage />} />
-              <Route path="/timeline/public/:token" element={<PublicTimelinePage />} />
+            <SidebarProvider>
+              <Routes>
+                {/* Public routes */}
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
+                <Route path="/form" element={<IntakeFormPage />} />
+                <Route path="/timeline/public/:token" element={<PublicTimelinePage />} />
 
-              {/* Protected routes */}
-              <Route path="/*" element={
-                <ProtectedRoute>
-                  <SidebarProvider>
+                {/* Protected routes */}
+                <Route path="/*" element={
+                  <ProtectedRoute>
                     <div className="min-h-screen flex w-full">
                       <AppSidebar />
                       <div className="flex-1 flex flex-col min-h-0">
@@ -59,10 +59,10 @@ const App = () => (
                         </Routes>
                       </div>
                     </div>
-                  </SidebarProvider>
-                </ProtectedRoute>
-              } />
-            </Routes>
+                  </ProtectedRoute>
+                } />
+              </Routes>
+            </SidebarProvider>
           </BrowserRouter>
         </AppProvider>
       </AuthProvider>
