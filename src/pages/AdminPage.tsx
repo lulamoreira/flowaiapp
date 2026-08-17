@@ -434,7 +434,14 @@ export default function AdminPage() {
                 </thead>
                 <tbody>
                   {users.map(u => (
-                    <tr key={u.user_id} className="border-b border-border last:border-0 hover:bg-muted/30">
+                    <tr 
+                      key={u.user_id} 
+                      className={cn(
+                        "border-b border-border last:border-0 hover:bg-muted/30 cursor-pointer",
+                        selectedUser?.user_id === u.user_id && "bg-primary/5 border-primary/20"
+                      )}
+                      onClick={() => setSelectedUser(u)}
+                    >
                       <td className="p-3 font-medium text-foreground">{u.full_name || 'Sem nome'}</td>
                       <td className="p-3">
                         {u.roles.map(r => (
