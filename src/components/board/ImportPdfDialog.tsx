@@ -53,7 +53,7 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
       const day = parts[0].padStart(2, '0');
       const month = months[parts[1]] || '01';
       
-      return `${currentYear}-${month}-${day}T09:00`;
+      return `${currentYear}-${month}-${day}`;
     } catch (e) {
       return undefined;
     }
