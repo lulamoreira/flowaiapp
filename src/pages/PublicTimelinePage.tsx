@@ -2,18 +2,16 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { BoardGantt } from '@/components/board/BoardGantt';
-import { Task, TaskGroup } from '@/types';
 
 export default function PublicTimelinePage() {
   const { token } = useParams<{ token: string }>();
   const [board, setBoard] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<{groups: TaskGroup[], tasks: Task[]}>({ groups: [], tasks: [] });
+  const [data, setData] = useState<{groups: any[], tasks: any[]}>({ groups: [], tasks: [] });
 
   useEffect(() => {
     if (!token) return;
     const loadPublicBoard = async () => {
-      // Use any to bypass TS linter for the newly added columns
       const { data: boardData } = await supabase
         .from('boards')
         .select('*')

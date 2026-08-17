@@ -1,6 +1,6 @@
 import { useMemo, useState, useCallback, useRef } from 'react';
 import { useAppStore } from '@/store/useAppStore';
-import { Task } from '@/types';
+import { Task, TaskGroup } from '@/types';
 import { parseISO, differenceInDays, addDays, format, startOfDay, isBefore, isSameDay, isSameMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { TaskDetailModal } from '@/components/task/TaskDetailModal';
