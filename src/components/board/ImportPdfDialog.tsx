@@ -109,7 +109,7 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
       toast.success('Documento processado com sucesso!');
     } catch (error) {
       console.error(error);
-      toast.error('Quero ter o poder de apagar/editar os usuários');
+      toast.error('Erro ao processar o PDF');
     } finally {
       setLoading(false);
     }
