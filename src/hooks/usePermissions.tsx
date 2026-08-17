@@ -23,7 +23,7 @@ export function usePermissions() {
   const [permissions, setPermissions] = useState<Record<string, ModulePermission>>({});
   const [loading, setLoading] = useState(true);
 
-  const isViewer = roles.includes('viewer') && !isAdmin && !isCoordinator;
+  const isViewer = roles?.includes('viewer') && !isAdmin && !isCoordinator;
   const isAdminOrCoordinator = isAdmin || isCoordinator;
 
   const fetchPermissions = useCallback(async () => {
