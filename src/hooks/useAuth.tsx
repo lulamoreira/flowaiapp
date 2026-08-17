@@ -97,8 +97,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setRoles([]);
   };
 
-  const isAdmin = roles.includes('admin');
-  const isCoordinator = roles.includes('coordinator');
+  const isAdmin = roles?.includes('admin') ?? false;
+  const isCoordinator = roles?.includes('coordinator') ?? false;
 
   return (
     <AuthContext.Provider value={{
