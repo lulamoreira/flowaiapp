@@ -1,8 +1,8 @@
-import React, { createContext, useContext, useReducer, useEffect, ReactNode, useCallback, useState } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, ReactNode, useCallback } from 'react';
 import { Board, TaskGroup, Task, User, AutomationRule } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { logActivity } from '@/lib/activityLog';
-import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
 
 interface AppState {
   boards: Board[];
@@ -142,27 +142,56 @@ function dbToAutomation(row: any): AutomationRule {
   };
 }
 
+async function fetchPaginated(table: string, orderCol: string = 'created_at') {
+  let allData: any[] = [];
+  let from = 0;
+  let to = 999;
+  let hasMore = true;
+
+  while (hasMore) {
+    const response = await (supabase
+      .from(table as any) as any)
+      .select('*', { count: 'exact' })
+      .order(orderCol)
+      .range(from, to);
+    
+    const { data, error, count } = response;
+
+    if (error) throw error;
+    if (data) allData = [...allData, ...data];
+    
+    if (count !== null && allData.length >= count) {
+      hasMore = false;
+    } else if (data.length < 1000) {
+      hasMore = false;
+    } else {
+      from += 1000;
+      to += 1000;
+    }
+  }
+  return allData;
+}
+
 const AppContext = createContext<{ state: AppState; dispatch: React.Dispatch<Action> } | null>(null);
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
 
-  // Load data from DB
-  useEffect(() => {
-    const load = async () => {
-      const [boardsRes, groupsRes, tasksRes, automationsRes, profilesRes] = await Promise.all([
-        supabase.from('boards').select('*').order('created_at'),
-        supabase.from('task_groups').select('*').order('position'),
-        supabase.from('tasks').select('*').order('position').order('created_at'),
-        supabase.from('automation_rules').select('*'),
-        supabase.from('profiles').select('*'),
+  const load = async () => {
+    try {
+      const [boardsData, groupsData, tasksData, automationsData, profilesData] = await Promise.all([
+        fetchPaginated('boards', 'created_at'),
+        fetchPaginated('task_groups', 'position'),
+        fetchPaginated('tasks', 'position'),
+        fetchPaginated('automation_rules', 'created_at'),
+        fetchPaginated('profiles', 'created_at'),
       ]);
 
-      const boards = (boardsRes.data || []).map(dbToBoard);
-      const groups = (groupsRes.data || []).map(dbToGroup);
-      const tasks = (tasksRes.data || []).map(dbToTask);
-      const automations = (automationsRes.data || []).map(dbToAutomation);
-      const users: User[] = (profilesRes.data || []).map(p => ({
+      const boards = boardsData.map(dbToBoard);
+      const groups = groupsData.map(dbToGroup);
+      const tasks = tasksData.map(dbToTask);
+      const automations = automationsData.map(dbToAutomation);
+      const users: User[] = profilesData.map(p => ({
         id: p.user_id,
         name: p.full_name || 'Sem nome',
         email: '',
@@ -170,52 +199,55 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }));
 
       dispatch({ type: 'SET_STATE', payload: { boards, groups, tasks, users, automations, loading: false } });
-    };
+    } catch (err: any) {
+      console.error('Error loading data:', err);
+      toast.error('Erro ao carregar dados: ' + err.message);
+    }
+  };
+
+  useEffect(() => {
     load();
   }, []);
 
-  // Realtime subscriptions
+  const refetch = async (type: 'boards' | 'groups' | 'tasks' | 'automations') => {
+    try {
+      switch (type) {
+        case 'boards': {
+          const data = await fetchPaginated('boards', 'created_at');
+          dispatch({ type: 'SET_STATE', payload: { boards: data.map(dbToBoard) } });
+          break;
+        }
+        case 'groups': {
+          const data = await fetchPaginated('task_groups', 'position');
+          dispatch({ type: 'SET_STATE', payload: { groups: data.map(dbToGroup) } });
+          break;
+        }
+        case 'tasks': {
+          const data = await fetchPaginated('tasks', 'position');
+          dispatch({ type: 'SET_STATE', payload: { tasks: data.map(dbToTask) } });
+          break;
+        }
+        case 'automations': {
+          const data = await fetchPaginated('automation_rules', 'created_at');
+          dispatch({ type: 'SET_STATE', payload: { automations: data.map(dbToAutomation) } });
+          break;
+        }
+      }
+    } catch (err: any) {
+      console.error(`Refetch error (${type}):`, err);
+      toast.error(`Erro ao atualizar ${type}: ` + err.message);
+    }
+  };
+
   useEffect(() => {
     const channel = supabase
       .channel('app-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'boards' }, (payload) => {
-        if (payload.eventType === 'INSERT') {
-          dispatch({ type: 'SET_STATE', payload: { boards: [] } }); // trigger re-fetch
-          refetch('boards');
-        } else if (payload.eventType === 'UPDATE') {
-          dispatch({ type: 'SET_STATE', payload: { boards: [] } });
-          refetch('boards');
-        } else if (payload.eventType === 'DELETE') {
-          dispatch({ type: 'SET_STATE', payload: { boards: [] } });
-          refetch('boards');
-        }
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'task_groups' }, () => {
-        refetch('groups');
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => {
-        refetch('tasks');
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'automation_rules' }, () => {
-        refetch('automations');
-      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'boards' }, () => refetch('boards'))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'task_groups' }, () => refetch('groups'))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => refetch('tasks'))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'automation_rules' }, () => refetch('automations'))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, async () => {
-        const { data } = await supabase.from('profiles').select('*');
-        if (data) {
-          const users: User[] = data.map(p => ({
-            id: p.user_id,
-            name: p.full_name || 'Sem nome',
-            email: '',
-            avatar: (p.full_name || '??').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase(),
-          }));
-          dispatch({ type: 'SET_STATE', payload: { users } });
-        }
-      })
-      .subscribe();
-
-    const refetchProfiles = async () => {
-      const { data } = await supabase.from('profiles').select('*');
-      if (data) {
+        const data = await fetchPaginated('profiles', 'created_at');
         const users: User[] = data.map(p => ({
           id: p.user_id,
           name: p.full_name || 'Sem nome',
@@ -223,59 +255,38 @@ export function AppProvider({ children }: { children: ReactNode }) {
           avatar: (p.full_name || '??').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase(),
         }));
         dispatch({ type: 'SET_STATE', payload: { users } });
-      }
+      })
+      .subscribe();
+
+    const refetchProfiles = async () => {
+      const data = await fetchPaginated('profiles', 'created_at');
+      const users: User[] = data.map(p => ({
+        id: p.user_id,
+        name: p.full_name || 'Sem nome',
+        email: '',
+        avatar: (p.full_name || '??').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase(),
+      }));
+      dispatch({ type: 'SET_STATE', payload: { users } });
     };
 
-    const onVisible = () => {
-      if (document.visibilityState === 'visible') refetchProfiles();
-    };
     window.addEventListener('focus', refetchProfiles);
-    document.addEventListener('visibilitychange', onVisible);
-
     return () => {
       supabase.removeChannel(channel);
       window.removeEventListener('focus', refetchProfiles);
-      document.removeEventListener('visibilitychange', onVisible);
     };
   }, []);
 
-  const refetch = async (type: 'boards' | 'groups' | 'tasks' | 'automations') => {
-    switch (type) {
-      case 'boards': {
-        const { data } = await supabase.from('boards').select('*').order('created_at');
-        if (data) dispatch({ type: 'SET_STATE', payload: { boards: data.map(dbToBoard) } });
-        break;
-      }
-      case 'groups': {
-        const { data } = await supabase.from('task_groups').select('*').order('position');
-        if (data) dispatch({ type: 'SET_STATE', payload: { groups: data.map(dbToGroup) } });
-        break;
-      }
-      case 'tasks': {
-        const { data } = await supabase.from('tasks').select('*').order('position').order('created_at');
-        if (data) dispatch({ type: 'SET_STATE', payload: { tasks: data.map(dbToTask) } });
-        break;
-      }
-      case 'automations': {
-        const { data } = await supabase.from('automation_rules').select('*');
-        if (data) dispatch({ type: 'SET_STATE', payload: { automations: data.map(dbToAutomation) } });
-        break;
-      }
-    }
-  };
-
-  // DB-syncing dispatch wrapper
   const wrappedDispatch = useCallback((action: Action) => {
     dispatch(action);
 
-    // Persist to DB (fire-and-forget)
     (async () => {
       try {
+        let error = null;
         switch (action.type) {
           case 'ADD_BOARD': {
             const b = action.payload;
             const { data: { user } } = await supabase.auth.getUser();
-            await supabase.from('boards').insert({
+            const res = await supabase.from('boards').insert({
               id: b.id,
               title: b.title,
               description: b.description,
@@ -283,51 +294,56 @@ export function AppProvider({ children }: { children: ReactNode }) {
               favorite: b.favorite || false,
               created_by: user?.id,
             });
+            error = res.error;
             logActivity('Criou quadro', { board: b.title });
             break;
           }
           case 'UPDATE_BOARD': {
             const b = action.payload;
-            await supabase.from('boards').update({
+            const res = await supabase.from('boards').update({
               title: b.title,
               description: b.description,
               color: b.color,
               favorite: b.favorite || false,
             }).eq('id', b.id);
+            error = res.error;
             break;
           }
-          case 'DELETE_BOARD':
-            await supabase.from('boards').delete().eq('id', action.payload);
+          case 'DELETE_BOARD': {
+            const res = await supabase.from('boards').delete().eq('id', action.payload);
+            error = res.error;
             logActivity('Excluiu quadro', { boardId: action.payload });
             break;
-            break;
-
+          }
           case 'ADD_GROUP': {
             const g = action.payload;
-            await supabase.from('task_groups').insert({
+            const res = await supabase.from('task_groups').insert({
               id: g.id,
               title: g.title,
               color: g.color,
               board_id: g.boardId,
             });
+            error = res.error;
             break;
           }
           case 'UPDATE_GROUP': {
             const g = action.payload;
-            await supabase.from('task_groups').update({
+            const res = await supabase.from('task_groups').update({
               title: g.title,
               color: g.color,
             }).eq('id', g.id);
+            error = res.error;
             break;
           }
-          case 'DELETE_GROUP':
-            await supabase.from('task_groups').delete().eq('id', action.payload);
+          case 'DELETE_GROUP': {
+            const res = await supabase.from('task_groups').delete().eq('id', action.payload);
+            error = res.error;
             break;
-
+          }
           case 'ADD_TASK': {
             const t = action.payload;
             const { data: { user } } = await supabase.auth.getUser();
-            await supabase.from('tasks').insert({
+            const res = await supabase.from('tasks').insert({
               id: t.id,
               title: t.title,
               description: t.description,
@@ -342,15 +358,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
               board_id: t.boardId,
               subtasks: t.subtasks as any,
               attachments: t.attachments as any,
+              position: t.position ?? 0,
               created_by: user?.id,
             });
+            error = res.error;
             logActivity('Criou tarefa', { task: t.title });
             break;
           }
           case 'UPDATE_TASK': {
             const t = action.payload;
             const oldTask = state.tasks.find(tk => tk.id === t.id);
-            await supabase.from('tasks').update({
+            const res = await supabase.from('tasks').update({
               title: t.title,
               description: t.description,
               status: t.status,
@@ -366,19 +384,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
               attachments: t.attachments as any,
               position: t.position ?? 0,
             }).eq('id', t.id);
+            error = res.error;
             if (oldTask && oldTask.status !== t.status) {
               logActivity('Alterou status de tarefa', { task: t.title, from: oldTask.status, to: t.status });
             }
             break;
           }
-          case 'DELETE_TASK':
-            await supabase.from('tasks').delete().eq('id', action.payload);
+          case 'DELETE_TASK': {
+            const res = await supabase.from('tasks').delete().eq('id', action.payload);
+            error = res.error;
             logActivity('Excluiu tarefa', { taskId: action.payload });
             break;
-
+          }
           case 'ADD_AUTOMATION': {
             const a = action.payload;
-            await supabase.from('automation_rules').insert({
+            const res = await supabase.from('automation_rules').insert({
               id: a.id,
               board_id: a.boardId,
               trigger_type: a.triggerType,
@@ -388,25 +408,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
               enabled: a.enabled,
               label: a.label,
             });
+            error = res.error;
             break;
           }
-          case 'TOGGLE_AUTOMATION': {
-            const auto = state.automations.find(a => a.id === action.payload);
-            if (auto) {
-              await supabase.from('automation_rules').update({ enabled: !auto.enabled }).eq('id', action.payload);
-            }
-            break;
-          }
-          case 'DELETE_AUTOMATION':
-            await supabase.from('automation_rules').delete().eq('id', action.payload);
-            break;
         }
-      } catch (err) {
+        if (error) {
+          console.error('DB sync error:', error);
+          toast.error('Erro ao salvar no banco: ' + error.message);
+        }
+      } catch (err: any) {
         console.error('DB sync error:', err);
+        toast.error('A alteração não foi salva: ' + err.message);
       }
     })();
 
-    // Run automations on task updates
     if (action.type === 'UPDATE_TASK') {
       const task = action.payload;
       const enabledRules = state.automations.filter(a => a.enabled && a.boardId === task.boardId);
@@ -424,7 +439,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
       }
     }
-  }, [state.automations]);
+  }, [state.automations, state.tasks]);
 
   return (
     <AppContext.Provider value={{ state, dispatch: wrappedDispatch }}>
