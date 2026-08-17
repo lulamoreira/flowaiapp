@@ -40,7 +40,7 @@ Forneça a descrição expandida diretamente, sem prefixos ou explicações.`
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.0-flash-exp',
+        model: 'google/gemini-2.5-flash',
         messages: [{ role: 'user', content: prompt }],
         max_tokens: 1000,
       }),
