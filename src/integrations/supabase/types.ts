@@ -38,6 +38,27 @@ export type Database = {
         }
         Relationships: []
       }
+      app_settings: {
+        Row: {
+          id: string
+          key: string
+          updated_at: string | null
+          value: Json
+        }
+        Insert: {
+          id?: string
+          key: string
+          updated_at?: string | null
+          value: Json
+        }
+        Update: {
+          id?: string
+          key?: string
+          updated_at?: string | null
+          value?: Json
+        }
+        Relationships: []
+      }
       automation_rules: {
         Row: {
           action_type: string
@@ -339,6 +360,7 @@ export type Database = {
           date_of_birth: string | null
           full_name: string
           id: string
+          is_early_adopter: boolean | null
           status: string
           updated_at: string
           user_id: string
@@ -349,6 +371,7 @@ export type Database = {
           date_of_birth?: string | null
           full_name?: string
           id?: string
+          is_early_adopter?: boolean | null
           status?: string
           updated_at?: string
           user_id: string
@@ -359,8 +382,48 @@ export type Database = {
           date_of_birth?: string | null
           full_name?: string
           id?: string
+          is_early_adopter?: boolean | null
           status?: string
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          created_at: string | null
+          id: string
+          period_ends_at: string | null
+          plan_id: string | null
+          status: string | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          trial_ends_at: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          period_ends_at?: string | null
+          plan_id?: string | null
+          status?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          trial_ends_at?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          period_ends_at?: string | null
+          plan_id?: string | null
+          status?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          trial_ends_at?: string | null
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: []
@@ -666,9 +729,10 @@ export type Database = {
         Returns: boolean
       }
       is_admin_or_coordinator: { Args: { _user_id: string }; Returns: boolean }
+      is_subscribed: { Args: { u_id: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "admin" | "coordinator" | "viewer" | "user"
+      app_role: "admin" | "coordinator" | "viewer" | "user" | "owner"
       invitation_status: "pending" | "accepted" | "expired"
     }
     CompositeTypes: {
@@ -797,7 +861,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "coordinator", "viewer", "user"],
+      app_role: ["admin", "coordinator", "viewer", "user", "owner"],
       invitation_status: ["pending", "accepted", "expired"],
     },
   },
