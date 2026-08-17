@@ -47,6 +47,7 @@ Forneça a descrição expandida diretamente, sem prefixos ou explicações.`
     })
 
     const result = await response.json()
+    console.log('AI Response:', JSON.stringify(result))
     const expanded = result.choices?.[0]?.message?.content || ''
 
     return new Response(JSON.stringify({ expanded }), {
