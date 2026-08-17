@@ -48,6 +48,12 @@ Forneça a descrição expandida diretamente, sem prefixos ou explicações.`
 
     const result = await response.json()
     console.log('AI Response:', JSON.stringify(result))
+    
+    if (result.error) {
+      console.error('AI API Error:', result.error)
+      throw new Error(`AI API Error: ${result.error.message || JSON.stringify(result.error)}`)
+    }
+
     const expanded = result.choices?.[0]?.message?.content || ''
 
     return new Response(JSON.stringify({ expanded }), {
