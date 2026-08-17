@@ -3,7 +3,7 @@ import { Header } from '@/components/layout/Header';
 import { useNavigate } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { LayoutGrid, CheckCircle2, Clock, AlertCircle, Star, Plus } from 'lucide-react';
+import { LayoutGrid, CheckCircle2, Clock, AlertCircle, Star, Plus, FileText } from 'lucide-react';
 import { Board, STATUS_CONFIG, PRIORITY_CONFIG, Task, TaskStatus } from '@/types';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -13,6 +13,8 @@ import { TeamTimelineWidget } from '@/components/home/TeamTimelineWidget';
 import { useScopedTasks } from '@/hooks/useScopedTasks';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { TaskDetailModal } from '@/components/task/TaskDetailModal';
+import { ImportPdfDialog } from '@/components/board/ImportPdfDialog';
+import { Button } from '@/components/ui/button';
 
 const Index = () => {
   const { state, dispatch } = useAppStore();
@@ -21,6 +23,7 @@ const Index = () => {
   const { tasks: allTasks, isPrivileged } = useScopedTasks();
   const [openListStatus, setOpenListStatus] = useState<TaskStatus | 'all' | null>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [importPdfOpen, setImportPdfOpen] = useState(false);
   useDeadlineNotifier();
 
   const firstName = useMemo(() => {
@@ -215,11 +218,20 @@ const Index = () => {
               ))}
               <div
                 onClick={handleCreateBoard}
-                className="bg-card border border-dashed border-border rounded-xl cursor-pointer hover:shadow-md hover:border-primary/50 transition-all flex items-center justify-center min-h-[140px]"
+                className="bg-card border border-dashed border-border rounded-xl cursor-pointer hover:shadow-md hover:border-primary/50 transition-all flex flex-col items-center justify-center min-h-[140px] p-4 text-center"
               >
                 <div className="flex flex-col items-center gap-2 text-muted-foreground">
                   <Plus className="h-8 w-8" />
                   <span className="text-sm font-medium">Adicionar board</span>
+                </div>
+              </div>
+              <div
+                onClick={() => setImportPdfOpen(true)}
+                className="bg-card border border-dashed border-border rounded-xl cursor-pointer hover:shadow-md hover:border-[#0073ea]/50 transition-all flex flex-col items-center justify-center min-h-[140px] p-4 text-center"
+              >
+                <div className="flex flex-col items-center gap-2 text-[#0073ea]">
+                  <FileText className="h-8 w-8" />
+                  <span className="text-sm font-medium">Importar Cronograma (PDF)</span>
                 </div>
               </div>
             </div>
@@ -277,6 +289,8 @@ const Index = () => {
       {selectedTask && (
         <TaskDetailModal task={selectedTask} onClose={() => setSelectedTask(null)} />
       )}
+      
+      <ImportPdfDialog open={importPdfOpen} onOpenChange={setImportPdfOpen} />
     </div>
   );
 };

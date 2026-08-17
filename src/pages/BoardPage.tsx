@@ -115,15 +115,26 @@ const BoardPage = () => {
               </div>
             </div>
           ) : (
-            <p
-              className={`text-sm text-muted-foreground transition-colors group/desc flex items-center gap-1 ${canEditBoard ? 'cursor-pointer hover:text-foreground' : ''}`}
+            <div
+              className={`text-sm text-muted-foreground transition-colors group/desc flex flex-col items-start gap-1 whitespace-pre-wrap ${canEditBoard ? 'cursor-pointer hover:text-foreground' : ''}`}
               onClick={() => { if (canEditBoard) { setDescDraft(board.description); setEditingDesc(true); } }}
             >
-              {board.description || (canEditBoard ? 'Clique para adicionar uma descrição...' : 'Sem descrição')}
-              {canEditBoard && (
+              {board.description ? (
+                <div className="prose prose-sm dark:prose-invert max-w-none">
+                  {board.description.split('\n').map((line, i) => {
+                    if (line.startsWith('## ')) return <h2 key={i} className="text-lg font-bold mt-4 mb-2">{line.replace('## ', '')}</h2>;
+                    if (line.startsWith('**') && line.endsWith('**')) return <p key={i} className="font-bold mt-2">{line.replace(/\*\*/g, '')}</p>;
+                    if (line.startsWith('1. ') || line.startsWith('2. ') || line.startsWith('3. ')) return <li key={i} className="ml-4">{line.replace(/^\d+\. /, '')}</li>;
+                    return <p key={i}>{line}</p>;
+                  })}
+                </div>
+              ) : (
+                canEditBoard ? 'Clique para adicionar uma descrição...' : 'Sem descrição'
+              )}
+              {canEditBoard && !board.description && (
                 <Pencil className="h-3 w-3 opacity-0 group-hover/desc:opacity-100 transition-opacity" />
               )}
-            </p>
+            </div>
           )}
         </div>
 
