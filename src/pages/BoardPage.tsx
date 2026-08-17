@@ -10,11 +10,12 @@ import { BoardWorkload } from '@/components/board/BoardWorkload';
 import { AutomationPanel } from '@/components/automation/AutomationPanel';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Zap, Table, Columns3, Plus, Pencil, Check, X, CalendarDays, GanttChart, Users } from 'lucide-react';
+import { Zap, Table, Columns3, Plus, Pencil, Check, X, CalendarDays, GanttChart, Users, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { usePermissions } from '@/hooks/usePermissions';
+import { PublicTimelineDialog } from '@/components/board/PublicTimelineDialog';
 
 type ViewMode = 'table' | 'kanban' | 'calendar' | 'gantt' | 'workload' | 'automation';
 
@@ -152,7 +153,12 @@ const BoardPage = () => {
             </Button>
           ))}
           {canEditTasks && (
-            <div className="ml-auto">
+            <div className="ml-auto flex items-center gap-2">
+              <PublicTimelineDialog
+                boardId={board.id}
+                initialEnabled={(board as any).public_timeline_enabled}
+                publicToken={(board as any).public_token}
+              />
               <Button variant="outline" size="sm" className="h-8 text-xs" onClick={addGroup}>
                 <Plus className="h-3.5 w-3.5 mr-1" />
                 Novo Grupo
