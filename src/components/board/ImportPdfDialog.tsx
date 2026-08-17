@@ -40,21 +40,26 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
 
   const parseDate = (dateStr: string) => {
     try {
-      // Formato esperado: "15/Ago" ou "01/Set"
+      if (!dateStr || !dateStr.includes('/')) return undefined;
+      
       const currentYear = new Date().getFullYear();
       const months: Record<string, string> = {
-        'Jan': '01', 'Fev': '02', 'Mar': '03', 'Abr': '04', 'Mai': '05', 'Jun': '06',
-        'Jul': '07', 'Ago': '08', 'Set': '09', 'Out': '10', 'Nov': '11', 'Dez': '12'
+        'jan': '01', 'fev': '02', 'mar': '03', 'abr': '04', 'mai': '05', 'jun': '06',
+        'jul': '07', 'ago': '08', 'set': '09', 'out': '10', 'nov': '11', 'dez': '12'
       };
       
       const parts = dateStr.trim().split('/');
       if (parts.length !== 2) return undefined;
       
       const day = parts[0].padStart(2, '0');
-      const month = months[parts[1]] || '01';
+      const monthLabel = parts[1].toLowerCase().substring(0, 3);
+      const month = months[monthLabel] || '01';
       
-      return `${currentYear}-${month}-${day}`;
+      const formattedDate = `${currentYear}-${month}-${day}`;
+      console.log(`parseDate: input="${dateStr}", result="${formattedDate}"`);
+      return formattedDate;
     } catch (e) {
+      console.error(`parseDate error for "${dateStr}":`, e);
       return undefined;
     }
   };
@@ -109,7 +114,7 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
       toast.success('Documento processado com sucesso!');
     } catch (error) {
       console.error(error);
-      toast.error('Erro ao processar o PDF');
+      toast.error('Apagou as datas, novamente. O que tá aconecendo.');
     } finally {
       setLoading(false);
     }
