@@ -106,7 +106,7 @@ export function AppSidebar() {
           </SidebarGroup>
 
           {/* Favoritos */}
-          {appState.boards.some(b => b.favorite) && (
+          {appState.boards?.some(b => b.favorite) && (
             <SidebarGroup>
               <SidebarGroupLabel className="text-[#9699a8] text-xs uppercase tracking-wider px-4">
                 {!collapsed && <span className="flex items-center gap-1"><Star className="h-3 w-3 fill-yellow-400 text-yellow-400" /> Favoritos</span>}
