@@ -10,6 +10,8 @@ import { useScopedTasks } from '@/hooks/useScopedTasks';
 
 interface BoardGanttProps {
   boardId: string;
+  tasks?: Task[];
+  groups?: TaskGroup[];
 }
 
 const DAY_WIDTH = 88;
@@ -17,7 +19,7 @@ const ROW_HEIGHT = 44;
 const VISIBLE_DAYS = 14;
 const TASK_COL = 240;
 
-export function BoardGantt({ boardId }: BoardGanttProps) {
+export function BoardGantt({ boardId, tasks: externalTasks, groups: externalGroups }: BoardGanttProps) {
   const { state, dispatch } = useAppStore();
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [offset, setOffset] = useState(0); // dias a partir de hoje
@@ -26,10 +28,13 @@ export function BoardGantt({ boardId }: BoardGanttProps) {
 
   const { filterTasks } = useScopedTasks();
   const tasks = useMemo(
-    () => filterTasks(state.tasks.filter(t => t.boardId === boardId)),
-    [state.tasks, boardId, filterTasks]
+    () => externalTasks || filterTasks(state.tasks.filter(t => t.boardId === boardId)),
+    [state.tasks, boardId, filterTasks, externalTasks]
   );
-  const groups = state.groups.filter(g => g.boardId === boardId);
+  const groups = useMemo(
+    () => externalGroups || state.groups.filter(g => g.boardId === boardId),
+    [state.groups, boardId, externalGroups]
+  );
 
   const today = startOfDay(new Date());
   const timelineStart = addDays(today, offset);

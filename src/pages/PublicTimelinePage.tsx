@@ -2,27 +2,18 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { BoardGantt } from '@/components/board/BoardGantt';
-
-// Mock hook to bypass recursion
-function useSimpleDispatch() {
-  try {
-    const context = (window as any).AppContext; // Accessing indirectly if possible or using a simplified fetch
-    // If we can't get the real one, we just fetch locally
-    return null;
-  } catch(e) {
-    return null;
-  }
-}
+import { Task, TaskGroup } from '@/types';
 
 export default function PublicTimelinePage() {
   const { token } = useParams<{ token: string }>();
   const [board, setBoard] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<{groups: any[], tasks: any[]}>({ groups: [], tasks: [] });
+  const [data, setData] = useState<{groups: TaskGroup[], tasks: Task[]}>({ groups: [], tasks: [] });
 
   useEffect(() => {
     if (!token) return;
     const loadPublicBoard = async () => {
+      // Use any to bypass TS linter for the newly added columns
       const { data: boardData } = await supabase
         .from('boards')
         .select('*')
@@ -39,8 +30,31 @@ export default function PublicTimelinePage() {
         ]);
 
         setData({
-          groups: groupsRes.data || [],
-          tasks: tasksRes.data || []
+          groups: (groupsRes.data || []).map(g => ({
+            id: g.id,
+            title: g.title,
+            color: g.color,
+            boardId: g.board_id,
+            collapsed: false
+          })),
+          tasks: (tasksRes.data || []).map(t => ({
+            id: t.id,
+            title: t.title,
+            description: t.description || '',
+            status: t.status as any,
+            priority: t.priority as any,
+            assignee: t.assignee || '',
+            plannedStart: t.planned_start || undefined,
+            plannedEnd: t.planned_end || undefined,
+            actualStart: t.actual_start || undefined,
+            actualEnd: t.actual_end || undefined,
+            groupId: t.group_id,
+            boardId: t.board_id,
+            subtasks: (t.subtasks as any) || [],
+            attachments: (t.attachments as any) || [],
+            createdAt: t.created_at || '',
+            position: t.position || 0
+          }))
         });
       }
       setLoading(false);
@@ -54,13 +68,16 @@ export default function PublicTimelinePage() {
   return (
     <div className="min-h-screen bg-muted/30 flex flex-col">
       <div className="p-6">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-foreground">{board.title}</h1>
-          <p className="text-sm text-muted-foreground mt-1">Visualização Pública da Linha do Tempo</p>
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">{board.title}</h1>
+            <p className="text-sm text-muted-foreground mt-1">Visualização Pública da Linha do Tempo</p>
+          </div>
+          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#6c6ff5] to-[#ab68ff] flex items-center justify-center text-xs font-bold text-white shadow-lg">
+            F
+          </div>
         </div>
-        {/* We use a simplified wrapper or inject data if BoardGantt supported it */}
-        {/* For now, just a placeholder to check build */}
-        <div className="p-4 bg-card rounded border">Linha do Tempo de {board.title}</div>
+        <BoardGantt boardId={board.id} tasks={data.tasks} groups={data.groups} />
       </div>
     </div>
   );
