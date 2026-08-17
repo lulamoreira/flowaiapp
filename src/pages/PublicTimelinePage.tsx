@@ -11,72 +11,58 @@ export default function PublicTimelinePage() {
 
   useEffect(() => {
     if (!token) return;
-    const loadPublicBoard = async () => {
-      const { data: boardData } = await supabase
-        .from('boards')
+    const load = async () => {
+      const { data: b } = await supabase
+        .from('boards' as any)
         .select('*')
-        .eq('public_token' as any, token)
-        .eq('public_timeline_enabled' as any, true)
+        .eq('public_token', token)
+        .eq('public_timeline_enabled', true)
         .single();
 
-      if (boardData) {
-        setBoard(boardData);
-        
-        const [groupsRes, tasksRes] = await Promise.all([
-          supabase.from('task_groups').select('*').eq('board_id', boardData.id).order('position'),
-          supabase.from('tasks').select('*').eq('board_id', boardData.id).order('position')
+      if (b) {
+        setBoard(b);
+        const [gs, ts] = await Promise.all([
+          supabase.from('task_groups' as any).select('*').eq('board_id', b.id),
+          supabase.from('tasks' as any).select('*').eq('board_id', b.id)
         ]);
-
         setData({
-          groups: (groupsRes.data || []).map(g => ({
+          groups: (gs.data || []).map((g: any) => ({
             id: g.id,
             title: g.title,
             color: g.color,
             boardId: g.board_id,
             collapsed: false
           })),
-          tasks: (tasksRes.data || []).map(t => ({
+          tasks: (ts.data || []).map((t: any) => ({
             id: t.id,
             title: t.title,
             description: t.description || '',
-            status: t.status as any,
-            priority: t.priority as any,
+            status: t.status,
+            priority: t.priority,
             assignee: t.assignee || '',
-            plannedStart: t.planned_start || undefined,
-            plannedEnd: t.planned_end || undefined,
-            actualStart: t.actual_start || undefined,
-            actualEnd: t.actual_end || undefined,
+            plannedStart: t.planned_start,
+            plannedEnd: t.planned_end,
             groupId: t.group_id,
             boardId: t.board_id,
-            subtasks: (t.subtasks as any) || [],
-            attachments: (t.attachments as any) || [],
-            createdAt: t.created_at || '',
+            subtasks: t.subtasks || [],
+            attachments: t.attachments || [],
+            createdAt: t.created_at,
             position: t.position || 0
           }))
         });
       }
       setLoading(false);
     };
-    loadPublicBoard();
+    load();
   }, [token]);
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Carregando Linha do Tempo...</div>;
-  if (!board) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Linha do Tempo não encontrada ou privada.</div>;
+  if (loading) return <div>Carregando...</div>;
+  if (!board) return <div>Não encontrado.</div>;
 
   return (
-    <div className="min-h-screen bg-muted/30 flex flex-col">
-      <div className="p-6">
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">{board.title}</h1>
-            <p className="text-sm text-muted-foreground mt-1">Visualização Pública da Linha do Tempo</p>
-          </div>
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#6c6ff5] to-[#ab68ff] flex items-center justify-center text-xs font-bold text-white shadow-lg">
-            F
-          </div>
-        </div>
-        <BoardGantt boardId={board.id} tasks={data.tasks} groups={data.groups} />
-      </div>
+    <div className="p-6">
+      <h1 className="text-2xl font-bold">{board.title}</h1>
+      <BoardGantt boardId={board.id} tasks={data.tasks} groups={data.groups} />
     </div>
   );
 }
