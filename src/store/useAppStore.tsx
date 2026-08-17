@@ -180,13 +180,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       .channel('app-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'boards' }, (payload) => {
         if (payload.eventType === 'INSERT') {
-          dispatch({ type: 'SET_STATE', payload: { boards: undefined } }); // trigger re-fetch
+          dispatch({ type: 'SET_STATE', payload: { boards: [] } }); // trigger re-fetch
           refetch('boards');
         } else if (payload.eventType === 'UPDATE') {
-          dispatch({ type: 'SET_STATE', payload: { boards: undefined } });
+          dispatch({ type: 'SET_STATE', payload: { boards: [] } });
           refetch('boards');
         } else if (payload.eventType === 'DELETE') {
-          dispatch({ type: 'SET_STATE', payload: { boards: undefined } });
+          dispatch({ type: 'SET_STATE', payload: { boards: [] } });
           refetch('boards');
         }
       })
