@@ -109,7 +109,7 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
       toast.success('Documento processado com sucesso!');
     } catch (error) {
       console.error(error);
-      toast.error('Erro ao processar o PDF');
+      toast.error('Não importou foi nada agora!');
     } finally {
       setLoading(false);
     }
