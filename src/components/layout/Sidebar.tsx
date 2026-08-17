@@ -113,7 +113,7 @@ export function AppSidebar() {
               </SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {appState.boards.filter(b => b.favorite).map(board => (
+                  {(appState.boards || []).filter(b => b.favorite).map(board => (
                     <SidebarMenuItem key={board.id}>
                       <SidebarMenuButton asChild>
                         <NavLink
@@ -147,7 +147,7 @@ export function AppSidebar() {
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {appState.boards.map(board => (
+                {(appState.boards || []).map(board => (
                   <SidebarMenuItem key={board.id} className="group/board">
                     <SidebarMenuButton asChild>
                       <NavLink
