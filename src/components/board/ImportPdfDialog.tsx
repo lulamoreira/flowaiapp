@@ -53,7 +53,7 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
       const day = parts[0].padStart(2, '0');
       const month = months[parts[1]] || '01';
       
-      return `${currentYear}-${month}-${day}T09:00`;
+      return `${currentYear}-${month}-${day}`;
     } catch (e) {
       return undefined;
     }
@@ -98,6 +98,8 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
           const dateParts = period.split(' a ');
           const startDate = parseDate(dateParts[0]);
           const endDate = parseDate(dateParts[1] || dateParts[0]);
+
+          console.log(`Parsed task "${title}": period="${period}", start="${startDate}", end="${endDate}"`);
           
           tasks.push({ title, startDate, endDate, duration });
         }
