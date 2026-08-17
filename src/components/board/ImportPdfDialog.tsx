@@ -98,6 +98,8 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
           const dateParts = period.split(' a ');
           const startDate = parseDate(dateParts[0]);
           const endDate = parseDate(dateParts[1] || dateParts[0]);
+
+          console.log(`Parsed task "${title}": period="${period}", start="${startDate}", end="${endDate}"`);
           
           tasks.push({ title, startDate, endDate, duration });
         }
