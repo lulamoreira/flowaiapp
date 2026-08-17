@@ -1,0 +1,1 @@
+UPDATE public.app_settings SET value = 'false'::jsonb WHERE key = 'paywall_active';
