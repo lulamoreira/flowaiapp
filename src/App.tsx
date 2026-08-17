@@ -18,6 +18,7 @@ import ResetPasswordPage from "./pages/ResetPasswordPage.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import ProfilePage from "./pages/ProfilePage.tsx";
 import IntakeFormPage from "./pages/IntakeFormPage.tsx";
+import PublicTimelinePage from "./pages/PublicTimelinePage.tsx";
 
 const queryClient = new QueryClient();
 
@@ -35,6 +36,7 @@ const App = () => (
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/form" element={<IntakeFormPage />} />
+              <Route path="/timeline/public/:token" element={<PublicTimelinePage />} />
 
               {/* Protected routes */}
               <Route path="/*" element={
