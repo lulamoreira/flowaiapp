@@ -26,7 +26,7 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [parsedData, setParsedData] = useState<{ title: string; tasks: ParsedTask[] } | null>(null);
-  const { dispatch } = useAppStore();
+  const { state, dispatch } = useAppStore();
   const { profile } = useAuth();
   const navigate = useNavigate();
 
@@ -168,15 +168,47 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
         throw tasksError;
       }
 
-      dispatch({ type: 'ADD_BOARD', payload: { id: boardId, title: parsedData.title, description: 'Projeto importado via PDF', color: '#0073ea', updatedAt: new Date().toISOString().split('T')[0], favorite: false } });
-      dispatch({ type: 'ADD_GROUP', payload: { id: groupId, title: 'Cronograma', color: '#0073ea', boardId: boardId, collapsed: false } });
-      tasksToInsert.forEach(t => {
-        dispatch({ type: 'ADD_TASK', payload: { 
-            id: t.id, title: t.title, description: t.description, status: t.status as any, priority: t.priority as any, 
-            assignee: t.assignee || '', plannedStart: t.planned_start || undefined, plannedEnd: t.planned_end || undefined, 
-            groupId: t.group_id, boardId: t.board_id, subtasks: t.subtasks, attachments: t.attachments, 
-            createdAt: new Date().toISOString().split('T')[0], position: t.position 
-        }});
+      const novoBoard = { 
+        id: boardId, 
+        title: parsedData.title, 
+        description: 'Projeto importado via PDF', 
+        color: '#0073ea', 
+        updatedAt: new Date().toISOString().split('T')[0], 
+        favorite: false 
+      };
+
+      const novoGrupo = { 
+        id: groupId, 
+        title: 'Cronograma', 
+        color: '#0073ea', 
+        boardId: boardId, 
+        collapsed: false 
+      };
+
+      const novasTarefasNoFormatoDoApp = tasksToInsert.map(t => ({
+        id: t.id,
+        title: t.title,
+        description: t.description,
+        status: t.status as any,
+        priority: t.priority as any,
+        assignee: t.assignee || '',
+        plannedStart: t.planned_start || undefined,
+        plannedEnd: t.planned_end || undefined,
+        groupId: t.group_id,
+        boardId: t.board_id,
+        subtasks: t.subtasks,
+        attachments: t.attachments,
+        createdAt: new Date().toISOString().split('T')[0],
+        position: t.position
+      }));
+
+      dispatch({ 
+        type: 'SET_STATE', 
+        payload: {
+          boards: [...state.boards, novoBoard],
+          groups: [...state.groups, novoGrupo],
+          tasks: [...state.tasks, ...novasTarefasNoFormatoDoApp]
+        }
       });
 
       toast.success('Projeto criado com sucesso!');
