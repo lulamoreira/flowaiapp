@@ -37,9 +37,9 @@ export default function PublicTimelinePage() {
         dispatch({ 
           type: 'SET_STATE', 
           payload: { 
-            boards: [boardData as any],
-            groups: (groupsRes.data || []) as any,
-            tasks: (tasksRes.data || []) as any,
+            boards: [boardData] as any[],
+            groups: (groupsRes.data || []) as any[],
+            tasks: (tasksRes.data || []) as any[],
             loading: false
           } 
         });
