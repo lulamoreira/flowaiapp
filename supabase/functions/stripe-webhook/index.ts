@@ -19,7 +19,6 @@ serve(async (req) => {
 
   try {
     const body = await req.text()
-    // 3. ASSINATURA DO WEBHOOK
     event = await stripe.webhooks.constructEventAsync(
       body,
       signature,
@@ -35,7 +34,7 @@ serve(async (req) => {
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
   )
 
-  // 3. CONTROLE DE IDEMPOTÊNCIA
+  // 2. IDEMPOTÊNCIA NA ORDEM CERTA (verificar sem travar antes do sucesso)
   const { data: existingEvent } = await supabaseAdmin
     .from('stripe_events')
     .select('id')
@@ -48,12 +47,6 @@ serve(async (req) => {
     })
   }
 
-  // Registrar evento para evitar processamento duplicado
-  await supabaseAdmin.from('stripe_events').insert({
-    id: event.id,
-    type: event.type
-  })
-
   try {
     switch (event.type) {
       case 'checkout.session.completed': {
@@ -61,25 +54,72 @@ serve(async (req) => {
         const userId = session.metadata.user_id
         const subscriptionId = session.subscription
 
-        // Aqui você atualizaria a tabela subscriptions
-        // (Exemplo: upsert na tabela subscriptions com status active)
-        console.log(`Checkout completed for user ${userId}, subscription ${subscriptionId}`)
+        if (!userId || !subscriptionId) {
+          throw new Error('Missing metadata or subscription id')
+        }
+
+        const subscription = await stripe.subscriptions.retrieve(subscriptionId as string)
+        const stripeCustomerId = session.customer as string
+        const planId = session.metadata.plan_id // Presumindo que passamos no checkout
+
+        const { error } = await supabaseAdmin
+          .from('subscriptions')
+          .upsert({
+            user_id: userId,
+            stripe_customer_id: stripeCustomerId,
+            stripe_subscription_id: subscriptionId as string,
+            plan_id: planId,
+            status: subscription.status,
+            period_ends_at: new Date(subscription.current_period_end * 1000).toISOString(),
+          }, { onConflict: 'user_id' })
+
+        if (error) throw error
+        console.log(`Checkout success for user ${userId}`)
         break
       }
+
+      case 'customer.subscription.updated': {
+        const subscription = event.data.object
+        const { error } = await supabaseAdmin
+          .from('subscriptions')
+          .update({
+            status: subscription.status,
+            period_ends_at: new Date(subscription.current_period_end * 1000).toISOString(),
+          })
+          .eq('stripe_subscription_id', subscription.id)
+
+        if (error) throw error
+        console.log(`Subscription updated: ${subscription.id}`)
+        break
+      }
+
       case 'customer.subscription.deleted': {
         const subscription = event.data.object
-        // Lógica para cancelar acesso
-        console.log(`Subscription deleted: ${subscription.id}`)
+        const { error } = await supabaseAdmin
+          .from('subscriptions')
+          .update({
+            status: 'canceled',
+          })
+          .eq('stripe_subscription_id', subscription.id)
+
+        if (error) throw error
+        console.log(`Subscription canceled: ${subscription.id}`)
         break
       }
-      // Adicionar outros eventos conforme necessário
     }
+
+    // 2. IDEMPOTÊNCIA: Grava o evento somente APÓS o processamento bem-sucedido
+    await supabaseAdmin.from('stripe_events').insert({
+      id: event.id,
+      type: event.type
+    })
 
     return new Response(JSON.stringify({ received: true }), {
       headers: { 'Content-Type': 'application/json' },
     })
   } catch (err) {
     console.error(`Error processing webhook: ${err.message}`)
+    // Retorna 500 para o Stripe reenviar se falhar
     return new Response(`Webhook Error: ${err.message}`, { status: 500 })
   }
 })
