@@ -389,6 +389,48 @@ export type Database = {
         }
         Relationships: []
       }
+      stripe_events: {
+        Row: {
+          id: string
+          processed_at: string | null
+          type: string
+        }
+        Insert: {
+          id: string
+          processed_at?: string | null
+          type: string
+        }
+        Update: {
+          id?: string
+          processed_at?: string | null
+          type?: string
+        }
+        Relationships: []
+      }
+      stripe_plans: {
+        Row: {
+          amount_cents: number
+          created_at: string | null
+          currency: string
+          id: string
+          stripe_price_id: string
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string | null
+          currency?: string
+          id: string
+          stripe_price_id: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string | null
+          currency?: string
+          id?: string
+          stripe_price_id?: string
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           created_at: string | null
