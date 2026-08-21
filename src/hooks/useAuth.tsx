@@ -87,6 +87,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (event === 'SIGNED_IN') {
             logActivity('Login', { method: 'auth', email: session.user.email });
           }
+          setLoading(false);
+          setAuthInitialized(true);
         } else {
           setProfile(null);
           setRoles([]);
