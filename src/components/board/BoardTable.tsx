@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, addWeeks, parseISO, isWithinInterval, isBefore } from 'date-fns';
 import { useAppStore } from '@/store/useAppStore';
 import { Task } from '@/types';
@@ -7,9 +7,15 @@ import { TaskRow } from './TaskRow';
 import { SearchFilterBar } from './SearchFilterBar';
 import { TaskDetailModal } from '@/components/task/TaskDetailModal';
 import { toast } from 'sonner';
-import { GripVertical } from 'lucide-react';
+import { GripVertical, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useScopedTasks } from '@/hooks/useScopedTasks';
+import { cn } from '@/lib/utils';
+
+type SortConfig = {
+  column: 'item' | 'assignee' | 'status' | 'priority' | 'date' | null;
+  direction: 'asc' | 'desc' | null;
+};
 
 interface BoardTableProps {
   boardId: string;
@@ -28,6 +34,30 @@ export function BoardTable({ boardId }: BoardTableProps) {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [dragOverGroupId, setDragOverGroupId] = useState<string | null>(null);
+
+  // Column sort state
+  const [sort, setSort] = useState<SortConfig>(() => {
+    try {
+      const saved = localStorage.getItem(`flowai-sort-${boardId}`);
+      return saved ? JSON.parse(saved) : { column: null, direction: null };
+    } catch (e) {
+      return { column: null, direction: null };
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem(`flowai-sort-${boardId}`, JSON.stringify(sort));
+  }, [sort, boardId]);
+
+  const handleSort = (column: SortConfig['column']) => {
+    setSort(prev => {
+      if (prev.column === column) {
+        if (prev.direction === 'asc') return { column, direction: 'desc' };
+        return { column: null, direction: null };
+      }
+      return { column, direction: 'asc' };
+    });
+  };
 
   // Group drag state
   const [draggedGroupId, setDraggedGroupId] = useState<string | null>(null);
@@ -163,6 +193,11 @@ export function BoardTable({ boardId }: BoardTableProps) {
     <div className="h-1 bg-primary rounded-full mx-2 my-0.5 transition-all" />
   );
 
+  const SortIndicator = ({ column }: { column: SortConfig['column'] }) => {
+    if (sort.column !== column) return <ArrowUpDown className="h-3 w-3 ml-1 opacity-20 group-hover:opacity-100" />;
+    return sort.direction === 'asc' ? <ArrowUp className="h-3 w-3 ml-1 text-primary" /> : <ArrowDown className="h-3 w-3 ml-1 text-primary" />;
+  };
+
   return (
     <div className="space-y-4">
       <SearchFilterBar
@@ -180,15 +215,46 @@ export function BoardTable({ boardId }: BoardTableProps) {
       />
 
       {/* Column headers */}
-      <div className="flex items-center text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border pb-2">
-        <div className="w-7" />
-        <div className="w-1" />
-        <div className="flex-1 px-3 min-w-[200px]">Item</div>
-        <div className="w-[140px] px-2 text-center">Responsável</div>
-        <div className="w-[130px] px-2 text-center">Status</div>
-        <div className="w-[110px] px-2 text-center">Prioridade</div>
-        <div className="w-[100px] px-2">Data</div>
+      <div className="flex items-center text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border pb-2 group/header">
+        <div className="w-7 shrink-0" />
+        <div className="w-1 self-stretch shrink-0" />
+        <button 
+          onClick={() => handleSort('item')}
+          className="flex-1 px-3 min-w-[200px] flex items-center hover:text-foreground transition-colors group"
+        >
+          Item <SortIndicator column="item" />
+        </button>
+        <button 
+          onClick={() => handleSort('assignee')}
+          className="w-[140px] px-2 flex items-center justify-center hover:text-foreground transition-colors group shrink-0"
+        >
+          Responsável <SortIndicator column="assignee" />
+        </button>
+        <button 
+          onClick={() => handleSort('status')}
+          className="w-[130px] px-2 flex items-center justify-center hover:text-foreground transition-colors group shrink-0"
+        >
+          Status <SortIndicator column="status" />
+        </button>
+        <button 
+          onClick={() => handleSort('priority')}
+          className="w-[110px] px-2 flex items-center justify-center hover:text-foreground transition-colors group shrink-0"
+        >
+          Prioridade <SortIndicator column="priority" />
+        </button>
+        <button 
+          onClick={() => handleSort('date')}
+          className="w-[150px] px-2 flex items-center hover:text-foreground transition-colors group shrink-0"
+        >
+          Data <SortIndicator column="date" />
+        </button>
       </div>
+      
+      {sort.column && (
+        <div className="text-[10px] text-muted-foreground italic px-1">
+          Ordenado por {sort.column === 'item' ? 'Item' : sort.column === 'assignee' ? 'Responsável' : sort.column === 'status' ? 'Status' : sort.column === 'priority' ? 'Prioridade' : 'Data'} — volte para a ordem manual para reordenar arrastando
+        </div>
+      )}
 
       {groups.map((group, index) => {
         const groupTasks = filteredTasks.filter(t => t.groupId === group.id);
@@ -238,17 +304,72 @@ export function BoardTable({ boardId }: BoardTableProps) {
                 </div>
               </div>
               {!group.collapsed && [...groupTasks].sort((a, b) => {
-                const dateA = a.plannedStart ? new Date(a.plannedStart).getTime() : Infinity;
-                const dateB = b.plannedStart ? new Date(b.plannedStart).getTime() : Infinity;
-                return dateA - dateB;
+                if (sort.column && sort.direction) {
+                  const dir = sort.direction === 'asc' ? 1 : -1;
+                  
+                  switch (sort.column) {
+                    case 'item':
+                      return a.title.localeCompare(b.title, 'pt-BR') * dir;
+                    
+                    case 'assignee': {
+                      const userA = state.users.find(u => u.id === a.assignee)?.name || '';
+                      const userB = state.users.find(u => u.id === b.assignee)?.name || '';
+                      if (!userA && !userB) return 0;
+                      if (!userA) return 1;
+                      if (!userB) return -1;
+                      return userA.localeCompare(userB, 'pt-BR') * dir;
+                    }
+
+                    case 'status': {
+                      const statusOrder: Record<string, number> = {
+                        'not_started': 0,
+                        'in_progress': 1,
+                        'blocked': 2,
+                        'waiting': 3,
+                        'done': 4
+                      };
+                      return (statusOrder[a.status] - statusOrder[b.status]) * dir;
+                    }
+
+                    case 'priority': {
+                      const priorityOrder: Record<string, number> = {
+                        'critical': 0,
+                        'high': 1,
+                        'medium': 2,
+                        'low': 3,
+                        'none': 4
+                      };
+                      return (priorityOrder[a.priority] - priorityOrder[b.priority]) * dir;
+                    }
+
+                    case 'date': {
+                      if (!a.plannedStart && !b.plannedStart) return 0;
+                      if (!a.plannedStart) return 1;
+                      if (!b.plannedStart) return -1;
+                      
+                      const startA = new Date(a.plannedStart).getTime();
+                      const startB = new Date(b.plannedStart).getTime();
+                      
+                      if (startA !== startB) return (startA - startB) * dir;
+                      
+                      // Tie breaker with plannedEnd
+                      const endA = a.plannedEnd ? new Date(a.plannedEnd).getTime() : Infinity;
+                      const endB = b.plannedEnd ? new Date(b.plannedEnd).getTime() : Infinity;
+                      return (endA - endB) * dir;
+                    }
+                  }
+                }
+                
+                // Manual order (position)
+                return (a.position ?? 0) - (b.position ?? 0);
               }).map(task => (
                 <TaskRow
                   key={task.id}
                   task={task}
                   groupColor={group.color}
                   onClick={() => setSelectedTask(task)}
-                  draggable={canEditTasks}
-                  onDragStart={canEditTasks ? e => handleDragStart(e, task.id) : undefined}
+                  draggable={canEditTasks && !sort.column}
+                  onDragStart={canEditTasks && !sort.column ? e => handleDragStart(e, task.id) : undefined}
                   onDragEnd={handleDragEnd}
                   isDragging={draggedTaskId === task.id}
                 />
