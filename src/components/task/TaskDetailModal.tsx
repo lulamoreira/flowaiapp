@@ -60,21 +60,21 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropRef = useRef<HTMLDivElement>(null);
 
-  if (!task) return null;
-
-  const current = state.tasks.find(t => t.id === task.id) || task;
+  const current = task ? (state.tasks.find(t => t.id === task.id) || task) : null;
 
   // Sync local state when task changes (only once per task open/re-open or store sync)
   useEffect(() => {
+    if (!current) return;
     setLocalTitle(current.title || '');
     setLocalDescription(current.description || '');
     setLocalPlannedStart(toInputFormat(current.plannedStart));
     setLocalPlannedEnd(toInputFormat(current.plannedEnd));
     setLocalActualStart(toInputFormat(current.actualStart));
     setLocalActualEnd(toInputFormat(current.actualEnd));
-  }, [current.id]); // We intentionally only sync on ID change to avoid losing focus while typing
+  }, [current?.id]); // We intentionally only sync on ID change to avoid losing focus while typing
 
   const update = (updates: Partial<Task>) => {
+    if (!current) return;
     dispatch({ type: 'UPDATE_TASK', payload: { ...current, ...updates } });
   };
 
@@ -82,8 +82,11 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
     debounce((updates: Partial<Task>) => {
       update(updates);
     }, 800),
-    [current.id]
+    [current?.id]
   );
+
+  // Early return AFTER hooks
+  if (!task || !current) return null;
 
   const handleAssigneeChange = (newAssigneeId: string) => {
     const actualId = newAssigneeId === 'none' ? '' : newAssigneeId;
