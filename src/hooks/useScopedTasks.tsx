@@ -18,9 +18,9 @@ export function useScopedTasks(): {
   filterTasks: <T extends { assignee?: string | null }>(items: T[]) => T[];
 } {
   const { state } = useAppStore();
-  const { profile, roles } = useAuth();
+  const { profile, roles, isOwner } = useAuth();
 
-  const isPrivileged = roles.includes('admin') || roles.includes('coordinator');
+  const isPrivileged = roles.includes('admin') || roles.includes('coordinator') || isOwner;
   const scopeUserId = profile?.user_id ?? null;
 
   const tasks = useMemo(() => {
