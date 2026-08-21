@@ -4,6 +4,7 @@ import { parseISO, startOfDay, addDays, differenceInDays, format, isWithinInterv
 import { ptBR } from 'date-fns/locale';
 import { Input } from '@/components/ui/input';
 import { useScopedTasks } from '@/hooks/useScopedTasks';
+import { cn } from '@/lib/utils';
 
 interface BoardWorkloadProps {
   boardId: string;
