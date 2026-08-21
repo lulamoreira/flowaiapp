@@ -358,7 +358,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
             break;
           }
           case 'DELETE_GROUP': {
-            const res = await supabase.from('task_groups').delete().eq('id', action.payload);
+            const groupId = action.payload;
+            const groupToDelete = state.groups.find(g => g.id === groupId);
+            if (groupToDelete) {
+              await (supabase.from('deletion_log') as any).insert({
+                table_name: 'task_groups',
+                original_id: groupId,
+                data: groupToDelete as any,
+                deleted_by: user?.id,
+                board_id: groupToDelete.boardId
+              });
+            }
+            const res = await supabase.from('task_groups').delete().eq('id', groupId);
             error = res.error;
             break;
           }
