@@ -58,6 +58,16 @@ interface ActivityEntry {
   created_at: string;
 }
 
+interface PlaceholderMember {
+  id: string;
+  full_name: string;
+  email: string | null;
+  intended_role: AppRole;
+  created_at: string;
+  claimed_by: string | null;
+  claimed_at: string | null;
+}
+
 const SYSTEM_MODULES = ['boards', 'tasks', 'reports', 'users', 'invitations', 'automations'];
 
 export default function AdminPage() {
