@@ -32,6 +32,7 @@ export function BoardWorkload({ boardId }: BoardWorkloadProps) {
     const authorized = state.users.filter(u => authorizedUserIds.includes(u.id));
     
     // 2. Users (real or placeholders) who have tasks assigned in this board
+    // Note: for non-privileged users, filterTasks already limits tasks to those assigned to them.
     const assigneesWithTasks = new Set(tasks.map(t => t.assignee).filter(Boolean));
     const assigned = state.users.filter(u => assigneesWithTasks.has(u.id));
 
