@@ -252,8 +252,9 @@ const Index = () => {
               <ul className="divide-y divide-border">
                 {listedTasks.map(task => {
                   const board = state.boards.find(b => b.id === task.boardId);
-                  const statusCfg = STATUS_CONFIG[task.status];
-                  const prioCfg = PRIORITY_CONFIG[task.priority];
+                  const statusCfg = STATUS_CONFIG[task.status] || STATUS_CONFIG['not_started'];
+                  const prioCfg = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG['none'];
+
                   return (
                     <li key={task.id}>
                       <button
