@@ -8,7 +8,7 @@ import { BoardCharts } from '@/components/board/BoardCharts';
 import { BoardGantt } from '@/components/board/BoardGantt';
 import { BoardWorkload } from '@/components/board/BoardWorkload';
 import { AutomationPanel } from '@/components/automation/AutomationPanel';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Zap, Table, Columns3, Plus, Pencil, Check, X, CalendarDays, GanttChart, Users, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -17,6 +17,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { usePermissions } from '@/hooks/usePermissions';
 import { PublicTimelineDialog } from '@/components/board/PublicTimelineDialog';
 import { RescheduleDialog } from '@/components/board/RescheduleDialog';
+import { ProjectMembersDialog } from '@/components/board/ProjectMembersDialog';
 
 type ViewMode = 'table' | 'kanban' | 'calendar' | 'gantt' | 'workload' | 'automation';
 
@@ -29,6 +30,7 @@ const BoardPage = () => {
   const [editingDesc, setEditingDesc] = useState(false);
   const [titleDraft, setTitleDraft] = useState(board?.title ?? '');
   const [descDraft, setDescDraft] = useState(board?.description ?? '');
+  const [membersDialogOpen, setMembersDialogOpen] = useState(false);
   const { canEdit, canDelete } = usePermissions();
   const canEditBoard = canEdit('boards');
   const canEditTasks = canEdit('tasks');
@@ -155,17 +157,30 @@ const BoardPage = () => {
           ))}
           {canEditTasks && (
             <div className="ml-auto flex items-center gap-2">
-              {canEditTasks && (
-                <RescheduleDialog 
-                  board={board} 
-                  tasks={state.tasks.filter(t => t.boardId === board.id)} 
+              <div className="flex items-center gap-2">
+                {canEditBoard && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-8 text-xs"
+                    onClick={() => setMembersDialogOpen(true)}
+                  >
+                    <Users className="h-3.5 w-3.5 mr-1" />
+                    Autorização
+                  </Button>
+                )}
+                {canEditTasks && (
+                  <RescheduleDialog 
+                    board={board} 
+                    tasks={state.tasks.filter(t => t.boardId === board.id)} 
+                  />
+                )}
+                <PublicTimelineDialog
+                  boardId={board.id}
+                  initialEnabled={(board as any).public_timeline_enabled}
+                  publicToken={(board as any).public_token}
                 />
-              )}
-              <PublicTimelineDialog
-                boardId={board.id}
-                initialEnabled={(board as any).public_timeline_enabled}
-                publicToken={(board as any).public_token}
-              />
+              </div>
               <Button variant="outline" size="sm" className="h-8 text-xs" onClick={addGroup}>
                 <Plus className="h-3.5 w-3.5 mr-1" />
                 Novo Grupo
@@ -186,6 +201,12 @@ const BoardPage = () => {
         {view === 'workload' && <BoardWorkload boardId={board.id} />}
         {view === 'automation' && <AutomationPanel boardId={board.id} />}
       </main>
+
+      <ProjectMembersDialog 
+        open={membersDialogOpen} 
+        onOpenChange={setMembersDialogOpen} 
+        boardId={board.id} 
+      />
     </div>
   );
 };

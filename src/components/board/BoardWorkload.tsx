@@ -1,10 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useAppStore } from '@/store/useAppStore';
 import { parseISO, startOfDay, addDays, differenceInDays, format, isWithinInterval, startOfWeek, addWeeks } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Input } from '@/components/ui/input';
 import { useScopedTasks } from '@/hooks/useScopedTasks';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface BoardWorkloadProps {
   boardId: string;
@@ -16,6 +18,8 @@ const DEFAULT_CAPACITY = 8; // hours per day
 export function BoardWorkload({ boardId }: BoardWorkloadProps) {
   const { state } = useAppStore();
   const [capacityMap, setCapacityMap] = useState<Record<string, number>>({});
+  const [authorizedUserIds, setAuthorizedUserIds] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'day' | 'week'>('week');
 
   const { filterTasks } = useScopedTasks();
@@ -23,7 +27,29 @@ export function BoardWorkload({ boardId }: BoardWorkloadProps) {
     () => filterTasks(state.tasks.filter(t => t.boardId === boardId)),
     [state.tasks, boardId, filterTasks]
   );
-  const members = state.users.filter(u => tasks?.some(t => t.assignee === u.id));
+  const members = useMemo(() => {
+    return state.users.filter(u => authorizedUserIds.includes(u.id));
+  }, [state.users, authorizedUserIds]);
+
+  useEffect(() => {
+    const fetchAuthorized = async () => {
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('project_members' as any)
+          .select('user_id')
+          .eq('board_id', boardId);
+        
+        if (error) throw error;
+        setAuthorizedUserIds(data?.map((m: any) => m.user_id) || []);
+      } catch (err: any) {
+        console.error('Error fetching authorized members:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAuthorized();
+  }, [boardId]);
 
   const { periods, loadMap } = useMemo(() => {
     const today = startOfDay(new Date());
@@ -70,8 +96,17 @@ export function BoardWorkload({ boardId }: BoardWorkloadProps) {
     return 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300';
   };
 
+  if (loading) {
+    return <div className="p-4 flex justify-center"><p className="text-sm text-muted-foreground animate-pulse">Carregando equipe...</p></div>;
+  }
+
   if (members.length === 0) {
-    return <p className="text-sm text-muted-foreground p-4">Nenhum membro com tarefas atribuídas.</p>;
+    return (
+      <div className="p-8 text-center border border-dashed rounded-lg">
+        <p className="text-sm text-muted-foreground mb-4">Nenhum colaborador autorizado neste projeto ainda.</p>
+        <p className="text-xs text-muted-foreground">Use o botão "Autorização" no topo da página para adicionar membros.</p>
+      </div>
+    );
   }
 
   return (
