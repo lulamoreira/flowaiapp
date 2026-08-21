@@ -194,10 +194,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const groups = groupsData.map(dbToGroup);
       const tasks = tasksData.map(dbToTask);
       const automations = automationsData.map(dbToAutomation);
+      // We'll map emails later since they are in auth.users, or just leave as is for now
+      // Actually, since profiles are linked to auth.users, but email is in auth.users,
+      // and we can't easily join them without a view or RPC, we'll keep email empty for now
+      // and let refetch/initial load handle it if we had a proper profile field.
       const realUsers: User[] = profilesData.map(p => ({
         id: p.user_id,
         name: p.full_name || 'Sem nome',
-        email: '',
+        email: p.email || '', // If profile had email, it would be here
         avatar: (p.full_name || '??').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase(),
       }));
       const placeholders: User[] = placeholdersData.map(p => ({
@@ -251,7 +255,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           const realUsers: User[] = profilesData.map(p => ({
             id: p.user_id,
             name: p.full_name || 'Sem nome',
-            email: '',
+            email: p.email || '',
             avatar: (p.full_name || '??').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase(),
           }));
           const placeholders: User[] = placeholdersData.map(p => ({
