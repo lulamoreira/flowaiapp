@@ -65,13 +65,15 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
 
   // Sync local state when task changes (only once per task open/re-open or store sync)
   useEffect(() => {
+    if (!current) return;
     setLocalTitle(current.title || '');
     setLocalDescription(current.description || '');
     setLocalPlannedStart(toInputFormat(current.plannedStart));
     setLocalPlannedEnd(toInputFormat(current.plannedEnd));
     setLocalActualStart(toInputFormat(current.actualStart));
     setLocalActualEnd(toInputFormat(current.actualEnd));
-  }, [current.id]); // We intentionally only sync on ID change to avoid losing focus while typing
+  }, [current?.id]); // We intentionally only sync on ID change to avoid losing focus while typing
+
 
   const update = (updates: Partial<Task>) => {
     dispatch({ type: 'UPDATE_TASK', payload: { ...current, ...updates } });
