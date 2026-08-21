@@ -157,17 +157,30 @@ const BoardPage = () => {
           ))}
           {canEditTasks && (
             <div className="ml-auto flex items-center gap-2">
-              {canEditTasks && (
-                <RescheduleDialog 
-                  board={board} 
-                  tasks={state.tasks.filter(t => t.boardId === board.id)} 
+              <div className="flex items-center gap-2">
+                {canEditBoard && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-8 text-xs"
+                    onClick={() => setMembersDialogOpen(true)}
+                  >
+                    <Users className="h-3.5 w-3.5 mr-1" />
+                    Autorização
+                  </Button>
+                )}
+                {canEditTasks && (
+                  <RescheduleDialog 
+                    board={board} 
+                    tasks={state.tasks.filter(t => t.boardId === board.id)} 
+                  />
+                )}
+                <PublicTimelineDialog
+                  boardId={board.id}
+                  initialEnabled={(board as any).public_timeline_enabled}
+                  publicToken={(board as any).public_token}
                 />
-              )}
-              <PublicTimelineDialog
-                boardId={board.id}
-                initialEnabled={(board as any).public_timeline_enabled}
-                publicToken={(board as any).public_token}
-              />
+              </div>
               <Button variant="outline" size="sm" className="h-8 text-xs" onClick={addGroup}>
                 <Plus className="h-3.5 w-3.5 mr-1" />
                 Novo Grupo
