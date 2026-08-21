@@ -22,6 +22,7 @@ interface AuthContextType {
   roles: AppRole[];
   loading: boolean;
   isAdmin: boolean;
+  isOwner: boolean;
   isCoordinator: boolean;
   isAdminOrCoordinator: boolean;
   signOut: () => Promise<void>;
@@ -98,13 +99,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const isAdmin = roles?.includes('admin') ?? false;
+  const isOwner = roles?.includes('owner') ?? false;
   const isCoordinator = roles?.includes('coordinator') ?? false;
 
   return (
     <AuthContext.Provider value={{
       user, session, profile, roles, loading,
-      isAdmin, isCoordinator,
-      isAdminOrCoordinator: isAdmin || isCoordinator,
+      isAdmin, isOwner, isCoordinator,
+      isAdminOrCoordinator: isAdmin || isCoordinator || isOwner,
       signOut, refreshProfile,
     }}>
       {children}
