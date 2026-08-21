@@ -96,8 +96,17 @@ export function BoardWorkload({ boardId }: BoardWorkloadProps) {
     return 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300';
   };
 
-  if (state.users.length === 0) {
-    return <p className="text-sm text-muted-foreground p-4">Nenhum colaborador encontrado no sistema.</p>;
+  if (loading) {
+    return <div className="p-4 flex justify-center"><p className="text-sm text-muted-foreground animate-pulse">Carregando equipe...</p></div>;
+  }
+
+  if (members.length === 0) {
+    return (
+      <div className="p-8 text-center border border-dashed rounded-lg">
+        <p className="text-sm text-muted-foreground mb-4">Nenhum colaborador autorizado neste projeto ainda.</p>
+        <p className="text-xs text-muted-foreground">Use o botão "Autorização" no topo da página para adicionar membros.</p>
+      </div>
+    );
   }
 
   return (
