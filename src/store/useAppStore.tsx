@@ -477,7 +477,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 original_id: taskId,
                 data: taskToDelete as any,
                 deleted_by: user?.id,
-                board_id: taskToDelete.boardId
+                board_id: taskToDelete.boardId,
+                confirm_details: (action as any).confirmDetails
               });
             }
             const res = await supabase.from('tasks').delete().eq('id', taskId);
