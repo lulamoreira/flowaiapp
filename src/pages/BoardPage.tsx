@@ -155,8 +155,8 @@ const BoardPage = () => {
               {tab.label}
             </Button>
           ))}
-          {canEditTasks && (
-            <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex items-center gap-2">
+            <div className="flex items-center gap-2">
               <div className="flex items-center gap-2">
                 {canEditBoard && (
                   <Button 
@@ -186,7 +186,7 @@ const BoardPage = () => {
                 Novo Grupo
               </Button>
             </div>
-          )}
+          </div>
         </div>
 
         {view === 'table' && (
