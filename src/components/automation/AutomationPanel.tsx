@@ -138,11 +138,22 @@ export function AutomationPanel({ boardId }: AutomationPanelProps) {
       );
     }
     if (actionType === 'assign_member') {
+      const authorizedIds = state.projectMembers[boardId] || [];
+      const hasAuthorized = authorizedIds.length > 0;
+      const filteredUsers = state.users.filter(u => {
+        if (!hasAuthorized) return true;
+        return authorizedIds.includes(u.id);
+      });
       return (
         <Select value={actionValue} onValueChange={setActionValue}>
           <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Selecionar..." /></SelectTrigger>
           <SelectContent>
-            {state.users.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
+            {!hasAuthorized && (
+              <div className="px-2 py-1 text-[10px] text-muted-foreground italic border-b mb-1">
+                Nenhum colaborador autorizado
+              </div>
+            )}
+            {filteredUsers.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
           </SelectContent>
         </Select>
       );
