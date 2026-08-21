@@ -31,7 +31,7 @@ const BoardPage = () => {
   const [titleDraft, setTitleDraft] = useState(board?.title ?? '');
   const [descDraft, setDescDraft] = useState(board?.description ?? '');
   const [membersDialogOpen, setMembersDialogOpen] = useState(false);
-  const { canEdit, canDelete } = usePermissions();
+  const { canEdit, canDelete, isAdminOrCoordinator } = usePermissions();
   const canEditBoard = canEdit('boards');
   const canEditTasks = canEdit('tasks');
   const canDeleteTasks = canDelete('tasks');
