@@ -118,7 +118,7 @@ export function ProjectMembersDialog({ open, onOpenChange, boardId }: ProjectMem
                   <Checkbox 
                     id={`user-${user.id}`} 
                     checked={authorizedIds.includes(user.id)}
-                    onCheckedChange={() => {}} // Controlled by div click to avoid double toggle
+                    readOnly // Managed by parent div click to avoid double toggle
                   />
                   <div className="flex-1">
                     <p className="text-sm font-medium leading-none">{user.name}</p>
