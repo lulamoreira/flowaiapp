@@ -321,7 +321,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
       
       setConfirmDelete({
-        type: action.type,
+        type: action.type as 'DELETE_TASK' | 'DELETE_BOARD' | 'DELETE_GROUP',
         payload: action.payload,
         title: details.title,
         itemType: details.type,
