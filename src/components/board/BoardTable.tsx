@@ -237,7 +237,11 @@ export function BoardTable({ boardId }: BoardTableProps) {
                   />
                 </div>
               </div>
-              {!group.collapsed && groupTasks.map(task => (
+              {!group.collapsed && [...groupTasks].sort((a, b) => {
+                const dateA = a.plannedEnd ? new Date(a.plannedEnd).getTime() : Infinity;
+                const dateB = b.plannedEnd ? new Date(b.plannedEnd).getTime() : Infinity;
+                return dateA - dateB;
+              }).map(task => (
                 <TaskRow
                   key={task.id}
                   task={task}
