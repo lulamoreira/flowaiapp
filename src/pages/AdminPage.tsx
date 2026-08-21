@@ -864,6 +864,70 @@ export default function AdminPage() {
               )}
             </TabsContent>
           )}
+          {/* PLACEHOLDERS TAB */}
+          <TabsContent value="placeholders" className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-foreground">Membros Provisórios</h3>
+                <p className="text-sm text-muted-foreground">Pessoas cadastradas para atribuição de tarefas antes de criarem conta.</p>
+              </div>
+              <Button className="gap-1 bg-primary" onClick={() => openPlaceholderDialog()}>
+                <UserPlus className="h-4 w-4" /> Novo Provisório
+              </Button>
+            </div>
+            
+            <div className="bg-card border border-border rounded-xl overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-muted/50">
+                    <th className="text-left p-3 font-medium text-muted-foreground">Nome</th>
+                    <th className="text-left p-3 font-medium text-muted-foreground">Email Pretendido</th>
+                    <th className="text-left p-3 font-medium text-muted-foreground">Papel Sugerido</th>
+                    <th className="text-left p-3 font-medium text-muted-foreground">Status</th>
+                    <th className="text-right p-3 font-medium text-muted-foreground">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {placeholders.map(ph => (
+                    <tr key={ph.id} className="border-b border-border last:border-0 hover:bg-muted/30">
+                      <td className="p-3 font-medium text-foreground">{ph.full_name}</td>
+                      <td className="p-3 text-muted-foreground">{ph.email || '—'}</td>
+                      <td className="p-3">
+                        <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${roleBadgeColor(ph.intended_role)}`}>
+                          {roleLabel(ph.intended_role)}
+                        </span>
+                      </td>
+                      <td className="p-3">
+                        {ph.claimed_at ? (
+                          <Badge variant="outline" className="text-green-600 border-green-300">Convertido</Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-orange-600 border-orange-300">Provisório</Badge>
+                        )}
+                      </td>
+                      <td className="p-3 text-right">
+                        {!ph.claimed_at && (
+                          <>
+                            <Button size="icon" variant="ghost" className="h-8 w-8 text-primary" onClick={() => openClaimDialog(ph)} title="Converter em usuário real">
+                              <UserCheck className="h-4 w-4" />
+                            </Button>
+                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openPlaceholderDialog(ph)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          </>
+                        )}
+                        <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleDeletePlaceholder(ph)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                  {placeholders.length === 0 && (
+                    <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">Nenhum membro provisório cadastrado</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </TabsContent>
         </Tabs>
       </main>
 
