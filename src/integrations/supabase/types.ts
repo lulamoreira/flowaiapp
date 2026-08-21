@@ -111,6 +111,8 @@ export type Database = {
           description: string
           favorite: boolean
           id: string
+          project_end: string | null
+          project_start: string | null
           public_timeline_enabled: boolean | null
           public_token: string | null
           title: string
@@ -123,6 +125,8 @@ export type Database = {
           description?: string
           favorite?: boolean
           id?: string
+          project_end?: string | null
+          project_start?: string | null
           public_timeline_enabled?: boolean | null
           public_token?: string | null
           title: string
@@ -135,6 +139,8 @@ export type Database = {
           description?: string
           favorite?: boolean
           id?: string
+          project_end?: string | null
+          project_start?: string | null
           public_timeline_enabled?: boolean | null
           public_token?: string | null
           title?: string
@@ -388,6 +394,38 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      schedule_snapshots: {
+        Row: {
+          board_id: string
+          created_at: string | null
+          created_by: string
+          id: string
+          payload: Json
+        }
+        Insert: {
+          board_id: string
+          created_at?: string | null
+          created_by: string
+          id?: string
+          payload: Json
+        }
+        Update: {
+          board_id?: string
+          created_at?: string | null
+          created_by?: string
+          id?: string
+          payload?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedule_snapshots_board_id_fkey"
+            columns: ["board_id"]
+            isOneToOne: false
+            referencedRelation: "boards"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       stripe_events: {
         Row: {
