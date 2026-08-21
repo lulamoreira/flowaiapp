@@ -3,6 +3,7 @@ import { Board, TaskGroup, Task, User, AutomationRule } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { logActivity } from '@/lib/activityLog';
 import { toast } from 'sonner';
+import { DeleteConfirmDialog } from '@/components/ui/DeleteConfirmDialog';
 
 interface AppState {
   boards: Board[];
