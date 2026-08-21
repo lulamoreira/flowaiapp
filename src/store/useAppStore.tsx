@@ -424,9 +424,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
             break;
           }
           case 'DELETE_TASK': {
-            const res = await supabase.from('tasks').delete().eq('id', action.payload);
+            const taskId = action.payload;
+            const taskToDelete = state.tasks.find(t => t.id === taskId);
+            if (taskToDelete) {
+              await (supabase.from('deletion_log') as any).insert({
+                table_name: 'tasks',
+                original_id: taskId,
+                data: taskToDelete as any,
+                deleted_by: user?.id,
+                board_id: taskToDelete.boardId
+              });
+            }
+            const res = await supabase.from('tasks').delete().eq('id', taskId);
             error = res.error;
-            logActivity('Excluiu tarefa', { taskId: action.payload });
+            logActivity('Excluiu tarefa', { taskId: taskId });
             break;
           }
           case 'ADD_AUTOMATION': {
