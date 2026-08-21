@@ -1046,6 +1046,92 @@ export default function AdminPage() {
           </div>
         </DialogContent>
       </Dialog>
+      {/* Placeholder Dialog */}
+      <Dialog open={placeholderDialogOpen} onOpenChange={setPlaceholderDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editingPlaceholder ? 'Editar Membro Provisório' : 'Novo Membro Provisório'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div>
+              <Label>Nome Completo *</Label>
+              <Input value={phName} onChange={e => setPhName(e.target.value)} placeholder="Ex: João Silva" />
+            </div>
+            <div>
+              <Label>Email (Opcional)</Label>
+              <Input type="email" value={phEmail} onChange={e => setPhEmail(e.target.value)} placeholder="email@exemplo.com" />
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Usado apenas para referência. Não cria conta.
+              </p>
+            </div>
+            <div>
+              <Label>Papel Pretendido</Label>
+              <Select value={phRole} onValueChange={v => setPhRole(v as AppRole)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="coordinator">Coordenador</SelectItem>
+                  <SelectItem value="user">Usuário</SelectItem>
+                  <SelectItem value="viewer">Visualizador</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button onClick={handleSavePlaceholder} className="w-full bg-primary" disabled={phSaving || !phName.trim()}>
+              {phSaving ? 'Salvando...' : 'Salvar'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Claim Dialog */}
+      <Dialog open={claimDialogOpen} onOpenChange={setClaimDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Converter em Usuário Real</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div className="p-3 bg-muted/50 rounded-lg border border-border space-y-2">
+              <p className="text-sm font-medium">Membro Provisório: <span className="text-primary">{selectedPlaceholder?.full_name}</span></p>
+              {claimSummary && (
+                <div className="flex gap-4 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1"><CheckCircle2 className="h-3 w-3" /> {claimSummary.tasks} tarefas</span>
+                  <span className="flex items-center gap-1"><CheckCircle2 className="h-3 w-3" /> Subtarefas e automações</span>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label>Selecione o Usuário Real</Label>
+              <Select value={targetUserId} onValueChange={setTargetUserId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Escolha um usuário registrado..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {users
+                    .filter(u => u.status === 'active') // Only registered users
+                    .map(u => (
+                      <SelectItem key={u.user_id} value={u.user_id}>
+                        {u.full_name} ({u.email || 'sem email'})
+                      </SelectItem>
+                    ))
+                  }
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground">
+                Ao converter, TODAS as tarefas atribuídas ao membro provisório serão transferidas para este usuário. O membro provisório será removido.
+              </p>
+            </div>
+
+            <Button 
+              onClick={handleClaimPlaceholder} 
+              className="w-full bg-primary" 
+              disabled={claiming || !targetUserId}
+            >
+              {claiming ? 'Convertendo...' : 'Confirmar Conversão'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
