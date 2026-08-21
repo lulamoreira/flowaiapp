@@ -216,6 +216,7 @@ export type Database = {
       deletion_log: {
         Row: {
           board_id: string | null
+          confirm_details: Json | null
           data: Json
           deleted_at: string
           deleted_by: string | null
@@ -225,6 +226,7 @@ export type Database = {
         }
         Insert: {
           board_id?: string | null
+          confirm_details?: Json | null
           data: Json
           deleted_at?: string
           deleted_by?: string | null
@@ -234,6 +236,7 @@ export type Database = {
         }
         Update: {
           board_id?: string | null
+          confirm_details?: Json | null
           data?: Json
           deleted_at?: string
           deleted_by?: string | null
