@@ -430,6 +430,7 @@ export type Database = {
           avatar_url: string | null
           created_at: string
           date_of_birth: string | null
+          email: string | null
           full_name: string
           id: string
           is_early_adopter: boolean | null
@@ -441,6 +442,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           date_of_birth?: string | null
+          email?: string | null
           full_name?: string
           id?: string
           is_early_adopter?: boolean | null
@@ -452,6 +454,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           date_of_birth?: string | null
+          email?: string | null
           full_name?: string
           id?: string
           is_early_adopter?: boolean | null
