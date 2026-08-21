@@ -8,6 +8,7 @@ import { GripVertical, AlertTriangle, Clock, ChevronDown } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useState } from 'react';
+import { cn } from '@/lib/utils';
 
 interface TaskRowProps {
   task: Task;
