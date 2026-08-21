@@ -529,6 +529,7 @@ export default function AdminPage() {
 
   const roleLabel = (role: AppRole) => {
     switch (role) {
+      case 'owner': return 'Dono';
       case 'admin': return 'Admin';
       case 'coordinator': return 'Coordenador';
       case 'user': return 'Usuário';
@@ -1068,6 +1069,7 @@ export default function AdminPage() {
               <Select value={inviteRole} onValueChange={v => setInviteRole(v as AppRole)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="owner">Dono</SelectItem>
                   {isAdmin && <SelectItem value="admin">Admin</SelectItem>}
                   <SelectItem value="coordinator">Coordenador</SelectItem>
                   <SelectItem value="user">Usuário</SelectItem>
@@ -1095,6 +1097,7 @@ export default function AdminPage() {
             <Select value={selectedRole} onValueChange={v => setSelectedRole(v as AppRole)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
+                <SelectItem value="owner">Dono</SelectItem>
                 {isAdmin && <SelectItem value="admin">Admin</SelectItem>}
                 <SelectItem value="coordinator">Coordenador</SelectItem>
                 <SelectItem value="user">Usuário</SelectItem>
@@ -1188,6 +1191,7 @@ export default function AdminPage() {
               <Select value={phRole} onValueChange={v => setPhRole(v as AppRole)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="owner">Dono</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
                   <SelectItem value="coordinator">Coordenador</SelectItem>
                   <SelectItem value="user">Usuário</SelectItem>
