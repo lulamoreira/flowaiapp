@@ -178,11 +178,15 @@ export function AppSidebar() {
                               <button
                                 onClick={(e) => {
                                   e.preventDefault(); e.stopPropagation();
-                                  if (confirm(`Excluir board "${board.title}" e todas suas tarefas?`)) {
-                                    dispatch({ type: 'DELETE_BOARD', payload: board.id });
-                                    navigate('/');
-                                    toast.success(`Board "${board.title}" excluído`);
-                                  }
+                                  dispatch({ 
+                                    type: 'DELETE_BOARD', 
+                                    payload: board.id,
+                                    confirmDetails: {
+                                      title: board.title,
+                                      type: 'Quadro'
+                                    }
+                                  });
+                                  navigate('/');
                                 }}
                                 className="p-0.5 hover:text-red-400"
                               >
