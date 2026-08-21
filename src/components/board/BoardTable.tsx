@@ -35,6 +35,7 @@ export function BoardTable({ boardId }: BoardTableProps) {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [dragOverGroupId, setDragOverGroupId] = useState<string | null>(null);
+  const [groupToDelete, setGroupToDelete] = useState<string | null>(null);
 
   // Column sort state
   const [sort, setSort] = useState<SortConfig>(() => {
