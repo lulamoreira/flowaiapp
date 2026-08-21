@@ -69,6 +69,16 @@ interface PlaceholderMember {
   claimed_at: string | null;
 }
 
+interface DeletionLogEntry {
+  id: string;
+  table_name: string;
+  original_id: string;
+  data: any;
+  deleted_at: string;
+  deleted_by: string | null;
+  board_id: string | null;
+}
+
 const SYSTEM_MODULES = ['boards', 'tasks', 'reports', 'users', 'invitations', 'automations'];
 
 export default function AdminPage() {
