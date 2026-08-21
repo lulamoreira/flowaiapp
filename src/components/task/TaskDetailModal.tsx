@@ -350,13 +350,40 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
               <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">Nenhum</SelectItem>
-                {state.users.map(u => (
-                  <SelectItem key={u.id} value={u.id}>
-                    <span className={u.isPlaceholder ? 'italic opacity-80' : ''}>
-                      {u.name}
-                    </span>
-                  </SelectItem>
-                ))}
+                {(() => {
+                  const authorizedIds = state.projectMembers[current.boardId] || [];
+                  const hasAuthorized = authorizedIds.length > 0;
+                  const filteredUsers = state.users.filter(u => {
+                    if (u.id === current.assignee) return true;
+                    if (!hasAuthorized) return true;
+                    return authorizedIds.includes(u.id);
+                  });
+
+                  return (
+                    <>
+                      {!hasAuthorized && (
+                        <div className="px-2 py-1 text-[10px] text-muted-foreground italic border-b mb-1">
+                          Nenhum colaborador autorizado neste projeto — autorize em Compartilhar
+                        </div>
+                      )}
+                      {filteredUsers.map(u => {
+                        const isNotAuthorized = hasAuthorized && !authorizedIds.includes(u.id) && u.id === current.assignee;
+                        return (
+                          <SelectItem key={u.id} value={u.id}>
+                            <div className="flex flex-col">
+                              <span className={u.isPlaceholder ? 'italic opacity-80' : ''}>
+                                {u.name}
+                              </span>
+                              {isNotAuthorized && (
+                                <span className="text-[9px] text-destructive leading-tight">sem autorização</span>
+                              )}
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
+                    </>
+                  );
+                })()}
               </SelectContent>
             </Select>
           </div>
@@ -485,7 +512,29 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
                           <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="none">Nenhum</SelectItem>
-                            {state.users.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
+                            {(() => {
+                              const authorizedIds = state.projectMembers[current.boardId] || [];
+                              const hasAuthorized = authorizedIds.length > 0;
+                              const filteredUsers = state.users.filter(u => {
+                                if (u.id === sub.assignee) return true;
+                                if (!hasAuthorized) return true;
+                                return authorizedIds.includes(u.id);
+                              });
+
+                              return filteredUsers.map(u => {
+                                const isNotAuthorized = hasAuthorized && !authorizedIds.includes(u.id) && u.id === sub.assignee;
+                                return (
+                                  <SelectItem key={u.id} value={u.id}>
+                                    <div className="flex flex-col">
+                                      <span className={u.isPlaceholder ? 'italic opacity-80' : ''}>{u.name}</span>
+                                      {isNotAuthorized && (
+                                        <span className="text-[9px] text-destructive leading-tight">sem autorização</span>
+                                      )}
+                                    </div>
+                                  </SelectItem>
+                                );
+                              });
+                            })()}
                           </SelectContent>
                         </Select>
                       </div>
