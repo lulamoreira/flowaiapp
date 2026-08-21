@@ -28,12 +28,22 @@ export function BoardWorkload({ boardId }: BoardWorkloadProps) {
     [state.tasks, boardId, filterTasks]
   );
   const members = useMemo(() => {
-    const list = state.users.filter(u => authorizedUserIds.includes(u.id));
-    // Fallback logic: if a user is not authorized but has tasks in this board,
-    // they should be visible in the workload.
+    // 1. Members explicitly authorized in project_members
+    const authorized = state.users.filter(u => authorizedUserIds.includes(u.id));
+    
+    // 2. Users (real or placeholders) who have tasks assigned in this board
     const assigneesWithTasks = new Set(tasks.map(t => t.assignee).filter(Boolean));
-    const extraMembers = state.users.filter(u => !authorizedUserIds.includes(u.id) && assigneesWithTasks.has(u.id));
-    return [...list, ...extraMembers];
+    const assigned = state.users.filter(u => assigneesWithTasks.has(u.id));
+
+    // Combine and deduplicate by ID
+    const combined = [...authorized];
+    assigned.forEach(u => {
+      if (!combined.some(c => c.id === u.id)) {
+        combined.push(u);
+      }
+    });
+
+    return combined;
   }, [state.users, authorizedUserIds, tasks]);
 
   useEffect(() => {
