@@ -131,7 +131,7 @@ export function TeamTimelineWidget() {
     if (offset === 0) return 'Esta semana';
     if (offset === 1) return 'Próxima semana';
     if (offset === -1) return 'Semana passada';
-    return `${formatTaskDate(timelineStart.toISOString())} – ${formatTaskDate(timelineEnd.toISOString())}`;
+    return `${formatTaskDate(timelineStart)} – ${formatTaskDate(timelineEnd)}`;
   }, [offset, timelineStart, timelineEnd, mode]);
 
 
@@ -221,11 +221,11 @@ export function TeamTimelineWidget() {
 
                           {mode === 'week' ? (
                             <>
-                              <div className="text-[10px] uppercase">{format(day, 'EEE', { locale: ptBR })}</div>
-                              <div className="font-semibold text-foreground/80">{format(day, 'dd/MM')}</div>
+                              <div className="text-[10px] uppercase">{formatTaskDate(day, 'EEE')}</div>
+                              <div className="font-semibold text-foreground/80">{formatTaskDate(day, 'dd/MM')}</div>
                             </>
                           ) : (
-                            <div className="font-semibold text-[10px] text-foreground/80">{format(day, 'd')}</div>
+                            <div className="font-semibold text-[10px] text-foreground/80">{formatTaskDate(day, 'd')}</div>
                           )}
 
                         </div>
