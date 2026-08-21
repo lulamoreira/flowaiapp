@@ -277,6 +277,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => refetch('tasks'))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'automation_rules' }, () => refetch('automations'))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => refetch('users'))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'placeholder_members' }, () => refetch('users'))
     window.addEventListener('focus', () => refetch('users'));
     return () => {
       supabase.removeChannel(channel);
