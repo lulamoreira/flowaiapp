@@ -157,35 +157,33 @@ const BoardPage = () => {
           ))}
           <div className="ml-auto flex items-center gap-2">
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2">
-                {(isAdminOrCoordinator || canEditBoard) && (
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="h-8 text-xs"
-                    onClick={() => setMembersDialogOpen(true)}
-                  >
-                    <Users className="h-3.5 w-3.5 mr-1" />
-                    Autorização
-                  </Button>
-                )}
-                {canEditTasks && (
-                  <RescheduleDialog 
-                    board={board} 
-                    tasks={state.tasks.filter(t => t.boardId === board.id)} 
-                  />
-                )}
-                <PublicTimelineDialog
-                  boardId={board.id}
-                  initialEnabled={(board as any).public_timeline_enabled}
-                  publicToken={(board as any).public_token}
+              {(isAdminOrCoordinator || canEditBoard) && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-8 text-xs"
+                  onClick={() => setMembersDialogOpen(true)}
+                >
+                  <Users className="h-3.5 w-3.5 mr-1" />
+                  Autorização
+                </Button>
+              )}
+              {canEditTasks && (
+                <RescheduleDialog 
+                  board={board} 
+                  tasks={state.tasks.filter(t => t.boardId === board.id)} 
                 />
-              </div>
-              <Button variant="outline" size="sm" className="h-8 text-xs" onClick={addGroup}>
-                <Plus className="h-3.5 w-3.5 mr-1" />
-                Novo Grupo
-              </Button>
+              )}
+              <PublicTimelineDialog
+                boardId={board.id}
+                initialEnabled={(board as any).public_timeline_enabled}
+                publicToken={(board as any).public_token}
+              />
             </div>
+            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={addGroup}>
+              <Plus className="h-3.5 w-3.5 mr-1" />
+              Novo Grupo
+            </Button>
           </div>
         </div>
 
