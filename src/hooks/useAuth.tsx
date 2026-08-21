@@ -59,6 +59,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setRoles(rolesData?.map(r => r.role) || []);
     } catch (err) {
       console.error('Unexpected error in fetchProfile:', err);
+    } finally {
+      // Small delay to ensure state updates propagate
+      setTimeout(() => setLoading(false), 50);
     }
   }, []);
 
@@ -95,8 +98,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session?.user ?? null);
         if (session?.user) {
           await fetchProfile(session.user.id);
+        } else {
+          setLoading(false);
         }
-      } finally {
+      } catch (err) {
+        console.error('Error in initSession:', err);
         setLoading(false);
       }
     };
@@ -115,9 +121,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setRoles([]);
   };
 
-  const isAdmin = roles?.includes('admin') ?? false;
-  const isOwner = roles?.includes('owner') ?? false;
-  const isCoordinator = roles?.includes('coordinator') ?? false;
+  const isAdmin = roles.includes('admin');
+  const isOwner = roles.includes('owner');
+  const isCoordinator = roles.includes('coordinator');
 
   const isAdminOrCoordinator = isAdmin || isCoordinator || isOwner;
 
