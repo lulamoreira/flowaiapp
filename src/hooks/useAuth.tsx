@@ -40,7 +40,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchProfile = useCallback(async (userId: string) => {
     try {
-      console.log('fetchProfile started for:', userId);
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -56,7 +55,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (rolesError) console.error('Error fetching roles:', rolesError);
 
-      console.log('Roles fetched:', rolesData?.map(r => r.role));
       setProfile(profileData);
       setRoles(rolesData?.map(r => r.role) || []);
     } catch (err) {
