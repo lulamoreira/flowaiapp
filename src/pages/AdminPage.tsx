@@ -440,6 +440,9 @@ export default function AdminPage() {
 
     if (!confirm(message)) return;
 
+    // Explicitly delete project memberships since FK CASCADE was removed
+    await supabase.from('project_members' as any).delete().eq('user_id', ph.id);
+    
     const { error } = await supabase.from('placeholder_members').delete().eq('id', ph.id);
     if (error) toast.error(error.message);
     else {
