@@ -11,6 +11,7 @@ import { GripVertical, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useScopedTasks } from '@/hooks/useScopedTasks';
 import { cn } from '@/lib/utils';
+import { DeleteConfirmDialog } from '@/components/ui/DeleteConfirmDialog';
 
 type SortConfig = {
   column: 'item' | 'assignee' | 'status' | 'priority' | 'date' | null;
