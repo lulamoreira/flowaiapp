@@ -218,7 +218,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     load();
   }, []);
 
-  const refetch = async (type: 'boards' | 'groups' | 'tasks' | 'automations') => {
+  const refetch = async (type: 'boards' | 'groups' | 'tasks' | 'automations' | 'users') => {
     try {
       switch (type) {
         case 'boards': {
@@ -239,6 +239,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
         case 'automations': {
           const data = await fetchPaginated('automation_rules', 'created_at');
           dispatch({ type: 'SET_STATE', payload: { automations: data.map(dbToAutomation) } });
+          break;
+        }
+        case 'users': {
+          const [profilesData, placeholdersData] = await Promise.all([
+            fetchPaginated('profiles', 'created_at'),
+            fetchPaginated('placeholder_members', 'created_at'),
+          ]);
+          const realUsers: User[] = profilesData.map(p => ({
+            id: p.user_id,
+            name: p.full_name || 'Sem nome',
+            email: '',
+            avatar: (p.full_name || '??').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase(),
+          }));
+          const placeholders: User[] = placeholdersData.map(p => ({
+            id: p.id,
+            name: p.full_name + (p.claimed_by ? '' : ' (provisório)'),
+            email: p.email || '',
+            avatar: (p.full_name || '??').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase(),
+            isPlaceholder: true,
+          }));
+          dispatch({ type: 'SET_STATE', payload: { users: [...realUsers, ...placeholders] } });
           break;
         }
       }
