@@ -59,9 +59,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setRoles(rolesData?.map(r => r.role) || []);
     } catch (err) {
       console.error('Unexpected error in fetchProfile:', err);
-    } finally {
-      // Small delay to ensure state updates propagate
-      setTimeout(() => setLoading(false), 50);
     }
   }, []);
 
@@ -98,11 +95,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session?.user ?? null);
         if (session?.user) {
           await fetchProfile(session.user.id);
-        } else {
-          setLoading(false);
         }
-      } catch (err) {
-        console.error('Error in initSession:', err);
+      } finally {
         setLoading(false);
       }
     };
