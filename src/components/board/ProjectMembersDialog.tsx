@@ -108,7 +108,9 @@ export function ProjectMembersDialog({ open, onOpenChange, boardId }: ProjectMem
             </div>
           ) : (
             <div className="space-y-3">
-              {state.users.map((user) => (
+              {state.users
+                .filter(u => !u.isPlaceholder) // Somente usuários reais podem ser autorizados explicitamente
+                .map((user) => (
                 <div key={user.id} className="flex items-center space-x-3 p-2 hover:bg-muted/50 rounded-lg transition-colors cursor-pointer" onClick={() => handleToggle(user.id)}>
                   <Checkbox 
                     id={`user-${user.id}`} 
