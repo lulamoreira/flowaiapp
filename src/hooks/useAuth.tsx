@@ -22,6 +22,7 @@ interface AuthContextType {
   roles: AppRole[];
   loading: boolean;
   isAdmin: boolean;
+  isOwner: boolean;
   isCoordinator: boolean;
   isAdminOrCoordinator: boolean;
   signOut: () => Promise<void>;
@@ -64,7 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          setTimeout(() => fetchProfile(session.user.id), 0);
+          await fetchProfile(session.user.id);
           if (event === 'SIGNED_IN') {
             logActivity('Login', { method: 'auth', email: session.user.email });
           }
@@ -76,14 +77,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     );
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const initSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchProfile(session.user.id);
+        await fetchProfile(session.user.id);
       }
       setLoading(false);
-    });
+    };
+
+    initSession();
 
     return () => subscription.unsubscribe();
   }, [fetchProfile]);
@@ -98,13 +102,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const isAdmin = roles?.includes('admin') ?? false;
+  const isOwner = roles?.includes('owner') ?? false;
   const isCoordinator = roles?.includes('coordinator') ?? false;
 
   return (
     <AuthContext.Provider value={{
       user, session, profile, roles, loading,
-      isAdmin, isCoordinator,
-      isAdminOrCoordinator: isAdmin || isCoordinator,
+      isAdmin, isOwner, isCoordinator,
+      isAdminOrCoordinator: isAdmin || isCoordinator || isOwner,
       signOut, refreshProfile,
     }}>
       {children}

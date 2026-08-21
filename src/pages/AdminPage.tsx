@@ -71,7 +71,7 @@ interface PlaceholderMember {
 const SYSTEM_MODULES = ['boards', 'tasks', 'reports', 'users', 'invitations', 'automations'];
 
 export default function AdminPage() {
-  const { user, isAdmin, isCoordinator, isAdminOrCoordinator } = useAuth();
+  const { user, isAdmin, isOwner, isCoordinator, isAdminOrCoordinator } = useAuth();
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [customFunctions, setCustomFunctions] = useState<CustomFunction[]>([]);
@@ -436,8 +436,8 @@ export default function AdminPage() {
 
     try {
       const { data, error } = await supabase.rpc('claim_placeholder', {
-        _placeholder_id: selectedPlaceholder.id,
-        _real_user_id: targetUserId,
+        p_placeholder_id: selectedPlaceholder.id,
+        p_target_user_id: targetUserId,
       });
 
       if (error) throw error;
@@ -521,7 +521,7 @@ export default function AdminPage() {
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      <Header title={isAdmin ? 'Painel Admin' : 'Painel do Coordenador'} />
+      <Header title={isAdmin || isOwner ? 'Painel Admin' : 'Painel do Coordenador'} />
       <main className="flex-1 overflow-y-auto bg-muted/30 p-6">
         <Tabs defaultValue="users" className="space-y-4">
           <TabsList className="flex-wrap">
