@@ -88,7 +88,9 @@ export default function AdminPage() {
   const [customFunctions, setCustomFunctions] = useState<CustomFunction[]>([]);
   const [activityLog, setActivityLog] = useState<ActivityEntry[]>([]);
   const [placeholders, setPlaceholders] = useState<PlaceholderMember[]>([]);
+  const [deletionLog, setDeletionLog] = useState<DeletionLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [restoringId, setRestoringId] = useState<string | null>(null);
 
   // Placeholder dialog
   const [placeholderDialogOpen, setPlaceholderDialogOpen] = useState(false);
