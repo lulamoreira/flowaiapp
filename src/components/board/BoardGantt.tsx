@@ -257,7 +257,7 @@ export function BoardGantt({ boardId, tasks: externalTasks, groups: externalGrou
                     style={{ width: dayWidth, height: 48 }}
                   >
                     <span className={`text-[10px] uppercase tracking-wide ${isToday ? 'text-primary font-semibold' : 'text-muted-foreground'}`}>
-                      {format(day, 'EEE', { locale: ptBR })}
+                      {mode === 'week' ? format(day, 'EEE', { locale: ptBR }) : ''}
                     </span>
                     <span
                       className={`text-sm font-semibold mt-0.5 ${
@@ -268,6 +268,7 @@ export function BoardGantt({ boardId, tasks: externalTasks, groups: externalGrou
                     >
                       {format(day, 'd')}
                     </span>
+
                   </div>
                 );
               })}
