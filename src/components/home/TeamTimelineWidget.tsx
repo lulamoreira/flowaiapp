@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { addDays, differenceInDays, format, parseISO, startOfDay, isBefore, startOfMonth, endOfMonth, getDaysInMonth } from 'date-fns';
+import { addDays, differenceInDays, format, parseISO, startOfDay, isBefore, startOfMonth, endOfMonth, getDaysInMonth, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+
 import { useAppStore } from '@/store/useAppStore';
 import { supabase } from '@/integrations/supabase/client';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -50,13 +51,37 @@ export function TeamTimelineWidget() {
   }, [state.boards]);
 
   const today = startOfDay(new Date());
-  const timelineStart = useMemo(() => addDays(today, weekOffset * VISIBLE_DAYS), [today, weekOffset]);
-  const timelineEnd = useMemo(() => addDays(timelineStart, VISIBLE_DAYS - 1), [timelineStart]);
+
+  const timelineStart = useMemo(() => {
+    if (mode === 'week') {
+      return addDays(today, offset * 7);
+    }
+    const targetMonth = addDays(startOfMonth(today), offset * 32); // generic jump
+    return startOfMonth(targetMonth);
+  }, [today, offset, mode]);
+
+  const timelineEnd = useMemo(() => {
+    if (mode === 'week') {
+      return addDays(timelineStart, 6);
+    }
+    return endOfMonth(timelineStart);
+  }, [timelineStart, mode]);
+
+  const visibleDaysCount = useMemo(() => {
+    return differenceInDays(timelineEnd, timelineStart) + 1;
+  }, [timelineStart, timelineEnd]);
+
+  const dayWidth = useMemo(() => {
+    if (mode === 'week') return 110;
+    // For month, we try to fit it. Standard width is smaller.
+    return 36; 
+  }, [mode]);
 
   const days = useMemo(
-    () => Array.from({ length: VISIBLE_DAYS }, (_, i) => addDays(timelineStart, i)),
-    [timelineStart]
+    () => Array.from({ length: visibleDaysCount }, (_, i) => addDays(timelineStart, i)),
+    [timelineStart, visibleDaysCount]
   );
+
 
   // Tasks visible if their planned range intersects the visible week
   const rows = useMemo(() => {
@@ -86,8 +111,9 @@ export function TeamTimelineWidget() {
     const visibleStart = s < timelineStart ? timelineStart : s;
     const visibleEnd = e > timelineEnd ? timelineEnd : e;
 
-    const left = differenceInDays(visibleStart, timelineStart) * DAY_WIDTH;
-    const width = Math.max((differenceInDays(visibleEnd, visibleStart) + 1) * DAY_WIDTH, DAY_WIDTH);
+    const left = differenceInDays(visibleStart, timelineStart) * dayWidth;
+    const width = Math.max((differenceInDays(visibleEnd, visibleStart) + 1) * dayWidth, dayWidth);
+
     const isOverdue = end && isBefore(e, today) && task.status !== 'done';
     const clippedLeft = s < timelineStart;
     const clippedRight = e > timelineEnd;
@@ -97,12 +123,16 @@ export function TeamTimelineWidget() {
   const getInitials = (name: string) =>
     name.split(' ').filter(Boolean).slice(0, 2).map(n => n[0]).join('').toUpperCase() || '??';
 
-  const weekLabel = useMemo(() => {
-    if (weekOffset === 0) return 'Esta semana';
-    if (weekOffset === 1) return 'Próxima semana';
-    if (weekOffset === -1) return 'Semana passada';
+  const navigationLabel = useMemo(() => {
+    if (mode === 'month') {
+      return format(timelineStart, "MMMM yyyy", { locale: ptBR });
+    }
+    if (offset === 0) return 'Esta semana';
+    if (offset === 1) return 'Próxima semana';
+    if (offset === -1) return 'Semana passada';
     return `${format(timelineStart, "dd 'de' MMM", { locale: ptBR })} – ${format(timelineEnd, "dd 'de' MMM", { locale: ptBR })}`;
-  }, [weekOffset, timelineStart, timelineEnd]);
+  }, [offset, timelineStart, timelineEnd, mode]);
+
 
   return (
     <div>
@@ -113,38 +143,49 @@ export function TeamTimelineWidget() {
             Linha do tempo da equipe
           </h3>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground hidden sm:inline">
-            {format(timelineStart, "dd MMM", { locale: ptBR })} – {format(timelineEnd, "dd MMM yyyy", { locale: ptBR })}
-          </span>
-          <div className="flex items-center bg-card border border-border rounded-md">
+        <div className="flex items-center gap-3">
+          <ToggleGroup 
+            type="single" 
+            value={mode} 
+            onValueChange={(v) => v && setMode(v as 'week' | 'month')}
+            className="bg-muted/50 p-0.5 rounded-lg border border-border"
+          >
+            <ToggleGroupItem value="week" className="h-7 px-2 text-[10px] uppercase font-bold tracking-tight">
+              Semana
+            </ToggleGroupItem>
+            <ToggleGroupItem value="month" className="h-7 px-2 text-[10px] uppercase font-bold tracking-tight">
+              Mês
+            </ToggleGroupItem>
+          </ToggleGroup>
+          <div className="flex items-center bg-card border border-border rounded-md shadow-sm">
             <Button
               variant="ghost"
               size="sm"
               className="h-7 w-7 p-0"
-              onClick={() => setWeekOffset(o => o - 1)}
-              aria-label="Semana anterior"
+              onClick={() => setOffset(o => o - 1)}
+              aria-label="Anterior"
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <button
-              onClick={() => setWeekOffset(0)}
-              className="text-xs px-2 font-medium text-foreground min-w-[110px] text-center"
+              onClick={() => setOffset(0)}
+              className="text-[11px] px-2 font-semibold text-foreground min-w-[120px] text-center capitalize"
             >
-              {weekLabel}
+              {navigationLabel}
             </button>
             <Button
               variant="ghost"
               size="sm"
               className="h-7 w-7 p-0"
-              onClick={() => setWeekOffset(o => o + 1)}
-              aria-label="Próxima semana"
+              onClick={() => setOffset(o => o + 1)}
+              aria-label="Próximo"
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
         </div>
       </div>
+
 
       {rows.length === 0 ? (
         <div className="border border-dashed border-border rounded-xl p-8 text-center bg-card">
@@ -155,8 +196,9 @@ export function TeamTimelineWidget() {
       ) : (
         <TooltipProvider delayDuration={150}>
           <div className="border border-border rounded-xl bg-card overflow-hidden shadow-sm">
-            <div className="overflow-auto" style={{ maxHeight: 420 }}>
-              <div style={{ width: NAME_COL + VISIBLE_DAYS * DAY_WIDTH, minHeight: 50 + rows.length * ROW_HEIGHT }}>
+            <div className="overflow-auto scrollbar-thin" style={{ maxHeight: 420 }}>
+              <div style={{ width: NAME_COL + visibleDaysCount * dayWidth, minHeight: 50 + rows.length * ROW_HEIGHT }}>
+
                 {/* Header */}
                 <div className="flex sticky top-0 z-20 bg-card border-b border-border">
                   <div
@@ -172,11 +214,19 @@ export function TeamTimelineWidget() {
                       return (
                         <div
                           key={i}
-                          className={`text-center text-[11px] border-r border-border py-1.5 ${isToday ? 'bg-primary/10 font-bold text-primary' : isWeekend ? 'bg-muted/40 text-muted-foreground' : 'text-muted-foreground'}`}
-                          style={{ width: DAY_WIDTH }}
+                          className={`text-center flex flex-col justify-center text-[11px] border-r border-border py-1.5 ${isToday ? 'bg-primary/10 font-bold text-primary' : isWeekend ? 'bg-muted/40 text-muted-foreground' : 'text-muted-foreground'}`}
+                          style={{ width: dayWidth }}
                         >
-                          <div className="text-[10px] uppercase">{format(day, 'EEE', { locale: ptBR })}</div>
-                          <div className="font-semibold text-foreground/80">{format(day, 'dd/MM')}</div>
+
+                          {mode === 'week' ? (
+                            <>
+                              <div className="text-[10px] uppercase">{format(day, 'EEE', { locale: ptBR })}</div>
+                              <div className="font-semibold text-foreground/80">{format(day, 'dd/MM')}</div>
+                            </>
+                          ) : (
+                            <div className="font-semibold text-[10px] text-foreground/80">{format(day, 'd')}</div>
+                          )}
+
                         </div>
                       );
                     })}
@@ -220,31 +270,36 @@ export function TeamTimelineWidget() {
                           </div>
                         </div>
                       </div>
-                      <div className="relative flex-1" style={{ width: VISIBLE_DAYS * DAY_WIDTH }}>
+                      <div className="relative flex-1" style={{ width: visibleDaysCount * dayWidth }}>
                         {/* Today column highlight */}
-                        {weekOffset === 0 && (
+                        {offset === 0 && days.some(d => isSameDay(d, today)) && (
                           <div
                             className="absolute top-0 bottom-0 bg-primary/5 pointer-events-none"
-                            style={{ left: 0, width: DAY_WIDTH }}
+                            style={{ 
+                              left: differenceInDays(today, timelineStart) * dayWidth, 
+                              width: dayWidth 
+                            }}
                           />
                         )}
+
                         {bar && (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <div
-                                onClick={() => navigate(`/board/${task.boardId}`)}
-                                className={`absolute top-2 cursor-pointer transition-all hover:ring-2 hover:ring-primary/50 hover:shadow-md flex items-center px-2 ${bar.isOverdue ? 'bg-destructive/80 hover:bg-destructive' : ''} ${bar.clippedLeft ? 'rounded-r-md' : 'rounded-l-md'} ${bar.clippedRight ? 'rounded-l-md' : 'rounded-r-md'} ${!bar.clippedLeft && !bar.clippedRight ? 'rounded-md' : ''}`}
-                                style={{
-                                  left: bar.left,
-                                  width: bar.width,
-                                  height: ROW_HEIGHT - 16,
-                                  backgroundColor: bar.isOverdue ? undefined : (board?.color || '#0073ea'),
-                                }}
-                              >
-                                <span className="text-[11px] text-white truncate font-medium">
-                                  {task.title}
-                                </span>
-                              </div>
+                                <div
+                                  onClick={() => navigate(`/board/${task.boardId}`)}
+                                  className={`absolute top-2 cursor-pointer transition-all hover:ring-2 hover:ring-primary/50 hover:shadow-md flex items-center px-1.5 ${bar.isOverdue ? 'bg-destructive/80 hover:bg-destructive' : ''} ${bar.clippedLeft ? 'rounded-r-md' : 'rounded-l-md'} ${bar.clippedRight ? 'rounded-l-md' : 'rounded-r-md'} ${!bar.clippedLeft && !bar.clippedRight ? 'rounded-md' : ''}`}
+                                  style={{
+                                    left: bar.left,
+                                    width: bar.width,
+                                    height: ROW_HEIGHT - 16,
+                                    backgroundColor: bar.isOverdue ? undefined : (board?.color || '#0073ea'),
+                                  }}
+                                >
+                                  <span className="text-[10px] text-white truncate font-medium">
+                                    {mode === 'week' ? task.title : ''}
+                                  </span>
+                                </div>
+
                             </TooltipTrigger>
                             <TooltipContent side="top" className="text-xs">
                               <div className="font-semibold">{task.title}</div>
