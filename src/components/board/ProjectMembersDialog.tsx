@@ -25,20 +25,27 @@ export function ProjectMembersDialog({ open, onOpenChange, boardId }: ProjectMem
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from('project_members')
+        .from('project_members' as any)
         .select('user_id')
         .eq('board_id', boardId);
       
       if (error) throw error;
-      const ids = data?.map(m => m.user_id) || [];
+      const ids = (data as any[])?.map((m: any) => m.user_id) || [];
       setAuthorizedIds(ids);
       setInitialAuthorizedIds(ids);
     } catch (err: any) {
+      console.error('Error loading members:', err);
       toast.error('Erro ao carregar membros: ' + err.message);
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (open) {
+      loadAuthorized();
+    }
+  }, [open, boardId]);
 
   const handleToggle = (userId: string) => {
     setAuthorizedIds(prev => 
@@ -56,7 +63,7 @@ export function ProjectMembersDialog({ open, onOpenChange, boardId }: ProjectMem
 
       if (toRemove.length > 0) {
         const { error } = await supabase
-          .from('project_members')
+          .from('project_members' as any)
           .delete()
           .eq('board_id', boardId)
           .in('user_id', toRemove);
@@ -65,7 +72,7 @@ export function ProjectMembersDialog({ open, onOpenChange, boardId }: ProjectMem
 
       if (toAdd.length > 0) {
         const { error } = await supabase
-          .from('project_members')
+          .from('project_members' as any)
           .insert(toAdd.map(uid => ({ board_id: boardId, user_id: uid })));
         if (error) throw error;
       }
@@ -73,16 +80,12 @@ export function ProjectMembersDialog({ open, onOpenChange, boardId }: ProjectMem
       toast.success('Membros atualizados com sucesso');
       onOpenChange(false);
     } catch (err: any) {
+      console.error('Error saving members:', err);
       toast.error('Erro ao salvar: ' + err.message);
     } finally {
       setLoading(false);
     }
   };
-
-  // Reset state when opening
-  useState(() => {
-    if (open) loadAuthorized();
-  });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
