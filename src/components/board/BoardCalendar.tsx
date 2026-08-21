@@ -9,6 +9,7 @@ import {
   addMonths, subMonths,
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { formatTaskDate } from '@/lib/dateUtils';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useScopedTasks } from '@/hooks/useScopedTasks';
@@ -102,7 +103,7 @@ export function BoardCalendar({ boardId }: BoardCalendarProps) {
               <div className={`text-xs font-medium mb-1 ${
                 today ? 'text-primary font-bold' : inMonth ? 'text-foreground' : 'text-muted-foreground/50'
               }`}>
-                {format(day, 'd')}
+                {formatTaskDate(day.toISOString(), 'd')}
               </div>
               <div className="space-y-0.5">
                 {dayTasks.slice(0, 3).map(task => {

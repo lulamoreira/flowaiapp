@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { addDays, differenceInDays, format, parseISO, startOfDay, isBefore, startOfMonth, endOfMonth, getDaysInMonth, isSameDay, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { formatTaskDate } from '@/lib/dateUtils';
 
 import { useAppStore } from '@/store/useAppStore';
 import { supabase } from '@/integrations/supabase/client';
@@ -130,7 +131,7 @@ export function TeamTimelineWidget() {
     if (offset === 0) return 'Esta semana';
     if (offset === 1) return 'Próxima semana';
     if (offset === -1) return 'Semana passada';
-    return `${format(timelineStart, "dd 'de' MMM", { locale: ptBR })} – ${format(timelineEnd, "dd 'de' MMM", { locale: ptBR })}`;
+    return `${formatTaskDate(timelineStart.toISOString())} – ${formatTaskDate(timelineEnd.toISOString())}`;
   }, [offset, timelineStart, timelineEnd, mode]);
 
 
@@ -307,8 +308,8 @@ export function TeamTimelineWidget() {
                               <div className="text-muted-foreground">Responsável: {memberName}</div>
                               {task.plannedStart && (
                                 <div className="text-muted-foreground">
-                                  {format(parseISO(task.plannedStart), 'dd/MM/yyyy', { locale: ptBR })}
-                                  {task.plannedEnd && ` → ${format(parseISO(task.plannedEnd), 'dd/MM/yyyy', { locale: ptBR })}`}
+                                  {formatTaskDate(task.plannedStart, 'dd/MM/yyyy')}
+                                  {task.plannedEnd && ` → ${formatTaskDate(task.plannedEnd, 'dd/MM/yyyy')}`}
                                 </div>
                               )}
                               <div className="text-primary mt-1">Clique para abrir o projeto</div>

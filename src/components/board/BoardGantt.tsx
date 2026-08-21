@@ -3,6 +3,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { Task, TaskGroup } from '@/types';
 import { parseISO, differenceInDays, addDays, format, startOfDay, isBefore, isSameDay, startOfMonth, endOfMonth, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { formatTaskDate } from '@/lib/dateUtils';
 import { TaskDetailModal } from '@/components/task/TaskDetailModal';
 import { ChevronLeft, ChevronRight, CalendarDays, LayoutGrid } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -157,7 +158,7 @@ export function BoardGantt({ boardId, tasks: externalTasks, groups: externalGrou
   }, [days]);
 
   const rangeLabel = mode === 'week' 
-    ? `${format(days[0], "d 'de' MMM", { locale: ptBR })} – ${format(days[visibleDaysCount - 1], "d 'de' MMM", { locale: ptBR })}`
+    ? `${formatTaskDate(days[0].toISOString())} – ${formatTaskDate(days[visibleDaysCount - 1].toISOString())}`
     : format(timelineStart, "MMMM yyyy", { locale: ptBR });
 
   return (
