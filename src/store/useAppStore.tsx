@@ -415,7 +415,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 data: groupToDelete as any,
                 deleted_by: user?.id,
                 board_id: groupToDelete.boardId,
-                confirm_details: (action as any).confirmDetails || null
+                confirm_details: (action as any).confirmDetails || null,
               });
             }
             const res = await supabase.from('task_groups').delete().eq('id', groupId);
@@ -482,7 +482,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 data: taskToDelete as any,
                 deleted_by: user?.id,
                 board_id: taskToDelete.boardId,
-                confirm_details: (action as any).confirmDetails || null
+                confirm_details: (action as any).confirmDetails || null,
               });
             }
             const res = await supabase.from('tasks').delete().eq('id', taskId);
