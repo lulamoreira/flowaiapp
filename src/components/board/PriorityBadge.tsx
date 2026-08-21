@@ -9,7 +9,8 @@ interface PriorityBadgeProps {
 
 export function PriorityBadge({ priority, onChange }: PriorityBadgeProps) {
   const [open, setOpen] = useState(false);
-  const config = PRIORITY_CONFIG[priority];
+  const config = PRIORITY_CONFIG[priority] || PRIORITY_CONFIG['none'];
+
 
   if (!onChange) {
     return (

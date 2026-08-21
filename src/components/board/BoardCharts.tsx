@@ -28,11 +28,15 @@ export function BoardCharts({ boardId }: BoardChartsProps) {
   const pieData = useMemo(() => {
     const counts: Record<string, number> = {};
     tasks.forEach(t => { counts[t.priority] = (counts[t.priority] || 0) + 1; });
-    return Object.entries(counts).map(([key, value]) => ({
-      name: PRIORITY_CONFIG[key as keyof typeof PRIORITY_CONFIG].label,
-      value,
-      color: PRIORITY_CONFIG[key as keyof typeof PRIORITY_CONFIG].color,
-    }));
+    return Object.entries(counts).map(([key, value]) => {
+      const config = PRIORITY_CONFIG[key as keyof typeof PRIORITY_CONFIG] || PRIORITY_CONFIG['none'];
+      return {
+        name: config.label,
+        value,
+        color: config.color,
+      };
+    });
+
   }, [tasks]);
 
   return (

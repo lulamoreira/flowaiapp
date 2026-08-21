@@ -171,7 +171,8 @@ export function BoardKanban({ boardId }: BoardKanbanProps) {
       />
       <div className="flex gap-4 overflow-x-auto pb-4 min-h-[60vh]">
       {COLUMNS.map(status => {
-        const config = STATUS_CONFIG[status];
+        const config = STATUS_CONFIG[status] || STATUS_CONFIG['not_started'];
+
         const columnTasks = tasksByStatus[status];
         const isDragOver = dragOverColumn === status;
 

@@ -107,7 +107,8 @@ export function BoardCalendar({ boardId }: BoardCalendarProps) {
               </div>
               <div className="space-y-0.5">
                 {dayTasks.slice(0, 3).map(task => {
-                  const statusConfig = STATUS_CONFIG[task.status];
+                  const statusConfig = STATUS_CONFIG[task.status] || STATUS_CONFIG['not_started'];
+
                   const group = state.groups.find(g => g.id === task.groupId);
                   return (
                     <div
