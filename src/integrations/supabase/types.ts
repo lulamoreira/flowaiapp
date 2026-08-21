@@ -461,6 +461,35 @@ export type Database = {
         }
         Relationships: []
       }
+      project_members: {
+        Row: {
+          board_id: string
+          created_at: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          board_id: string
+          created_at?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          board_id?: string
+          created_at?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_members_board_id_fkey"
+            columns: ["board_id"]
+            isOneToOne: false
+            referencedRelation: "boards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       schedule_snapshots: {
         Row: {
           board_id: string
