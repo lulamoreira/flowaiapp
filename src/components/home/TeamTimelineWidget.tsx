@@ -126,7 +126,7 @@ export function TeamTimelineWidget() {
 
   const navigationLabel = useMemo(() => {
     if (mode === 'month') {
-      return format(timelineStart, "MMMM yyyy", { locale: ptBR });
+      return formatTaskDate(timelineStart, "MMMM yyyy");
     }
     if (offset === 0) return 'Esta semana';
     if (offset === 1) return 'Próxima semana';

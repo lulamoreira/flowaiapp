@@ -149,7 +149,7 @@ export function BoardGantt({ boardId, tasks: externalTasks, groups: externalGrou
   const monthSegments = useMemo(() => {
     const segments: { label: string; span: number }[] = [];
     days.forEach(d => {
-      const label = format(d, "MMMM yyyy", { locale: ptBR });
+      const label = formatTaskDate(d, "MMMM yyyy");
       const last = segments[segments.length - 1];
       if (last && last.label === label) last.span++;
       else segments.push({ label, span: 1 });
@@ -159,7 +159,7 @@ export function BoardGantt({ boardId, tasks: externalTasks, groups: externalGrou
 
   const rangeLabel = mode === 'week' 
     ? `${formatTaskDate(days[0])} – ${formatTaskDate(days[visibleDaysCount - 1])}`
-    : format(timelineStart, "MMMM yyyy", { locale: ptBR });
+    : formatTaskDate(timelineStart, "MMMM yyyy");
 
   return (
     <div className="border border-border rounded-lg bg-card overflow-hidden">

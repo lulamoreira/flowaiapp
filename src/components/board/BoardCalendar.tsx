@@ -57,7 +57,7 @@ export function BoardCalendar({ boardId }: BoardCalendarProps) {
           <ChevronLeft className="h-4 w-4" />
         </Button>
         <h3 className="text-sm font-semibold text-foreground capitalize">
-          {format(currentMonth, 'MMMM yyyy', { locale: ptBR })}
+          {formatTaskDate(currentMonth, 'MMMM yyyy')}
         </h3>
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setCurrentMonth(m => addMonths(m, 1))}>
           <ChevronRight className="h-4 w-4" />
