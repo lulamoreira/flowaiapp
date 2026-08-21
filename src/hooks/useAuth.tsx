@@ -82,16 +82,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('useAuth: onAuthStateChange event:', event);
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
           await fetchProfile(session.user.id);
-          if (event === 'SIGNED_IN') {
-            logActivity('Login', { method: 'auth', email: session.user.email });
-          }
-          setLoading(false);
-          setAuthInitialized(true);
         } else {
           setProfile(null);
           setRoles([]);
@@ -101,22 +97,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     );
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        await fetchProfile(session.user.id);
-      } else {
+    const initAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        console.log('useAuth: initAuth session found:', !!session);
+        setSession(session);
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          await fetchProfile(session.user.id);
+        } else {
+          setLoading(false);
+          setAuthInitialized(true);
+        }
+      } catch (err) {
+        console.error('useAuth: Error in initAuth:', err);
         setLoading(false);
         setAuthInitialized(true);
+      } finally {
+        clearTimeout(safetyTimeout);
       }
-      clearTimeout(safetyTimeout);
-    }).catch(err => {
-      console.error('Error in initSession:', err);
-      setLoading(false);
-      setAuthInitialized(true);
-      clearTimeout(safetyTimeout);
-    });
+    };
+
+    initAuth();
 
     return () => {
       subscription.unsubscribe();
