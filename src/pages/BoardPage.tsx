@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { usePermissions } from '@/hooks/usePermissions';
 import { PublicTimelineDialog } from '@/components/board/PublicTimelineDialog';
+import { RescheduleDialog } from '@/components/board/RescheduleDialog';
 
 type ViewMode = 'table' | 'kanban' | 'calendar' | 'gantt' | 'workload' | 'automation';
 
@@ -154,6 +155,12 @@ const BoardPage = () => {
           ))}
           {canEditTasks && (
             <div className="ml-auto flex items-center gap-2">
+              {canEditTasks && (
+                <RescheduleDialog 
+                  board={board} 
+                  tasks={state.tasks.filter(t => t.boardId === board.id)} 
+                />
+              )}
               <PublicTimelineDialog
                 boardId={board.id}
                 initialEnabled={(board as any).public_timeline_enabled}
