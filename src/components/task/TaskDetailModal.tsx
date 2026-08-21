@@ -75,17 +75,6 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
   }, [current?.id]); // We intentionally only sync on ID change to avoid losing focus while typing
 
 
-  const update = (updates: Partial<Task>) => {
-    if (!current) return;
-    dispatch({ type: 'UPDATE_TASK', payload: { ...current, ...updates } });
-  };
-
-  const debouncedUpdate = useCallback(
-    debounce((updates: Partial<Task>) => {
-      update(updates);
-    }, 800),
-    [current?.id]
-  );
 
 
   const handleAssigneeChange = (newAssigneeId: string) => {
