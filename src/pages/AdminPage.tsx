@@ -203,6 +203,10 @@ export default function AdminPage() {
     }));
     setCustomFunctions(funcsWithPerms);
 
+    // Fetch placeholders
+    const { data: phData } = await supabase.from('placeholder_members').select('*').order('created_at', { ascending: false });
+    setPlaceholders(phData || []);
+
     // Fetch activity log (admin and coordinator)
     if (isAdminOrCoordinator) {
       const { data: logs } = await supabase.from('activity_log').select('*').order('created_at', { ascending: false }).limit(200);
@@ -223,6 +227,7 @@ export default function AdminPage() {
       'function_permissions',
       'user_custom_functions',
       'activity_log',
+      'placeholder_members',
     ],
     fetchAll,
     { channelName: 'admin-page-rt' }
