@@ -975,7 +975,6 @@ export default function AdminPage() {
               </table>
             </div>
           </TabsContent>
-          )}
           {/* PLACEHOLDERS TAB */}
           <TabsContent value="placeholders" className="space-y-4">
             <div className="flex items-center justify-between">
