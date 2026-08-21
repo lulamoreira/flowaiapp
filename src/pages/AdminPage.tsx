@@ -224,6 +224,9 @@ export default function AdminPage() {
     if (isAdminOrCoordinator) {
       const { data: logs } = await supabase.from('activity_log').select('*').order('created_at', { ascending: false }).limit(200);
       setActivityLog(logs || []);
+      
+      const { data: delLogs } = await supabase.from('deletion_log').select('*').order('deleted_at', { ascending: false });
+      setDeletionLog(delLogs || []);
     }
 
     setLoading(false);
