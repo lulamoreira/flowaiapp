@@ -183,6 +183,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const load = async () => {
     try {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      const { data: rolesData } = currentUser 
+        ? await supabase.from('user_roles').select('role').eq('user_id', currentUser.id)
+        : { data: [] };
+      
+      const roles = rolesData?.map(r => r.role) || [];
+      const isPrivileged = roles.includes('admin') || roles.includes('owner') || roles.includes('coordinator');
+
       const [boardsData, groupsData, tasksData, automationsData, profilesData, placeholdersData, membersData] = await Promise.all([
         fetchPaginated('boards', 'created_at'),
         fetchPaginated('task_groups', 'position'),
@@ -193,18 +201,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
         fetchPaginated('project_members', 'created_at'),
       ]);
 
-      const boards = boardsData.map(dbToBoard);
       const groups = groupsData.map(dbToGroup);
       const tasks = tasksData.map(dbToTask);
       const automations = automationsData.map(dbToAutomation);
-      // We'll map emails later since they are in auth.users, or just leave as is for now
-      // Actually, since profiles are linked to auth.users, but email is in auth.users,
-      // and we can't easily join them without a view or RPC, we'll keep email empty for now
-      // and let refetch/initial load handle it if we had a proper profile field.
+      
+      const projectMembers: Record<string, string[]> = {};
+      membersData.forEach((m: any) => {
+        if (!projectMembers[m.board_id]) projectMembers[m.board_id] = [];
+        projectMembers[m.board_id].push(m.user_id);
+      });
+
+      // Filter boards: if not privileged, only show those where I am a project_member
+      const boards = boardsData
+        .filter(b => isPrivileged || (projectMembers[b.id] && projectMembers[b.id].includes(currentUser?.id || '')))
+        .map(dbToBoard);
+
       const realUsers: User[] = profilesData.map(p => ({
         id: p.user_id,
         name: p.full_name || 'Sem nome',
-        email: p.email || '', // If profile had email, it would be here
+        email: p.email || '',
         avatar: (p.full_name || '??').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase(),
       }));
       const placeholders: User[] = placeholdersData.map(p => ({
@@ -216,12 +231,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }));
       const users = [...realUsers, ...placeholders];
       
-      const projectMembers: Record<string, string[]> = {};
-      membersData.forEach((m: any) => {
-        if (!projectMembers[m.board_id]) projectMembers[m.board_id] = [];
-        projectMembers[m.board_id].push(m.user_id);
-      });
-
       dispatch({ type: 'SET_STATE', payload: { boards, groups, tasks, users, automations, projectMembers, loading: false } });
     } catch (err: any) {
       console.error('Error loading data:', err);
@@ -237,8 +246,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try {
       switch (type) {
         case 'boards': {
-          const data = await fetchPaginated('boards', 'created_at');
-          dispatch({ type: 'SET_STATE', payload: { boards: data.map(dbToBoard) } });
+          const { data: { user: currentUser } } = await supabase.auth.getUser();
+          const { data: rolesData } = currentUser 
+            ? await supabase.from('user_roles').select('role').eq('user_id', currentUser.id)
+            : { data: [] };
+          const roles = rolesData?.map(r => r.role) || [];
+          const isPrivileged = roles.includes('admin') || roles.includes('owner') || roles.includes('coordinator');
+
+          const [boardsData, membersData] = await Promise.all([
+            fetchPaginated('boards', 'created_at'),
+            fetchPaginated('project_members', 'created_at'),
+          ]);
+
+          const projectMembers: Record<string, string[]> = {};
+          membersData.forEach((m: any) => {
+            if (!projectMembers[m.board_id]) projectMembers[m.board_id] = [];
+            projectMembers[m.board_id].push(m.user_id);
+          });
+
+          const boards = boardsData
+            .filter(b => isPrivileged || (projectMembers[b.id] && projectMembers[b.id].includes(currentUser?.id || '')))
+            .map(dbToBoard);
+
+          dispatch({ type: 'SET_STATE', payload: { boards, projectMembers } });
           break;
         }
         case 'groups': {
