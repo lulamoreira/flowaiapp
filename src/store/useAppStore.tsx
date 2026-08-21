@@ -17,7 +17,7 @@ type Action =
   | { type: 'SET_STATE'; payload: Partial<AppState> }
   | { type: 'UPDATE_TASK'; payload: Task }
   | { type: 'ADD_TASK'; payload: Task }
-  | { type: 'DELETE_TASK'; payload: string }
+  | { type: 'DELETE_TASK'; payload: string; confirmDetails?: { title: string; type: string } }
   | { type: 'ADD_BOARD'; payload: Board }
   | { type: 'UPDATE_BOARD'; payload: Board }
   | { type: 'DELETE_BOARD'; payload: string; confirmDetails?: { title: string; type: string } }
