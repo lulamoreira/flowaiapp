@@ -105,19 +105,29 @@ export function TaskRow({ task, groupColor, onClick, draggable, onDragStart, onD
           onChange={(priority: TaskPriority) => updateTask({ priority })}
         />
       </div>
-      <div className="w-[100px] px-2 text-xs text-muted-foreground">
-        {task.plannedEnd ? (() => {
-          const days = differenceInDays(parseISO(task.plannedEnd), startOfDay(new Date()));
-          const overdue = days < 0 && task.status !== 'done';
-          const soon = days >= 0 && days <= 2 && task.status !== 'done';
+      <div className="w-[150px] px-2 text-xs text-muted-foreground shrink-0">
+        {(() => {
+          const startStr = task.plannedStart ? format(parseISO(task.plannedStart), 'dd MMM', { locale: ptBR }) : '—';
+          const endStr = task.plannedEnd ? format(parseISO(task.plannedEnd), 'dd MMM', { locale: ptBR }) : '—';
+          
+          if (!task.plannedStart && !task.plannedEnd) return '-';
+
+          const days = task.plannedEnd ? differenceInDays(parseISO(task.plannedEnd), startOfDay(new Date())) : null;
+          const overdue = days !== null && days < 0 && task.status !== 'done';
+          const soon = days !== null && days >= 0 && days <= 2 && task.status !== 'done';
+
           return (
-            <span className={`flex items-center gap-1 ${overdue ? 'text-destructive font-semibold' : soon ? 'text-orange-500 font-medium' : ''}`}>
-              {overdue && <AlertTriangle className="h-3 w-3" />}
-              {soon && <Clock className="h-3 w-3" />}
-              {format(parseISO(task.plannedEnd), 'dd MMM', { locale: ptBR })}
+            <span className={cn(
+              "flex items-center gap-1",
+              overdue && "text-destructive font-semibold",
+              soon && "text-orange-500 font-medium"
+            )}>
+              {overdue && <AlertTriangle className="h-3 w-3 shrink-0" />}
+              {soon && <Clock className="h-3 w-3 shrink-0" />}
+              <span className="truncate">{`${startStr} → ${endStr}`}</span>
             </span>
           );
-        })() : '-'}
+        })()}
       </div>
     </div>
   );
