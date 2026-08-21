@@ -280,17 +280,58 @@ export default function AdminPage() {
   const handleChangeRole = async () => {
     if (!selectedUser || !user) return;
     
-    // Delete existing roles
-    await supabase.from('user_roles').delete().eq('user_id', selectedUser.user_id);
-    
-    // Insert new role
-    const { error } = await supabase.from('user_roles').insert({
-      user_id: selectedUser.user_id,
-      role: selectedRole,
-    });
+    // Protection b: Prevent removing the last admin/owner
+    if (selectedUser.roles.some(r => r === 'admin' || r === 'owner')) {
+      const otherAdmins = users.filter(u => 
+        u.user_id !== selectedUser.user_id && 
+        u.roles.some(r => r === 'admin' || r === 'owner')
+      );
+      if (otherAdmins.length === 0 && selectedRole !== 'admin' && selectedRole !== 'owner') {
+        toast.error('Operação bloqueada: o sistema não pode ficar sem nenhum administrador ou dono.');
+        return;
+      }
+    }
 
-    if (error) toast.error('Erro ao alterar papel: ' + error.message);
-    else {
+    // Protection c: Warning when demoting self
+    if (selectedUser.user_id === user.id && (selectedRole === 'viewer' || selectedRole === 'user')) {
+      if (!confirm('AVISO: Você está prestes a remover seus próprios privilégios administrativos. Você perderá o acesso a esta página imediatamente. Confirmar?')) {
+        return;
+      }
+    }
+
+    // Protection a: Preserve 'owner' role and don't delete everything indiscriminately
+    // We only want to swap the "operational" role (admin, coordinator, user, viewer)
+    const operationalRoles: AppRole[] = ['admin', 'coordinator', 'user', 'viewer'];
+    
+    // Get roles to keep (like 'owner' or others outside the operational set)
+    const rolesToKeep = selectedUser.roles.filter(r => !operationalRoles.includes(r));
+    
+    // New set of roles
+    const newRoles = Array.from(new Set([...rolesToKeep, selectedRole]));
+
+    // Transactional update: delete old operational roles and insert the new one
+    // But since Supabase client doesn't do transactions easily here, we do:
+    const { error: deleteError } = await supabase
+      .from('user_roles')
+      .delete()
+      .eq('user_id', selectedUser.user_id)
+      .in('role', operationalRoles);
+
+    if (deleteError) {
+      toast.error('Erro ao limpar papéis anteriores: ' + deleteError.message);
+      return;
+    }
+
+    const { error: insertError } = await supabase
+      .from('user_roles')
+      .insert({
+        user_id: selectedUser.user_id,
+        role: selectedRole,
+      });
+
+    if (insertError) {
+      toast.error('Erro ao atribuir novo papel: ' + insertError.message);
+    } else {
       toast.success(`Papel de ${selectedUser.full_name} alterado para ${selectedRole}`);
       setRoleDialogOpen(false);
       fetchAll();
