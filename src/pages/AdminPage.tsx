@@ -77,6 +77,7 @@ interface DeletionLogEntry {
   deleted_at: string;
   deleted_by: string | null;
   board_id: string | null;
+  confirm_details: { title: string; type: string } | null;
 }
 
 const SYSTEM_MODULES = ['boards', 'tasks', 'reports', 'users', 'invitations', 'automations'];
