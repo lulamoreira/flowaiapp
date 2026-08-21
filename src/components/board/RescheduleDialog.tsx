@@ -24,12 +24,13 @@ interface Snapshot {
 }
 
 export function RescheduleDialog({ board, tasks }: RescheduleDialogProps) {
-  const { dispatch } = useAppStore();
+  const { state, dispatch } = useAppStore();
   const [open, setOpen] = useState(false);
   const [newStart, setNewStart] = useState('');
   const [newEnd, setNewEnd] = useState('');
   const [preview, setPreview] = useState<RescheduleResult[]>([]);
   const [conflicts, setConflicts] = useState<Conflict[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const [lastSnapshot, setLastSnapshot] = useState<Snapshot | null>(null);
   const [isApplying, setIsApplying] = useState(false);
 
@@ -69,9 +70,20 @@ export function RescheduleDialog({ board, tasks }: RescheduleDialogProps) {
 
   useEffect(() => {
     if (newStart && newEnd && minStart && maxEnd) {
-      const results = calculateReschedule(tasks, parseISO(newStart), parseISO(newEnd));
-      setPreview(results);
-      setConflicts(detectNewConflicts(tasks, results));
+      try {
+        const results = calculateReschedule(tasks, parseISO(newStart), parseISO(newEnd));
+        setPreview(results);
+        setConflicts(detectNewConflicts(tasks, results));
+        setError(null);
+      } catch (err: any) {
+        if (err.message === 'DURATION_ZERO') {
+          setError("Não é possível reagendar um projeto cujas tarefas ocupam um único dia.");
+        } else {
+          setError("Erro ao calcular o reagendamento.");
+        }
+        setPreview([]);
+        setConflicts([]);
+      }
     }
   }, [newStart, newEnd, tasks]);
 
@@ -137,7 +149,7 @@ export function RescheduleDialog({ board, tasks }: RescheduleDialogProps) {
       if (boardError) throw boardError;
 
       // 4. Update local state
-      const updatedTasks = tasks.map(t => {
+      const updatedTasks = state.tasks.map(t => {
         const p = preview.find(res => res.taskId === t.id);
         if (p && p.plannedStart) {
           return { ...t, plannedStart: p.plannedStart, plannedEnd: p.plannedEnd };
@@ -145,16 +157,15 @@ export function RescheduleDialog({ board, tasks }: RescheduleDialogProps) {
         return t;
       });
 
-      const updatedBoards = (useAppStore as any).getState?.().boards.map((b: Board) => 
+      const updatedBoards = state.boards.map((b: Board) => 
         b.id === board.id ? { ...b, project_start: newStart, project_end: newEnd } : b
-      ) || [];
+      );
       
-      // Since useAppStore is a context-based hook in this app, we call dispatch
       dispatch({ 
         type: 'SET_STATE', 
         payload: { 
-          tasks: updatedTasks
-          // Note: dispatch will update tasks globally. We also want to update the board if needed.
+          tasks: updatedTasks,
+          boards: updatedBoards
         } 
       });
 
@@ -219,6 +230,14 @@ export function RescheduleDialog({ board, tasks }: RescheduleDialogProps) {
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto py-4 space-y-6">
+          {/* Error message for DURATION_ZERO */}
+          {error && (
+            <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md text-destructive text-sm flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4" />
+              {error}
+            </div>
+          )}
+
           {/* Project Window Input */}
           <div className="grid grid-cols-2 gap-4 p-4 bg-muted/30 rounded-lg">
             <div className="space-y-2">

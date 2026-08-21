@@ -32,6 +32,21 @@ const mockTasks: Task[] = [
     subtasks: [],
     attachments: [],
     createdAt: '2024-01-01'
+  },
+  {
+    id: '3',
+    title: 'Task 3',
+    assignee: 'User B',
+    plannedStart: null,
+    plannedEnd: null,
+    status: 'not_started',
+    priority: 'medium',
+    description: '',
+    groupId: 'g1',
+    boardId: 'b1',
+    subtasks: [],
+    attachments: [],
+    createdAt: '2024-01-01'
   }
 ];
 
@@ -76,5 +91,69 @@ describe('Reschedule Logic', () => {
     const conflicts = detectNewConflicts(mockTasks, proposed);
     expect(conflicts).toHaveLength(1);
     expect(conflicts[0].assignee).toBe('User A');
+  });
+  });
+
+  it('should scale dates when duration decreases', () => {
+    // Project duration: 9 days
+    // New duration: 4.5 days -> rounded (2024-02-01 to 2024-02-05 = 4 days)
+    const newStart = new Date(2024, 1, 1);
+    const newEnd = new Date(2024, 1, 5);
+    
+    const results = calculateReschedule(mockTasks, newStart, newEnd);
+    
+    // factor = 4/9 = 0.444
+    // Task 1: offsetStart=0, offsetEnd=4 -> newOffsetStart=0, newOffsetEnd=2 -> 2024-02-01 to 2024-02-03
+    // Task 2: offsetStart=5, offsetEnd=9 -> newOffsetStart=2, newOffsetEnd=4 -> 2024-02-03 to 2024-02-05
+    expect(results[0].plannedStart).toBe('2024-02-01');
+    expect(results[0].plannedEnd).toBe('2024-02-03');
+    expect(results[1].plannedStart).toBe('2024-02-03');
+    expect(results[1].plannedEnd).toBe('2024-02-05');
+  });
+
+  it('should handle tasks without dates', () => {
+    const newStart = new Date(2024, 1, 1);
+    const newEnd = new Date(2024, 1, 10);
+    const results = calculateReschedule(mockTasks, newStart, newEnd);
+    
+    const task3 = results.find(r => r.taskId === '3');
+    expect(task3?.plannedStart).toBeNull();
+    expect(task3?.plannedEnd).toBeNull();
+  });
+
+  it('should not report pre-existing conflicts as new', () => {
+    // Create a conflict in current state
+    const conflictingTasks: Task[] = [
+      ...mockTasks,
+      {
+        ...mockTasks[0],
+        id: '4',
+        title: 'Conflicting Task',
+        plannedStart: '2024-01-02',
+        plannedEnd: '2024-01-04'
+      }
+    ];
+
+    const newStart = new Date(2024, 1, 1);
+    const newEnd = new Date(2024, 1, 10);
+    const results = calculateReschedule(conflictingTasks, newStart, newEnd);
+    
+    const newConflicts = detectNewConflicts(conflictingTasks, results);
+    
+    // Task 1 and Task 4 already conflicted (User A, 01-01/01-05 and 01-02/01-04)
+    // They should still conflict in the proposed state, but it's not a NEW conflict
+    expect(newConflicts.length).toBe(0);
+  });
+
+  it('should throw error when original duration is zero', () => {
+    const zeroDurationTasks: Task[] = [
+      {
+        ...mockTasks[0],
+        plannedStart: '2024-01-01',
+        plannedEnd: '2024-01-01'
+      }
+    ];
+    
+    expect(() => calculateReschedule(zeroDurationTasks, new Date(), new Date())).toThrow('DURATION_ZERO');
   });
 });
