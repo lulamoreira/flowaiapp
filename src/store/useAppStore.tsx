@@ -411,14 +411,36 @@ export function AppProvider({ children }: { children: ReactNode }) {
             const boardId = action.payload;
             const boardToDelete = state.boards.find(b => b.id === boardId);
             if (boardToDelete) {
-              await (supabase.from('deletion_log') as any).insert({
-                table_name: 'boards',
-                original_id: boardId,
-                data: boardToDelete as any,
-                deleted_by: user?.id,
-                board_id: boardId,
-                confirm_details: (action as any).confirmDetails || null,
-              });
+              const groupsToLog = state.groups.filter(g => g.boardId === boardId);
+              const tasksToLog = state.tasks.filter(t => t.boardId === boardId);
+              
+              const logs = [
+                {
+                  table_name: 'boards',
+                  original_id: boardId,
+                  data: boardToDelete as any,
+                  deleted_by: user?.id,
+                  board_id: boardId,
+                  confirm_details: (action as any).confirmDetails || null,
+                },
+                ...groupsToLog.map(g => ({
+                  table_name: 'task_groups',
+                  original_id: g.id,
+                  data: g as any,
+                  deleted_by: user?.id,
+                  board_id: boardId,
+                })),
+                ...tasksToLog.map(t => ({
+                  table_name: 'tasks',
+                  original_id: t.id,
+                  data: t as any,
+                  deleted_by: user?.id,
+                  board_id: boardId,
+                }))
+              ];
+
+              const { error: logError } = await (supabase.from('deletion_log') as any).insert(logs);
+              if (logError) console.error('Error logging board deletion:', logError);
             }
             const res = await supabase.from('boards').delete().eq('id', boardId);
             error = res.error;
@@ -449,14 +471,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
             const groupId = action.payload;
             const groupToDelete = state.groups.find(g => g.id === groupId);
             if (groupToDelete) {
-              await (supabase.from('deletion_log') as any).insert({
-                table_name: 'task_groups',
-                original_id: groupId,
-                data: groupToDelete as any,
-                deleted_by: user?.id,
-                board_id: groupToDelete.boardId,
-                confirm_details: (action as any).confirmDetails || null,
-              });
+              const tasksToLog = state.tasks.filter(t => t.groupId === groupId);
+              
+              const logs = [
+                {
+                  table_name: 'task_groups',
+                  original_id: groupId,
+                  data: groupToDelete as any,
+                  deleted_by: user?.id,
+                  board_id: groupToDelete.boardId,
+                  confirm_details: (action as any).confirmDetails || null,
+                },
+                ...tasksToLog.map(t => ({
+                  table_name: 'tasks',
+                  original_id: t.id,
+                  data: t as any,
+                  deleted_by: user?.id,
+                  board_id: groupToDelete.boardId,
+                }))
+              ];
+
+              const { error: logError } = await (supabase.from('deletion_log') as any).insert(logs);
+              if (logError) console.error('Error logging group deletion:', logError);
             }
             const res = await supabase.from('task_groups').delete().eq('id', groupId);
             error = res.error;
