@@ -286,20 +286,6 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
 
   return (
     <>
-      <DeleteConfirmDialog
-        open={showDeleteConfirm}
-        onOpenChange={setShowDeleteConfirm}
-        onConfirm={handleDeleteTask}
-        title="Excluir Tarefa"
-        description="Você tem certeza que deseja excluir esta tarefa? Ela será movida para a lixeira."
-        itemName={current.title}
-        itemDetails={{
-          id: current.id,
-          status: current.status,
-          priority: current.priority,
-          board: state.boards.find(b => b.id === current.boardId)?.title || 'Desconhecido'
-        }}
-      />
       <Dialog open={!!task} onOpenChange={() => onClose()}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader className="flex flex-row items-center justify-between pr-8">
