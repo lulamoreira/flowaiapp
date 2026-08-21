@@ -529,6 +529,7 @@ export default function AdminPage() {
 
   const roleLabel = (role: AppRole) => {
     switch (role) {
+      case 'owner': return 'Dono';
       case 'admin': return 'Admin';
       case 'coordinator': return 'Coordenador';
       case 'user': return 'Usuário';
