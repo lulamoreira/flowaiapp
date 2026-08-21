@@ -332,6 +332,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     dispatch(action);
 
+    // If it's a delete action that was ALREADY confirmed (doesn't have confirmDetails)
+    // we let it proceed to the database sync below.
+    // If it has confirmDetails, we already returned early above.
+
     (async () => {
       try {
         let error = null;
