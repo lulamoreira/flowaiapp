@@ -201,6 +201,12 @@ const BoardPage = () => {
         {view === 'workload' && <BoardWorkload boardId={board.id} />}
         {view === 'automation' && <AutomationPanel boardId={board.id} />}
       </main>
+
+      <ProjectMembersDialog 
+        open={membersDialogOpen} 
+        onOpenChange={setMembersDialogOpen} 
+        boardId={board.id} 
+      />
     </div>
   );
 };
