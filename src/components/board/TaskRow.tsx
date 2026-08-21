@@ -2,7 +2,7 @@ import { Task, TaskStatus, TaskPriority } from '@/types';
 import { StatusBadge } from './StatusBadge';
 import { PriorityBadge } from './PriorityBadge';
 import { useAppStore } from '@/store/useAppStore';
-import { differenceInDays, startOfDay } from 'date-fns';
+import { differenceInDays, startOfDay, parseISO } from 'date-fns';
 import { formatTaskDate } from '@/lib/dateUtils';
 import { GripVertical, AlertTriangle, Clock, ChevronDown } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
