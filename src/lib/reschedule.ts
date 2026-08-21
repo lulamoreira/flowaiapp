@@ -39,8 +39,11 @@ export function calculateReschedule(
   const originalDuration = differenceInDays(maxOriginalEnd, minOriginalStart);
   const newDuration = differenceInDays(newEnd, newStart);
 
-  // Avoid division by zero
-  const factor = originalDuration === 0 ? 1 : newDuration / originalDuration;
+  if (originalDuration === 0) {
+    throw new Error('DURATION_ZERO');
+  }
+
+  const factor = newDuration / originalDuration;
 
   return tasks.map(task => {
     if (!task.plannedStart || !task.plannedEnd) {
