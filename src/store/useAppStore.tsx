@@ -113,8 +113,9 @@ function dbToTask(row: any): Task {
     id: row.id,
     title: row.title,
     description: row.description || '',
-    status: row.status,
-    priority: row.priority,
+    status: row.status || 'not_started',
+    priority: row.priority || 'none',
+
     assignee: row.assignee || '',
     plannedStart: row.planned_start || null,
     plannedEnd: row.planned_end || null,
