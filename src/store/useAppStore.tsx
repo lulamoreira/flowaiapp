@@ -211,10 +211,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         projectMembers[m.board_id].push(m.user_id);
       });
 
-      // Filter boards: if not privileged, only show those where I am a project_member
-      const boards = boardsData
-        .filter(b => isPrivileged || (projectMembers[b.id] && projectMembers[b.id].includes(currentUser?.id || '')))
-        .map(dbToBoard);
+      // NO FILTRATION IN STORE: the RLS handles what the user can select, 
+      // and we want all LOADED boards to be visible in state.
+      const boards = boardsData.map(dbToBoard);
 
       const realUsers: User[] = profilesData.map(p => ({
         id: p.user_id,
@@ -246,29 +245,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try {
       switch (type) {
         case 'boards': {
-          const { data: { user: currentUser } } = await supabase.auth.getUser();
-          const { data: rolesData } = currentUser 
-            ? await supabase.from('user_roles').select('role').eq('user_id', currentUser.id)
-            : { data: [] };
-          const roles = rolesData?.map(r => r.role) || [];
-          const isPrivileged = roles.includes('admin') || roles.includes('owner') || roles.includes('coordinator');
-
-          const [boardsData, membersData] = await Promise.all([
-            fetchPaginated('boards', 'created_at'),
-            fetchPaginated('project_members', 'created_at'),
-          ]);
-
-          const projectMembers: Record<string, string[]> = {};
-          membersData.forEach((m: any) => {
-            if (!projectMembers[m.board_id]) projectMembers[m.board_id] = [];
-            projectMembers[m.board_id].push(m.user_id);
-          });
-
-          const boards = boardsData
-            .filter(b => isPrivileged || (projectMembers[b.id] && projectMembers[b.id].includes(currentUser?.id || '')))
-            .map(dbToBoard);
-
-          dispatch({ type: 'SET_STATE', payload: { boards, projectMembers } });
+          const data = await fetchPaginated('boards', 'created_at');
+          dispatch({ type: 'SET_STATE', payload: { boards: data.map(dbToBoard) } });
           break;
         }
         case 'groups': {
