@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { Users, Mail, History, Shield, UserPlus, Settings, Trash2, Pencil, Activity, Search, CalendarIcon, X, UserCheck } from 'lucide-react';
+import { Users, Mail, History, Shield, UserPlus, Settings, Trash2, Pencil, Activity, Search, CalendarIcon, X, UserCheck, CheckCircle2 } from 'lucide-react';
 import { format, parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
