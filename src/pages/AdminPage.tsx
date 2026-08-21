@@ -470,6 +470,30 @@ export default function AdminPage() {
     }
   };
 
+  const handleRestoreItem = async (log: DeletionLogEntry) => {
+    setRestoringId(log.id);
+    try {
+      const { table_name, data } = log;
+      
+      // Basic check for tasks: if groupId or boardId no longer exist, it might fail
+      // In a more robust system, we'd handle orphan restoration
+      const { error: restoreError } = await supabase.from(table_name as any).insert(data);
+      
+      if (restoreError) throw restoreError;
+      
+      const { error: deleteLogError } = await supabase.from('deletion_log').delete().eq('id', log.id);
+      if (deleteLogError) console.error("Could not delete deletion log entry", deleteLogError);
+      
+      toast.success("Item restaurado com sucesso!");
+      fetchAll();
+    } catch (err: any) {
+      console.error("Erro ao restaurar item:", err);
+      toast.error("Erro ao restaurar: " + err.message);
+    } finally {
+      setRestoringId(null);
+    }
+  };
+
   const openPlaceholderDialog = (ph?: PlaceholderMember) => {
     if (ph) {
       setEditingPlaceholder(ph);
