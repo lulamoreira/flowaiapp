@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -15,6 +15,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { TaskComments } from '@/components/task/TaskComments';
 import { TaskTimeTracking } from '@/components/task/TaskTimeTracking';
 import { toast } from 'sonner';
+import { parseISO, format, isValid, startOfDay } from 'date-fns';
+import { debounce } from 'lodash';
 
 interface TaskDetailModalProps {
   task: Task | null;
@@ -27,6 +29,17 @@ function formatFileSize(bytes: number): string {
   return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 }
 
+function toInputFormat(dateStr: string | null | undefined): string {
+  if (!dateStr) return '';
+  try {
+    const date = parseISO(dateStr);
+    if (!isValid(date)) return '';
+    return format(date, "yyyy-MM-dd'T'HH:mm");
+  } catch {
+    return '';
+  }
+}
+
 export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
   const { state, dispatch } = useAppStore();
   const { user } = useAuth();
@@ -35,6 +48,15 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
   const [dragging, setDragging] = useState(false);
   const [expandingDesc, setExpandingDesc] = useState(false);
   const [showSubtaskDetails, setShowSubtaskDetails] = useState<Record<string, boolean>>({});
+  
+  // Local state for debounced fields
+  const [localTitle, setLocalTitle] = useState('');
+  const [localDescription, setLocalDescription] = useState('');
+  const [localPlannedStart, setLocalPlannedStart] = useState('');
+  const [localPlannedEnd, setLocalPlannedEnd] = useState('');
+  const [localActualStart, setLocalActualStart] = useState('');
+  const [localActualEnd, setLocalActualEnd] = useState('');
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropRef = useRef<HTMLDivElement>(null);
 
@@ -42,9 +64,26 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
 
   const current = state.tasks.find(t => t.id === task.id) || task;
 
+  // Sync local state when task changes (only once per task open/re-open or store sync)
+  useEffect(() => {
+    setLocalTitle(current.title || '');
+    setLocalDescription(current.description || '');
+    setLocalPlannedStart(toInputFormat(current.plannedStart));
+    setLocalPlannedEnd(toInputFormat(current.plannedEnd));
+    setLocalActualStart(toInputFormat(current.actualStart));
+    setLocalActualEnd(toInputFormat(current.actualEnd));
+  }, [current.id]); // We intentionally only sync on ID change to avoid losing focus while typing
+
   const update = (updates: Partial<Task>) => {
     dispatch({ type: 'UPDATE_TASK', payload: { ...current, ...updates } });
   };
+
+  const debouncedUpdate = useCallback(
+    debounce((updates: Partial<Task>) => {
+      update(updates);
+    }, 800),
+    [current.id]
+  );
 
   const handleAssigneeChange = (newAssigneeId: string) => {
     const actualId = newAssigneeId === 'none' ? '' : newAssigneeId;
@@ -171,8 +210,15 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
         <DialogHeader>
           <DialogTitle>
             <Input
-              value={current.title}
-              onChange={e => update({ title: e.target.value })}
+              value={localTitle}
+              onChange={e => {
+                setLocalTitle(e.target.value);
+                debouncedUpdate({ title: e.target.value });
+              }}
+              onBlur={() => {
+                debouncedUpdate.cancel();
+                if (localTitle !== current.title) update({ title: localTitle });
+              }}
               className="text-lg font-semibold border-0 px-0 focus-visible:ring-0 bg-transparent"
             />
           </DialogTitle>
@@ -228,21 +274,69 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Início planejado</label>
-              <Input type="datetime-local" value={current.plannedStart || ''} onChange={e => update({ plannedStart: e.target.value || undefined })} className="h-9" />
+              <Input 
+                type="datetime-local" 
+                value={localPlannedStart} 
+                onChange={e => {
+                  setLocalPlannedStart(e.target.value);
+                  debouncedUpdate({ plannedStart: e.target.value || null });
+                }} 
+                onBlur={() => {
+                  debouncedUpdate.cancel();
+                  if (localPlannedStart !== toInputFormat(current.plannedStart)) update({ plannedStart: localPlannedStart || null });
+                }}
+                className="h-9" 
+              />
             </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Fim planejado</label>
-              <Input type="datetime-local" value={current.plannedEnd || ''} onChange={e => update({ plannedEnd: e.target.value || undefined })} className="h-9" />
+              <Input 
+                type="datetime-local" 
+                value={localPlannedEnd} 
+                onChange={e => {
+                  setLocalPlannedEnd(e.target.value);
+                  debouncedUpdate({ plannedEnd: e.target.value || null });
+                }}
+                onBlur={() => {
+                  debouncedUpdate.cancel();
+                  if (localPlannedEnd !== toInputFormat(current.plannedEnd)) update({ plannedEnd: localPlannedEnd || null });
+                }}
+                className="h-9" 
+              />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Início real</label>
-              <Input type="datetime-local" value={current.actualStart || ''} onChange={e => update({ actualStart: e.target.value || undefined })} className="h-9" />
+              <Input 
+                type="datetime-local" 
+                value={localActualStart} 
+                onChange={e => {
+                  setLocalActualStart(e.target.value);
+                  debouncedUpdate({ actualStart: e.target.value || null });
+                }}
+                onBlur={() => {
+                  debouncedUpdate.cancel();
+                  if (localActualStart !== toInputFormat(current.actualStart)) update({ actualStart: localActualStart || null });
+                }}
+                className="h-9" 
+              />
             </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Fim real</label>
-              <Input type="datetime-local" value={current.actualEnd || ''} onChange={e => update({ actualEnd: e.target.value || undefined })} className="h-9" />
+              <Input 
+                type="datetime-local" 
+                value={localActualEnd} 
+                onChange={e => {
+                  setLocalActualEnd(e.target.value);
+                  debouncedUpdate({ actualEnd: e.target.value || null });
+                }}
+                onBlur={() => {
+                  debouncedUpdate.cancel();
+                  if (localActualEnd !== toInputFormat(current.actualEnd)) update({ actualEnd: localActualEnd || null });
+                }}
+                className="h-9" 
+              />
             </div>
           </div>
 
@@ -262,8 +356,15 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
               </Button>
             </div>
             <Textarea
-              value={current.description}
-              onChange={e => update({ description: e.target.value })}
+              value={localDescription}
+              onChange={e => {
+                setLocalDescription(e.target.value);
+                debouncedUpdate({ description: e.target.value });
+              }}
+              onBlur={() => {
+                debouncedUpdate.cancel();
+                if (localDescription !== current.description) update({ description: localDescription });
+              }}
               placeholder="Adicionar descrição..."
               rows={3}
             />
