@@ -288,7 +288,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const [confirmDelete, setConfirmDelete] = React.useState<{
-    type: Action['type'];
+    type: 'DELETE_TASK' | 'DELETE_BOARD' | 'DELETE_GROUP';
     payload: string;
     title: string;
     itemType: string;
