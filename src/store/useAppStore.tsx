@@ -373,7 +373,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 data: boardToDelete as any,
                 deleted_by: user?.id,
                 board_id: boardId,
-                confirm_details: (action as any).confirmDetails
+                confirm_details: (action as any).confirmDetails || null
               });
             }
             const res = await supabase.from('boards').delete().eq('id', boardId);
