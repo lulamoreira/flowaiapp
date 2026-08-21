@@ -8,6 +8,7 @@ import { GripVertical, AlertTriangle, Clock, ChevronDown } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useState } from 'react';
+import { cn } from '@/lib/utils';
 
 interface TaskRowProps {
   task: Task;
@@ -81,7 +82,9 @@ export function TaskRow({ task, groupColor, onClick, draggable, onDragStart, onD
                 <div className="w-6 h-6 rounded-full bg-[#0073ea] text-white text-[10px] font-bold flex items-center justify-center shrink-0">
                   {user.avatar}
                 </div>
-                <span className="text-foreground">{user.name}</span>
+                <span className={cn("text-foreground", user.isPlaceholder && "italic text-muted-foreground")}>
+                  {user.name}
+                </span>
               </button>
             ))}
           </PopoverContent>

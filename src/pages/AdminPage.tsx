@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { Users, Mail, History, Shield, UserPlus, Settings, Trash2, Pencil, Activity, Search, CalendarIcon, X } from 'lucide-react';
+import { Users, Mail, History, Shield, UserPlus, Settings, Trash2, Pencil, Activity, Search, CalendarIcon, X, UserCheck, CheckCircle2 } from 'lucide-react';
 import { format, parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
@@ -58,6 +58,16 @@ interface ActivityEntry {
   created_at: string;
 }
 
+interface PlaceholderMember {
+  id: string;
+  full_name: string;
+  email: string | null;
+  intended_role: AppRole;
+  created_at: string;
+  claimed_by: string | null;
+  claimed_at: string | null;
+}
+
 const SYSTEM_MODULES = ['boards', 'tasks', 'reports', 'users', 'invitations', 'automations'];
 
 export default function AdminPage() {
@@ -66,7 +76,23 @@ export default function AdminPage() {
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [customFunctions, setCustomFunctions] = useState<CustomFunction[]>([]);
   const [activityLog, setActivityLog] = useState<ActivityEntry[]>([]);
+  const [placeholders, setPlaceholders] = useState<PlaceholderMember[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Placeholder dialog
+  const [placeholderDialogOpen, setPlaceholderDialogOpen] = useState(false);
+  const [editingPlaceholder, setEditingPlaceholder] = useState<PlaceholderMember | null>(null);
+  const [phName, setPhName] = useState('');
+  const [phEmail, setPhEmail] = useState('');
+  const [phRole, setPhRole] = useState<AppRole>('viewer');
+  const [phSaving, setPhSaving] = useState(false);
+
+  // Claim dialog
+  const [claimDialogOpen, setClaimDialogOpen] = useState(false);
+  const [selectedPlaceholder, setSelectedPlaceholder] = useState<PlaceholderMember | null>(null);
+  const [targetUserId, setTargetUserId] = useState('');
+  const [claimSummary, setClaimSummary] = useState<{ tasks: number; subtasks: number } | null>(null);
+  const [claiming, setClaiming] = useState(false);
 
   // Invite dialog
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -177,6 +203,10 @@ export default function AdminPage() {
     }));
     setCustomFunctions(funcsWithPerms);
 
+    // Fetch placeholders
+    const { data: phData } = await supabase.from('placeholder_members').select('*').order('created_at', { ascending: false });
+    setPlaceholders(phData || []);
+
     // Fetch activity log (admin and coordinator)
     if (isAdminOrCoordinator) {
       const { data: logs } = await supabase.from('activity_log').select('*').order('created_at', { ascending: false }).limit(200);
@@ -197,6 +227,7 @@ export default function AdminPage() {
       'function_permissions',
       'user_custom_functions',
       'activity_log',
+      'placeholder_members',
     ],
     fetchAll,
     { channelName: 'admin-page-rt' }
@@ -341,6 +372,116 @@ export default function AdminPage() {
     }
   };
 
+  const handleSavePlaceholder = async () => {
+    if (!phName.trim() || !user) return;
+    setPhSaving(true);
+
+    try {
+      if (editingPlaceholder) {
+        const { error } = await supabase.from('placeholder_members').update({
+          full_name: phName.trim(),
+          email: phEmail.trim() || null,
+          intended_role: phRole,
+        }).eq('id', editingPlaceholder.id);
+        if (error) throw error;
+        toast.success('Membro provisório atualizado!');
+      } else {
+        const { error } = await supabase.from('placeholder_members').insert({
+          full_name: phName.trim(),
+          email: phEmail.trim() || null,
+          intended_role: phRole,
+          created_by: user.id,
+        });
+        if (error) throw error;
+        toast.success('Membro provisório criado!');
+      }
+      setPlaceholderDialogOpen(false);
+      fetchAll();
+    } catch (err: any) {
+      toast.error('Erro ao salvar: ' + err.message);
+    } finally {
+      setPhSaving(false);
+    }
+  };
+
+  const handleDeletePlaceholder = async (ph: PlaceholderMember) => {
+    // Count tasks assigned to this placeholder
+    const { count, error: countError } = await supabase
+      .from('tasks')
+      .select('*', { count: 'exact', head: true })
+      .eq('assignee', ph.id);
+    
+    if (countError) {
+      toast.error('Erro ao verificar tarefas: ' + countError.message);
+      return;
+    }
+
+    const message = count && count > 0 
+      ? `Este membro possui ${count} tarefas atribuídas. Se você excluir, estas tarefas ficarão sem responsável. Continuar?`
+      : `Deseja excluir o membro provisório ${ph.full_name}?`;
+
+    if (!confirm(message)) return;
+
+    const { error } = await supabase.from('placeholder_members').delete().eq('id', ph.id);
+    if (error) toast.error(error.message);
+    else {
+      toast.success('Membro provisório excluído.');
+      fetchAll();
+    }
+  };
+
+  const handleClaimPlaceholder = async () => {
+    if (!selectedPlaceholder || !targetUserId) return;
+    setClaiming(true);
+
+    try {
+      const { data, error } = await supabase.rpc('claim_placeholder', {
+        _placeholder_id: selectedPlaceholder.id,
+        _real_user_id: targetUserId,
+      });
+
+      if (error) throw error;
+
+      const result = data as { tasks_migrated: number };
+      toast.success(`Sucesso! ${result.tasks_migrated} tarefas migradas.`);
+      setClaimDialogOpen(false);
+      fetchAll();
+    } catch (err: any) {
+      toast.error('Erro na conversão: ' + err.message);
+    } finally {
+      setClaiming(false);
+    }
+  };
+
+  const openPlaceholderDialog = (ph?: PlaceholderMember) => {
+    if (ph) {
+      setEditingPlaceholder(ph);
+      setPhName(ph.full_name);
+      setPhEmail(ph.email || '');
+      setPhRole(ph.intended_role);
+    } else {
+      setEditingPlaceholder(null);
+      setPhName('');
+      setPhEmail('');
+      setPhRole('viewer');
+    }
+    setPlaceholderDialogOpen(true);
+  };
+
+  const openClaimDialog = async (ph: PlaceholderMember) => {
+    setSelectedPlaceholder(ph);
+    setTargetUserId('');
+    setClaimSummary(null);
+    
+    // Fetch summary
+    const { count: taskCount } = await supabase.from('tasks').select('*', { count: 'exact', head: true }).eq('assignee', ph.id);
+    
+    // Subtasks count is harder to get via simple query if stored in JSONB, 
+    // but for the UI summary we can just say "tarefas e subtarefas serão migradas".
+    setClaimSummary({ tasks: taskCount || 0, subtasks: 0 });
+    setClaimDialogOpen(true);
+  };
+
   const roleLabel = (role: AppRole) => {
     switch (role) {
       case 'admin': return 'Admin';
@@ -387,6 +528,7 @@ export default function AdminPage() {
             <TabsTrigger value="users" className="gap-1"><Users className="h-3.5 w-3.5" /> Usuários</TabsTrigger>
             <TabsTrigger value="invites" className="gap-1"><Mail className="h-3.5 w-3.5" /> Convites</TabsTrigger>
             <TabsTrigger value="functions" className="gap-1"><Settings className="h-3.5 w-3.5" /> Funções</TabsTrigger>
+            <TabsTrigger value="placeholders" className="gap-1"><Users className="h-3.5 w-3.5" /> Provisórios</TabsTrigger>
             {isAdminOrCoordinator && <TabsTrigger value="activity" className="gap-1"><Activity className="h-3.5 w-3.5" /> Log</TabsTrigger>}
           </TabsList>
 
@@ -722,6 +864,70 @@ export default function AdminPage() {
               )}
             </TabsContent>
           )}
+          {/* PLACEHOLDERS TAB */}
+          <TabsContent value="placeholders" className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-foreground">Membros Provisórios</h3>
+                <p className="text-sm text-muted-foreground">Pessoas cadastradas para atribuição de tarefas antes de criarem conta.</p>
+              </div>
+              <Button className="gap-1 bg-primary" onClick={() => openPlaceholderDialog()}>
+                <UserPlus className="h-4 w-4" /> Novo Provisório
+              </Button>
+            </div>
+            
+            <div className="bg-card border border-border rounded-xl overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-muted/50">
+                    <th className="text-left p-3 font-medium text-muted-foreground">Nome</th>
+                    <th className="text-left p-3 font-medium text-muted-foreground">Email Pretendido</th>
+                    <th className="text-left p-3 font-medium text-muted-foreground">Papel Sugerido</th>
+                    <th className="text-left p-3 font-medium text-muted-foreground">Status</th>
+                    <th className="text-right p-3 font-medium text-muted-foreground">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {placeholders.map(ph => (
+                    <tr key={ph.id} className="border-b border-border last:border-0 hover:bg-muted/30">
+                      <td className="p-3 font-medium text-foreground">{ph.full_name}</td>
+                      <td className="p-3 text-muted-foreground">{ph.email || '—'}</td>
+                      <td className="p-3">
+                        <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${roleBadgeColor(ph.intended_role)}`}>
+                          {roleLabel(ph.intended_role)}
+                        </span>
+                      </td>
+                      <td className="p-3">
+                        {ph.claimed_at ? (
+                          <Badge variant="outline" className="text-green-600 border-green-300">Convertido</Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-orange-600 border-orange-300">Provisório</Badge>
+                        )}
+                      </td>
+                      <td className="p-3 text-right">
+                        {!ph.claimed_at && (
+                          <>
+                            <Button size="icon" variant="ghost" className="h-8 w-8 text-primary" onClick={() => openClaimDialog(ph)} title="Converter em usuário real">
+                              <UserCheck className="h-4 w-4" />
+                            </Button>
+                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openPlaceholderDialog(ph)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          </>
+                        )}
+                        <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleDeletePlaceholder(ph)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                  {placeholders.length === 0 && (
+                    <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">Nenhum membro provisório cadastrado</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </TabsContent>
         </Tabs>
       </main>
 
@@ -837,6 +1043,92 @@ export default function AdminPage() {
               </SelectContent>
             </Select>
             <Button onClick={handleAssignFunction} className="w-full bg-primary" disabled={!assignFuncId}>Atribuir</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      {/* Placeholder Dialog */}
+      <Dialog open={placeholderDialogOpen} onOpenChange={setPlaceholderDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editingPlaceholder ? 'Editar Membro Provisório' : 'Novo Membro Provisório'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div>
+              <Label>Nome Completo *</Label>
+              <Input value={phName} onChange={e => setPhName(e.target.value)} placeholder="Ex: João Silva" />
+            </div>
+            <div>
+              <Label>Email (Opcional)</Label>
+              <Input type="email" value={phEmail} onChange={e => setPhEmail(e.target.value)} placeholder="email@exemplo.com" />
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Usado apenas para referência. Não cria conta.
+              </p>
+            </div>
+            <div>
+              <Label>Papel Pretendido</Label>
+              <Select value={phRole} onValueChange={v => setPhRole(v as AppRole)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="coordinator">Coordenador</SelectItem>
+                  <SelectItem value="user">Usuário</SelectItem>
+                  <SelectItem value="viewer">Visualizador</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button onClick={handleSavePlaceholder} className="w-full bg-primary" disabled={phSaving || !phName.trim()}>
+              {phSaving ? 'Salvando...' : 'Salvar'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Claim Dialog */}
+      <Dialog open={claimDialogOpen} onOpenChange={setClaimDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Converter em Usuário Real</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div className="p-3 bg-muted/50 rounded-lg border border-border space-y-2">
+              <p className="text-sm font-medium">Membro Provisório: <span className="text-primary">{selectedPlaceholder?.full_name}</span></p>
+              {claimSummary && (
+                <div className="flex gap-4 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1"><CheckCircle2 className="h-3 w-3" /> {claimSummary.tasks} tarefas</span>
+                  <span className="flex items-center gap-1"><CheckCircle2 className="h-3 w-3" /> Subtarefas e automações</span>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label>Selecione o Usuário Real</Label>
+              <Select value={targetUserId} onValueChange={setTargetUserId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Escolha um usuário registrado..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {users
+                    .filter(u => u.status === 'active') // Only registered users
+                    .map(u => (
+                      <SelectItem key={u.user_id} value={u.user_id}>
+                        {u.full_name} ({u.email || 'sem email'})
+                      </SelectItem>
+                    ))
+                  }
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground">
+                Ao converter, TODAS as tarefas atribuídas ao membro provisório serão transferidas para este usuário. O membro provisório será removido.
+              </p>
+            </div>
+
+            <Button 
+              onClick={handleClaimPlaceholder} 
+              className="w-full bg-primary" 
+              disabled={claiming || !targetUserId}
+            >
+              {claiming ? 'Convertendo...' : 'Confirmar Conversão'}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

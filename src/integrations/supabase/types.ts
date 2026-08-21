@@ -359,6 +359,39 @@ export type Database = {
         }
         Relationships: []
       }
+      placeholder_members: {
+        Row: {
+          claimed_at: string | null
+          claimed_by: string | null
+          created_at: string | null
+          created_by: string
+          email: string | null
+          full_name: string
+          id: string
+          intended_role: Database["public"]["Enums"]["app_role"]
+        }
+        Insert: {
+          claimed_at?: string | null
+          claimed_by?: string | null
+          created_at?: string | null
+          created_by: string
+          email?: string | null
+          full_name: string
+          id?: string
+          intended_role?: Database["public"]["Enums"]["app_role"]
+        }
+        Update: {
+          claimed_at?: string | null
+          claimed_by?: string | null
+          created_at?: string | null
+          created_by?: string
+          email?: string | null
+          full_name?: string
+          id?: string
+          intended_role?: Database["public"]["Enums"]["app_role"]
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -799,6 +832,10 @@ export type Database = {
     Functions: {
       accept_invitation_by_token: {
         Args: { _accepted_user_id?: string; _token: string }
+        Returns: Json
+      }
+      claim_placeholder: {
+        Args: { _placeholder_id: string; _real_user_id: string }
         Returns: Json
       }
       has_role: {

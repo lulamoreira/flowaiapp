@@ -9,6 +9,7 @@ import { ptBR } from 'date-fns/locale';
 import { GripVertical, Calendar } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useScopedTasks } from '@/hooks/useScopedTasks';
+import { cn } from '@/lib/utils';
 
 interface BoardKanbanProps {
   boardId: string;
@@ -244,8 +245,9 @@ export function BoardKanban({ boardId }: BoardKanbanProps) {
                                 <div className="w-5 h-5 rounded-full bg-[hsl(var(--primary))] text-primary-foreground text-[9px] font-bold flex items-center justify-center">
                                   {assignee.avatar}
                                 </div>
-                                <span className="text-[10px] text-muted-foreground">
+                                <span className={cn("text-[10px] text-muted-foreground", assignee.isPlaceholder && "italic")}>
                                   {assignee.name.split(' ')[0]}
+                                  {assignee.isPlaceholder && ' (provisório)'}
                                 </span>
                               </div>
                             )}
