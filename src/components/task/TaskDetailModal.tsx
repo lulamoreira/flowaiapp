@@ -305,7 +305,7 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
               variant="ghost"
               size="icon"
               className="text-muted-foreground hover:text-destructive shrink-0 ml-2"
-              onClick={() => setShowDeleteConfirm(true)}
+              onClick={handleDeleteTask}
             >
               <Trash2 className="h-4 w-4" />
             </Button>
