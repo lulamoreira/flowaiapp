@@ -31,7 +31,7 @@ const BoardPage = () => {
   const [titleDraft, setTitleDraft] = useState(board?.title ?? '');
   const [descDraft, setDescDraft] = useState(board?.description ?? '');
   const [membersDialogOpen, setMembersDialogOpen] = useState(false);
-  const { canEdit, canDelete } = usePermissions();
+  const { canEdit, canDelete, isAdminOrCoordinator } = usePermissions();
   const canEditBoard = canEdit('boards');
   const canEditTasks = canEdit('tasks');
   const canDeleteTasks = canDelete('tasks');
@@ -155,38 +155,36 @@ const BoardPage = () => {
               {tab.label}
             </Button>
           ))}
-          {canEditTasks && (
-            <div className="ml-auto flex items-center gap-2">
-              <div className="flex items-center gap-2">
-                {canEditBoard && (
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="h-8 text-xs"
-                    onClick={() => setMembersDialogOpen(true)}
-                  >
-                    <Users className="h-3.5 w-3.5 mr-1" />
-                    Autorização
-                  </Button>
-                )}
-                {canEditTasks && (
-                  <RescheduleDialog 
-                    board={board} 
-                    tasks={state.tasks.filter(t => t.boardId === board.id)} 
-                  />
-                )}
-                <PublicTimelineDialog
-                  boardId={board.id}
-                  initialEnabled={(board as any).public_timeline_enabled}
-                  publicToken={(board as any).public_token}
+          <div className="ml-auto flex items-center gap-2">
+            <div className="flex items-center gap-2">
+              {(isAdminOrCoordinator || canEditBoard) && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-8 text-xs"
+                  onClick={() => setMembersDialogOpen(true)}
+                >
+                  <Users className="h-3.5 w-3.5 mr-1" />
+                  Autorização
+                </Button>
+              )}
+              {canEditTasks && (
+                <RescheduleDialog 
+                  board={board} 
+                  tasks={state.tasks.filter(t => t.boardId === board.id)} 
                 />
-              </div>
-              <Button variant="outline" size="sm" className="h-8 text-xs" onClick={addGroup}>
-                <Plus className="h-3.5 w-3.5 mr-1" />
-                Novo Grupo
-              </Button>
+              )}
+              <PublicTimelineDialog
+                boardId={board.id}
+                initialEnabled={(board as any).public_timeline_enabled}
+                publicToken={(board as any).public_token}
+              />
             </div>
-          )}
+            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={addGroup}>
+              <Plus className="h-3.5 w-3.5 mr-1" />
+              Novo Grupo
+            </Button>
+          </div>
         </div>
 
         {view === 'table' && (
