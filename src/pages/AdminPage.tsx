@@ -528,6 +528,7 @@ export default function AdminPage() {
             <TabsTrigger value="users" className="gap-1"><Users className="h-3.5 w-3.5" /> Usuários</TabsTrigger>
             <TabsTrigger value="invites" className="gap-1"><Mail className="h-3.5 w-3.5" /> Convites</TabsTrigger>
             <TabsTrigger value="functions" className="gap-1"><Settings className="h-3.5 w-3.5" /> Funções</TabsTrigger>
+            <TabsTrigger value="placeholders" className="gap-1"><Users className="h-3.5 w-3.5" /> Provisórios</TabsTrigger>
             {isAdminOrCoordinator && <TabsTrigger value="activity" className="gap-1"><Activity className="h-3.5 w-3.5" /> Log</TabsTrigger>}
           </TabsList>
 
