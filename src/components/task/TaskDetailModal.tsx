@@ -60,9 +60,8 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropRef = useRef<HTMLDivElement>(null);
 
-  if (!task) return null;
+  const current = task ? (state.tasks.find(t => t.id === task.id) || task) : null;
 
-  const current = state.tasks.find(t => t.id === task.id) || task;
 
   // Sync local state when task changes (only once per task open/re-open or store sync)
   useEffect(() => {
