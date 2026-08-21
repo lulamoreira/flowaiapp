@@ -543,7 +543,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         onOpenChange={(open) => !open && setConfirmDelete(null)}
         onConfirm={async () => {
           if (confirmDelete) {
-            dispatch({ type: confirmDelete.type as any, payload: confirmDelete.payload });
+            dispatch({ type: confirmDelete.type, payload: confirmDelete.payload });
             toast.success(`${confirmDelete.itemType} excluído`);
             setConfirmDelete(null);
           }
