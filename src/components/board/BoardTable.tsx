@@ -320,7 +320,7 @@ export function BoardTable({ boardId }: BoardTableProps) {
                     onToggle={() => dispatch({ type: 'TOGGLE_GROUP', payload: group.id })}
                     onAddTask={canEditTasks ? () => addTask(group.id) : undefined}
                     onRename={canEditTasks ? (title) => { dispatch({ type: 'UPDATE_GROUP', payload: { ...group, title } }); toast.success(`Grupo renomeado para "${title}"`); } : undefined}
-                    onDelete={canDeleteTasks ? () => { dispatch({ type: 'DELETE_GROUP', payload: group.id }); toast.success(`Grupo "${group.title}" excluído`); } : undefined}
+                    onDelete={canDeleteTasks ? () => setGroupToDelete(group.id) : undefined}
                   />
                 </div>
               </div>
