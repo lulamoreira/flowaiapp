@@ -436,8 +436,8 @@ export default function AdminPage() {
 
     try {
       const { data, error } = await supabase.rpc('claim_placeholder', {
-        _placeholder_id: selectedPlaceholder.id,
-        _real_user_id: targetUserId,
+        p_placeholder_id: selectedPlaceholder.id,
+        p_target_user_id: targetUserId,
       });
 
       if (error) throw error;
