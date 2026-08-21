@@ -933,15 +933,18 @@ export default function AdminPage() {
                     let label = "Desconhecido";
                     let type = "Desconhecido";
                     
-                    if (log.table_name === 'tasks') {
+                    if (log.confirm_details) {
+                      type = log.confirm_details.type || "Item";
+                      label = log.confirm_details.title || log.original_id;
+                    } else if (log.table_name === 'tasks') {
                       type = "Tarefa";
                       label = log.data?.title || log.original_id;
                     } else if (log.table_name === 'task_groups') {
                       type = "Grupo";
-                      label = log.data?.name || log.original_id;
+                      label = log.data?.title || log.original_id;
                     } else if (log.table_name === 'boards') {
                       type = "Quadro";
-                      label = log.data?.name || log.original_id;
+                      label = log.data?.title || log.original_id;
                     }
 
                     return (
