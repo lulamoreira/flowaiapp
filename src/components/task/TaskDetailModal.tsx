@@ -273,7 +273,14 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
   };
 
   const handleDeleteTask = async () => {
-    dispatch({ type: 'DELETE_TASK', payload: current.id });
+    dispatch({ 
+      type: 'DELETE_TASK', 
+      payload: current.id,
+      confirmDetails: {
+        title: current.title,
+        type: 'Tarefa'
+      }
+    });
     onClose();
   };
 
