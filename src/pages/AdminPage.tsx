@@ -774,7 +774,8 @@ export default function AdminPage() {
 
           {/* ACTIVITY TAB (Admin & Coordinator) */}
           {isAdminOrCoordinator && (
-            <TabsContent value="activity" className="space-y-4">
+            <>
+              <TabsContent value="activity" className="space-y-4">
               <h3 className="text-lg font-semibold text-foreground">Log de Atividades</h3>
 
               {/* Filters */}
