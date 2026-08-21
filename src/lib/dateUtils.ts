@@ -1,36 +1,34 @@
-import { format, parseISO } from 'date-fns';
+import { parseISO, isValid, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 /**
- * Formata uma data de tarefa (ISO string ou similar) garantindo que seja tratada em UTC.
- * Isso evita deslocamentos de fuso horário onde uma data gravada como 2026-08-15
- * aparece como 14 ago em alguns fusos.
+ * Formata uma data de tarefa (ISO string UTC do banco) garantindo que seja exibida
+ * exatamente como os marcadores UTC gravados, ignorando o fuso horário local.
+ * 
+ * Se o banco tem "2026-08-15T00:00:00Z", queremos mostrar "15 ago"
+ * independentemente do navegador estar em UTC-3 ou UTC+2.
  */
 export function formatTaskDate(dateStr: string | null | undefined, formatStr: string = 'dd MMM'): string {
   if (!dateStr) return '—';
   
   try {
-    // Se a string já tiver 'T', parseISO lidará corretamente.
-    // Se for apenas 'YYYY-MM-DD', forçamos o tratamento como UTC adicionando 'T00:00:00Z'
-    let normalizedDate = dateStr;
-    if (dateStr.length === 10 && !dateStr.includes('T')) {
-      normalizedDate = `${dateStr}T00:00:00Z`;
-    } else if (dateStr.includes('T') && !dateStr.endsWith('Z') && !dateStr.includes('+')) {
-      // Se tiver tempo mas não fuso, assumimos UTC
-      normalizedDate = `${dateStr}Z`;
-    }
-
-    const date = parseISO(normalizedDate);
+    const date = parseISO(dateStr);
+    if (!isValid(date)) return '—';
     
-    // Para formatar em UTC sem deslocamento, usamos o fato de que getUTCDate etc.
-    // Mas format() do date-fns usa o fuso local.
-    // Uma forma simples de formatar "em UTC" é ajustar a data pelo offset local ANTES de formatar.
-    const timezoneOffset = date.getTimezoneOffset() * 60000;
-    const utcDate = new Date(date.getTime() + timezoneOffset);
+    // Extraímos os componentes UTC
+    const yyyy = date.getUTCFullYear();
+    const mm = date.getUTCMonth();
+    const dd = date.getUTCDate();
+    const hh = date.getUTCHours();
+    const min = date.getUTCMinutes();
     
-    return format(utcDate, formatStr, { locale: ptBR });
+    // Criamos um objeto Date "local" que aponta para os mesmos números
+    // Assim o format() do date-fns usará esses números sem deslocamento.
+    const markerDate = new Date(yyyy, mm, dd, hh, min);
+    
+    return format(markerDate, formatStr, { locale: ptBR });
   } catch (error) {
-    console.error('Erro ao formatar data da tarefa:', error);
+    console.error('Erro ao formatar data da tarefa:', error, dateStr);
     return '—';
   }
 }
