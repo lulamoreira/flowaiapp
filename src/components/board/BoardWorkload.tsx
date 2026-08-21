@@ -108,7 +108,7 @@ export function BoardWorkload({ boardId }: BoardWorkloadProps) {
             </tr>
           </thead>
           <tbody>
-            {members.filter(m => !m.isPlaceholder || tasks.some(t => t.assignee === m.id)).map(member => {
+            {members.map(member => {
               const cap = capacityMap[member.id] || DEFAULT_CAPACITY;
               const periodCap = viewMode === 'day' ? cap : cap * 5;
               return (
