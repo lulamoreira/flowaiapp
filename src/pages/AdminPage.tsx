@@ -76,7 +76,23 @@ export default function AdminPage() {
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [customFunctions, setCustomFunctions] = useState<CustomFunction[]>([]);
   const [activityLog, setActivityLog] = useState<ActivityEntry[]>([]);
+  const [placeholders, setPlaceholders] = useState<PlaceholderMember[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Placeholder dialog
+  const [placeholderDialogOpen, setPlaceholderDialogOpen] = useState(false);
+  const [editingPlaceholder, setEditingPlaceholder] = useState<PlaceholderMember | null>(null);
+  const [phName, setPhName] = useState('');
+  const [phEmail, setPhEmail] = useState('');
+  const [phRole, setPhRole] = useState<AppRole>('viewer');
+  const [phSaving, setPhSaving] = useState(false);
+
+  // Claim dialog
+  const [claimDialogOpen, setClaimDialogOpen] = useState(false);
+  const [selectedPlaceholder, setSelectedPlaceholder] = useState<PlaceholderMember | null>(null);
+  const [targetUserId, setTargetUserId] = useState('');
+  const [claimSummary, setClaimSummary] = useState<{ tasks: number; subtasks: number } | null>(null);
+  const [claiming, setClaiming] = useState(false);
 
   // Invite dialog
   const [inviteOpen, setInviteOpen] = useState(false);
