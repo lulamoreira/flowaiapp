@@ -1,10 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useAppStore } from '@/store/useAppStore';
 import { parseISO, startOfDay, addDays, differenceInDays, format, isWithinInterval, startOfWeek, addWeeks } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Input } from '@/components/ui/input';
 import { useScopedTasks } from '@/hooks/useScopedTasks';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface BoardWorkloadProps {
   boardId: string;
@@ -16,6 +18,8 @@ const DEFAULT_CAPACITY = 8; // hours per day
 export function BoardWorkload({ boardId }: BoardWorkloadProps) {
   const { state } = useAppStore();
   const [capacityMap, setCapacityMap] = useState<Record<string, number>>({});
+  const [authorizedUserIds, setAuthorizedUserIds] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'day' | 'week'>('week');
 
   const { filterTasks } = useScopedTasks();
