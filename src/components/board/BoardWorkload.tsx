@@ -23,7 +23,7 @@ export function BoardWorkload({ boardId }: BoardWorkloadProps) {
     () => filterTasks(state.tasks.filter(t => t.boardId === boardId)),
     [state.tasks, boardId, filterTasks]
   );
-  const members = state.users.filter(u => tasks?.some(t => t.assignee === u.id));
+  const members = state.users;
 
   const { periods, loadMap } = useMemo(() => {
     const today = startOfDay(new Date());
