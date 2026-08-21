@@ -28,8 +28,13 @@ export function BoardWorkload({ boardId }: BoardWorkloadProps) {
     [state.tasks, boardId, filterTasks]
   );
   const members = useMemo(() => {
-    return state.users.filter(u => authorizedUserIds.includes(u.id));
-  }, [state.users, authorizedUserIds]);
+    const list = state.users.filter(u => authorizedUserIds.includes(u.id));
+    // Fallback logic: if a user is not authorized but has tasks in this board,
+    // they should be visible in the workload.
+    const assigneesWithTasks = new Set(tasks.map(t => t.assignee).filter(Boolean));
+    const extraMembers = state.users.filter(u => !authorizedUserIds.includes(u.id) && assigneesWithTasks.has(u.id));
+    return [...list, ...extraMembers];
+  }, [state.users, authorizedUserIds, tasks]);
 
   useEffect(() => {
     const fetchAuthorized = async () => {
