@@ -8,7 +8,7 @@ import { BoardCharts } from '@/components/board/BoardCharts';
 import { BoardGantt } from '@/components/board/BoardGantt';
 import { BoardWorkload } from '@/components/board/BoardWorkload';
 import { AutomationPanel } from '@/components/automation/AutomationPanel';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Zap, Table, Columns3, Plus, Pencil, Check, X, CalendarDays, GanttChart, Users, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
