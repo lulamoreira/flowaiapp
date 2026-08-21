@@ -37,6 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [loading, setLoading] = useState(true);
+  const [authInitialized, setAuthInitialized] = useState(false);
 
   const fetchProfile = useCallback(async (userId: string) => {
     try {
@@ -59,6 +60,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setRoles(rolesData?.map(r => r.role) || []);
     } catch (err) {
       console.error('Unexpected error in fetchProfile:', err);
+    } finally {
+      setLoading(false);
+      setAuthInitialized(true);
     }
   }, []);
 
@@ -70,42 +74,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // 4. Safety timeout to prevent permanent loading screen
     const safetyTimeout = setTimeout(() => {
       setLoading(false);
+      setAuthInitialized(true);
     }, 5000);
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        // 1 & 2. Synchronous updates and deferred profile fetch
+      async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          setTimeout(() => {
-            fetchProfile(session.user.id);
-            if (event === 'SIGNED_IN') {
-              logActivity('Login', { method: 'auth', email: session.user.email });
-            }
-          }, 0);
+          await fetchProfile(session.user.id);
+          if (event === 'SIGNED_IN') {
+            logActivity('Login', { method: 'auth', email: session.user.email });
+          }
         } else {
           setProfile(null);
           setRoles([]);
+          setLoading(false);
+          setAuthInitialized(true);
         }
-        
-        setLoading(false);
       }
     );
 
-    // 3. Deferred initSession using .then()
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        setTimeout(() => fetchProfile(session.user.id), 0);
+        await fetchProfile(session.user.id);
+      } else {
+        setLoading(false);
+        setAuthInitialized(true);
       }
-      setLoading(false);
       clearTimeout(safetyTimeout);
     }).catch(err => {
       console.error('Error in initSession:', err);
       setLoading(false);
+      setAuthInitialized(true);
       clearTimeout(safetyTimeout);
     });
 
