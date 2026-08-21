@@ -315,14 +315,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
         refetch('projectMembers');
         refetch('boards');
       })
-    window.addEventListener('focus', () => {
+    const handleFocus = () => {
       refetch('users');
       refetch('projectMembers');
       refetch('boards');
-    });
+    };
+    window.addEventListener('focus', handleFocus);
     return () => {
       supabase.removeChannel(channel);
-      window.removeEventListener('focus', () => refetch('users'));
+      window.removeEventListener('focus', handleFocus);
     };
   }, []);
 
