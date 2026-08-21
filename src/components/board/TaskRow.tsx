@@ -24,6 +24,15 @@ export function TaskRow({ task, groupColor, onClick, draggable, onDragStart, onD
   const { state, dispatch } = useAppStore();
   const assignee = state.users.find(u => u.id === task.assignee);
   const [assigneeOpen, setAssigneeOpen] = useState(false);
+  const authorizedIds = state.projectMembers[task.boardId] || [];
+  const hasAuthorized = authorizedIds.length > 0;
+  
+  const filteredUsers = state.users.filter(u => {
+    // b) se a tarefa já tiver um responsável que não é membro autorizado, mantenha essa pessoa visível
+    if (u.id === task.assignee) return true;
+    if (!hasAuthorized) return true;
+    return authorizedIds.includes(u.id);
+  });
 
   const updateTask = (updates: Partial<Task>) => {
     dispatch({ type: 'UPDATE_TASK', payload: { ...task, ...updates } });
@@ -73,20 +82,33 @@ export function TaskRow({ task, groupColor, onClick, draggable, onDragStart, onD
             >
               <span className="text-muted-foreground">Sem responsável</span>
             </button>
-            {state.users.map(user => (
-              <button
-                key={user.id}
-                className="w-full flex items-center gap-2 px-3 py-2 rounded text-xs hover:bg-muted/50 transition-colors"
-                onClick={(e) => { e.stopPropagation(); updateTask({ assignee: user.id }); setAssigneeOpen(false); }}
-              >
-                <div className="w-6 h-6 rounded-full bg-[#0073ea] text-white text-[10px] font-bold flex items-center justify-center shrink-0">
-                  {user.avatar}
-                </div>
-                <span className={cn("text-foreground", user.isPlaceholder && "italic text-muted-foreground")}>
-                  {user.name}
-                </span>
-              </button>
-            ))}
+            {!hasAuthorized && (
+              <div className="px-3 py-1.5 text-[10px] text-muted-foreground border-b border-border mb-1">
+                Nenhum colaborador autorizado neste projeto — autorize em Compartilhar
+              </div>
+            )}
+            {filteredUsers.map(user => {
+              const isNotAuthorized = hasAuthorized && !authorizedIds.includes(user.id) && user.id === task.assignee;
+              return (
+                <button
+                  key={user.id}
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded text-xs hover:bg-muted/50 transition-colors"
+                  onClick={(e) => { e.stopPropagation(); updateTask({ assignee: user.id }); setAssigneeOpen(false); }}
+                >
+                  <div className="w-6 h-6 rounded-full bg-[#0073ea] text-white text-[10px] font-bold flex items-center justify-center shrink-0">
+                    {user.avatar}
+                  </div>
+                  <div className="flex flex-col items-start min-w-0">
+                    <span className={cn("text-foreground truncate w-full text-left", user.isPlaceholder && "italic text-muted-foreground")}>
+                      {user.name}
+                    </span>
+                    {isNotAuthorized && (
+                      <span className="text-[9px] text-destructive leading-tight">sem autorização</span>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
           </PopoverContent>
         </Popover>
       </div>
