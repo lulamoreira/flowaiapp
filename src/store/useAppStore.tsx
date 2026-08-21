@@ -20,7 +20,7 @@ type Action =
   | { type: 'DELETE_TASK'; payload: string }
   | { type: 'ADD_BOARD'; payload: Board }
   | { type: 'UPDATE_BOARD'; payload: Board }
-  | { type: 'DELETE_BOARD'; payload: string }
+  | { type: 'DELETE_BOARD'; payload: string; confirmDetails?: { title: string; type: string } }
   | { type: 'ADD_GROUP'; payload: TaskGroup }
   | { type: 'UPDATE_GROUP'; payload: TaskGroup }
   | { type: 'DELETE_GROUP'; payload: string }
