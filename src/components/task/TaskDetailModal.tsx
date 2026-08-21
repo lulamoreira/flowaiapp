@@ -62,7 +62,6 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
 
   const current = task ? (state.tasks.find(t => t.id === task.id) || task) : null;
 
-
   // Sync local state when task changes (only once per task open/re-open or store sync)
   useEffect(() => {
     if (!current) return;
@@ -74,8 +73,20 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
     setLocalActualEnd(toInputFormat(current.actualEnd));
   }, [current?.id]); // We intentionally only sync on ID change to avoid losing focus while typing
 
+  const update = (updates: Partial<Task>) => {
+    if (!current) return;
+    dispatch({ type: 'UPDATE_TASK', payload: { ...current, ...updates } });
+  };
 
+  const debouncedUpdate = useCallback(
+    debounce((updates: Partial<Task>) => {
+      update(updates);
+    }, 800),
+    [current?.id]
+  );
 
+  // Early return AFTER hooks
+  if (!task || !current) return null;
 
   const handleAssigneeChange = (newAssigneeId: string) => {
     const actualId = newAssigneeId === 'none' ? '' : newAssigneeId;
