@@ -6,7 +6,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useAppStore } from '@/store/useAppStore';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Loader2, Users } from 'lucide-react';
+import { Loader2, Users, AlertTriangle } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 interface ProjectMembersDialogProps {
   open: boolean;
@@ -19,6 +20,7 @@ export function ProjectMembersDialog({ open, onOpenChange, boardId }: ProjectMem
   const [loading, setLoading] = useState(false);
   const [authorizedIds, setAuthorizedIds] = useState<string[]>([]);
   const [initialAuthorizedIds, setInitialAuthorizedIds] = useState<string[]>([]);
+  const [confirmRemove, setConfirmRemove] = useState<{ userId: string; name: string; tasks: number; subtasks: number } | null>(null);
 
   // Load authorized members for this board
   const loadAuthorized = async () => {

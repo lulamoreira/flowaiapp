@@ -214,6 +214,7 @@ export function BoardTable({ boardId }: BoardTableProps) {
         dueDateFilter={dueDateFilter}
         onDueDateChange={setDueDateFilter}
         users={state.users}
+        boardId={boardId}
       />
 
       {/* Column headers */}
