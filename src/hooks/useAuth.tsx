@@ -67,43 +67,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user, fetchProfile]);
 
   useEffect(() => {
+    // 4. Safety timeout to prevent permanent loading screen
+    const safetyTimeout = setTimeout(() => {
+      setLoading(false);
+    }, 5000);
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
+        // 1 & 2. Synchronous updates and deferred profile fetch
         setSession(session);
         setUser(session?.user ?? null);
         
-        try {
-          if (session?.user) {
-            await fetchProfile(session.user.id);
+        if (session?.user) {
+          setTimeout(() => {
+            fetchProfile(session.user.id);
             if (event === 'SIGNED_IN') {
               logActivity('Login', { method: 'auth', email: session.user.email });
             }
-          } else {
-            setProfile(null);
-            setRoles([]);
-          }
-        } finally {
-          setLoading(false);
+          }, 0);
+        } else {
+          setProfile(null);
+          setRoles([]);
         }
+        
+        setLoading(false);
       }
     );
 
-    const initSession = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          await fetchProfile(session.user.id);
-        }
-      } finally {
-        setLoading(false);
+    // 3. Deferred initSession using .then()
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        setTimeout(() => fetchProfile(session.user.id), 0);
       }
+      setLoading(false);
+      clearTimeout(safetyTimeout);
+    }).catch(err => {
+      console.error('Error in initSession:', err);
+      setLoading(false);
+      clearTimeout(safetyTimeout);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(safetyTimeout);
     };
-
-    initSession();
-
-    return () => subscription.unsubscribe();
   }, [fetchProfile]);
 
   const signOut = async () => {
