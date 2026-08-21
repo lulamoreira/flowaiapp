@@ -2,33 +2,42 @@ import { parseISO, isValid, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 /**
- * Formata uma data de tarefa (ISO string UTC do banco) garantindo que seja exibida
- * exatamente como os marcadores UTC gravados, ignorando o fuso horário local.
- * 
- * Se o banco tem "2026-08-15T00:00:00Z", queremos mostrar "15 ago"
- * independentemente do navegador estar em UTC-3 ou UTC+2.
+ * Formata uma data de tarefa (ISO string UTC do banco ou objeto Date) 
+ * garantindo que seja exibida exatamente como os marcadores UTC gravados, 
+ * ignorando o fuso horário local.
  */
-export function formatTaskDate(dateStr: string | null | undefined, formatStr: string = 'dd MMM'): string {
-  if (!dateStr) return '—';
+export function formatTaskDate(date: string | Date | null | undefined, formatStr: string = 'dd MMM'): string {
+  if (!date) return '—';
   
   try {
-    const date = parseISO(dateStr);
-    if (!isValid(date)) return '—';
+    let d: Date;
     
-    // Extraímos os componentes UTC
-    const yyyy = date.getUTCFullYear();
-    const mm = date.getUTCMonth();
-    const dd = date.getUTCDate();
-    const hh = date.getUTCHours();
-    const min = date.getUTCMinutes();
+    if (typeof date === 'string') {
+      d = parseISO(date);
+    } else {
+      d = date;
+    }
     
-    // Criamos um objeto Date "local" que aponta para os mesmos números
-    // Assim o format() do date-fns usará esses números sem deslocamento.
+    if (!isValid(d)) return '—';
+    
+    // Se for uma string ISO do banco, extraímos os componentes UTC.
+    // Se for um objeto Date gerado localmente (como no calendário), 
+    // queremos os componentes locais que representam o dia visual.
+    // O pulo do gato: strings ISO costumam ter 'Z' ou '+00', Date objects não.
+    
+    const isISOString = typeof date === 'string' && (date.includes('Z') || date.includes('+'));
+    
+    const yyyy = isISOString ? d.getUTCFullYear() : d.getFullYear();
+    const mm = isISOString ? d.getUTCMonth() : d.getMonth();
+    const dd = isISOString ? d.getUTCDate() : d.getDate();
+    const hh = isISOString ? d.getUTCHours() : d.getHours();
+    const min = isISOString ? d.getUTCMinutes() : d.getMinutes();
+    
     const markerDate = new Date(yyyy, mm, dd, hh, min);
     
     return format(markerDate, formatStr, { locale: ptBR });
   } catch (error) {
-    console.error('Erro ao formatar data da tarefa:', error, dateStr);
+    console.error('Erro ao formatar data da tarefa:', error, date);
     return '—';
   }
 }
