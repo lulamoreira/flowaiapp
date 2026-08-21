@@ -11,6 +11,7 @@ import { GripVertical, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useScopedTasks } from '@/hooks/useScopedTasks';
 import { cn } from '@/lib/utils';
+import { DeleteConfirmDialog } from '@/components/ui/DeleteConfirmDialog';
 
 type SortConfig = {
   column: 'item' | 'assignee' | 'status' | 'priority' | 'date' | null;
@@ -34,6 +35,7 @@ export function BoardTable({ boardId }: BoardTableProps) {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [dragOverGroupId, setDragOverGroupId] = useState<string | null>(null);
+  const [groupToDelete, setGroupToDelete] = useState<string | null>(null);
 
   // Column sort state
   const [sort, setSort] = useState<SortConfig>(() => {
@@ -299,7 +301,14 @@ export function BoardTable({ boardId }: BoardTableProps) {
                     onToggle={() => dispatch({ type: 'TOGGLE_GROUP', payload: group.id })}
                     onAddTask={canEditTasks ? () => addTask(group.id) : undefined}
                     onRename={canEditTasks ? (title) => { dispatch({ type: 'UPDATE_GROUP', payload: { ...group, title } }); toast.success(`Grupo renomeado para "${title}"`); } : undefined}
-                    onDelete={canDeleteTasks ? () => { dispatch({ type: 'DELETE_GROUP', payload: group.id }); toast.success(`Grupo "${group.title}" excluído`); } : undefined}
+                    onDelete={canDeleteTasks ? () => dispatch({ 
+                      type: 'DELETE_GROUP', 
+                      payload: group.id,
+                      confirmDetails: {
+                        title: group.title,
+                        type: 'Grupo'
+                      }
+                    }) : undefined}
                   />
                 </div>
               </div>

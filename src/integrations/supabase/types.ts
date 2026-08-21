@@ -213,6 +213,39 @@ export type Database = {
         }
         Relationships: []
       }
+      deletion_log: {
+        Row: {
+          board_id: string | null
+          confirm_details: Json | null
+          data: Json
+          deleted_at: string
+          deleted_by: string | null
+          id: string
+          original_id: string
+          table_name: string
+        }
+        Insert: {
+          board_id?: string | null
+          confirm_details?: Json | null
+          data: Json
+          deleted_at?: string
+          deleted_by?: string | null
+          id?: string
+          original_id: string
+          table_name: string
+        }
+        Update: {
+          board_id?: string | null
+          confirm_details?: Json | null
+          data?: Json
+          deleted_at?: string
+          deleted_by?: string | null
+          id?: string
+          original_id?: string
+          table_name?: string
+        }
+        Relationships: []
+      }
       function_permissions: {
         Row: {
           can_delete: boolean
@@ -838,6 +871,7 @@ export type Database = {
         Args: { p_placeholder_id: string; p_target_user_id: string }
         Returns: Json
       }
+      cleanup_old_deletions: { Args: never; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

@@ -12,7 +12,8 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { Users, Mail, History, Shield, UserPlus, Settings, Trash2, Pencil, Activity, Search, CalendarIcon, X, UserCheck, CheckCircle2 } from 'lucide-react';
+import { Users, Mail, History, Shield, UserPlus, Settings, Trash2, Pencil, Activity, Search, CalendarIcon, X, UserCheck, CheckCircle2, RefreshCcw } from 'lucide-react';
+import { DeleteConfirmDialog } from '@/components/ui/DeleteConfirmDialog';
 import { format, parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
@@ -68,6 +69,17 @@ interface PlaceholderMember {
   claimed_at: string | null;
 }
 
+interface DeletionLogEntry {
+  id: string;
+  table_name: string;
+  original_id: string;
+  data: any;
+  deleted_at: string;
+  deleted_by: string | null;
+  board_id: string | null;
+  confirm_details?: any | null;
+}
+
 const SYSTEM_MODULES = ['boards', 'tasks', 'reports', 'users', 'invitations', 'automations'];
 
 export default function AdminPage() {
@@ -77,7 +89,9 @@ export default function AdminPage() {
   const [customFunctions, setCustomFunctions] = useState<CustomFunction[]>([]);
   const [activityLog, setActivityLog] = useState<ActivityEntry[]>([]);
   const [placeholders, setPlaceholders] = useState<PlaceholderMember[]>([]);
+  const [deletionLog, setDeletionLog] = useState<DeletionLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [restoringId, setRestoringId] = useState<string | null>(null);
 
   // Placeholder dialog
   const [placeholderDialogOpen, setPlaceholderDialogOpen] = useState(false);
@@ -211,6 +225,9 @@ export default function AdminPage() {
     if (isAdminOrCoordinator) {
       const { data: logs } = await supabase.from('activity_log').select('*').order('created_at', { ascending: false }).limit(200);
       setActivityLog(logs || []);
+      
+      const { data: delLogs } = await supabase.from('deletion_log').select('*').order('deleted_at', { ascending: false });
+      setDeletionLog(delLogs || []);
     }
 
     setLoading(false);
@@ -228,6 +245,7 @@ export default function AdminPage() {
       'user_custom_functions',
       'activity_log',
       'placeholder_members',
+      'deletion_log',
     ],
     fetchAll,
     { channelName: 'admin-page-rt' }
@@ -453,6 +471,30 @@ export default function AdminPage() {
     }
   };
 
+  const handleRestoreItem = async (log: DeletionLogEntry) => {
+    setRestoringId(log.id);
+    try {
+      const { table_name, data } = log;
+      
+      // Basic check for tasks: if groupId or boardId no longer exist, it might fail
+      // In a more robust system, we'd handle orphan restoration
+      const { error: restoreError } = await supabase.from(table_name as any).insert(data);
+      
+      if (restoreError) throw restoreError;
+      
+      const { error: deleteLogError } = await supabase.from('deletion_log').delete().eq('id', log.id);
+      if (deleteLogError) console.error("Could not delete deletion log entry", deleteLogError);
+      
+      toast.success("Item restaurado com sucesso!");
+      fetchAll();
+    } catch (err: any) {
+      console.error("Erro ao restaurar item:", err);
+      toast.error("Erro ao restaurar: " + err.message);
+    } finally {
+      setRestoringId(null);
+    }
+  };
+
   const openPlaceholderDialog = (ph?: PlaceholderMember) => {
     if (ph) {
       setEditingPlaceholder(ph);
@@ -529,6 +571,7 @@ export default function AdminPage() {
             <TabsTrigger value="invites" className="gap-1"><Mail className="h-3.5 w-3.5" /> Convites</TabsTrigger>
             <TabsTrigger value="functions" className="gap-1"><Settings className="h-3.5 w-3.5" /> Funções</TabsTrigger>
             <TabsTrigger value="placeholders" className="gap-1"><Users className="h-3.5 w-3.5" /> Provisórios</TabsTrigger>
+            <TabsTrigger value="trash" className="gap-1"><Trash2 className="h-3.5 w-3.5" /> Lixeira</TabsTrigger>
             {isAdminOrCoordinator && <TabsTrigger value="activity" className="gap-1"><Activity className="h-3.5 w-3.5" /> Log</TabsTrigger>}
           </TabsList>
 
@@ -732,7 +775,7 @@ export default function AdminPage() {
 
           {/* ACTIVITY TAB (Admin & Coordinator) */}
           {isAdminOrCoordinator && (
-            <TabsContent value="activity" className="space-y-4">
+              <TabsContent value="activity" className="space-y-4">
               <h3 className="text-lg font-semibold text-foreground">Log de Atividades</h3>
 
               {/* Filters */}
@@ -864,6 +907,79 @@ export default function AdminPage() {
               )}
             </TabsContent>
           )}
+
+          {/* TRASH TAB */}
+          <TabsContent value="trash" className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-foreground">Lixeira</h3>
+                <p className="text-sm text-muted-foreground">Itens excluídos recentemente. Permanecem aqui por 24 horas.</p>
+              </div>
+            </div>
+            
+            <div className="bg-card border border-border rounded-xl overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-muted/50">
+                    <th className="text-left p-3 font-medium text-muted-foreground">Tipo</th>
+                    <th className="text-left p-3 font-medium text-muted-foreground">Identificação</th>
+                    <th className="text-left p-3 font-medium text-muted-foreground">Excluído por</th>
+                    <th className="text-left p-3 font-medium text-muted-foreground">Data Exclusão</th>
+                    <th className="text-right p-3 font-medium text-muted-foreground">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {deletionLog.map(log => {
+                    const deletedByUser = users.find(u => u.user_id === log.deleted_by);
+                    let label = "Desconhecido";
+                    let type = "Desconhecido";
+                    
+                    if (log.confirm_details) {
+                      type = log.confirm_details.type || "Item";
+                      label = log.confirm_details.title || log.original_id;
+                    } else if (log.table_name === 'tasks') {
+                      type = "Tarefa";
+                      label = log.data?.title || log.original_id;
+                    } else if (log.table_name === 'task_groups') {
+                      type = "Grupo";
+                      label = log.data?.title || log.original_id;
+                    } else if (log.table_name === 'boards') {
+                      type = "Quadro";
+                      label = log.data?.title || log.original_id;
+                    }
+
+                    return (
+                      <tr key={log.id} className="border-b border-border last:border-0 hover:bg-muted/30">
+                        <td className="p-3">
+                          <Badge variant="outline" className="capitalize">{type}</Badge>
+                        </td>
+                        <td className="p-3 font-medium text-foreground truncate max-w-[200px]">{label}</td>
+                        <td className="p-3 text-muted-foreground">{deletedByUser?.full_name || 'Sistema'}</td>
+                        <td className="p-3 text-muted-foreground">
+                          {new Date(log.deleted_at).toLocaleString('pt-BR')}
+                        </td>
+                        <td className="p-3 text-right">
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            className="h-8 gap-1 text-primary hover:text-primary hover:bg-primary/5"
+                            onClick={() => handleRestoreItem(log)}
+                            disabled={restoringId === log.id}
+                          >
+                            <RefreshCcw className={cn("h-3.5 w-3.5", restoringId === log.id && "animate-spin")} />
+                            Restaurar
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {deletionLog.length === 0 && (
+                    <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">A lixeira está vazia</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </TabsContent>
           {/* PLACEHOLDERS TAB */}
           <TabsContent value="placeholders" className="space-y-4">
             <div className="flex items-center justify-between">

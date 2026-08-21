@@ -9,7 +9,8 @@ import { Progress } from '@/components/ui/progress';
 import { Task, STATUS_CONFIG, PRIORITY_CONFIG, TaskStatus, TaskPriority, Subtask, Attachment } from '@/types';
 import { useAppStore } from '@/store/useAppStore';
 import { supabase } from '@/integrations/supabase/client';
-import { Plus, Trash2, Paperclip, X, Upload, ChevronDown, ChevronRight, Sparkles } from 'lucide-react';
+import { Plus, Trash2, Paperclip, X, Upload, ChevronDown, ChevronRight, Sparkles, AlertTriangle } from 'lucide-react';
+import { DeleteConfirmDialog } from '@/components/ui/DeleteConfirmDialog';
 import { createNotification } from '@/lib/notifications';
 import { useAuth } from '@/hooks/useAuth';
 import { TaskComments } from '@/components/task/TaskComments';
@@ -81,6 +82,7 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
   const [dragging, setDragging] = useState(false);
   const [expandingDesc, setExpandingDesc] = useState(false);
   const [showSubtaskDetails, setShowSubtaskDetails] = useState<Record<string, boolean>>({});
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   
   // Find current task in global state to get latest updates
   const current = task ? (state.tasks.find(t => t.id === task.id) || task) : null;
@@ -270,23 +272,44 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
     setExpandingDesc(false);
   };
 
+  const handleDeleteTask = async () => {
+    dispatch({ 
+      type: 'DELETE_TASK', 
+      payload: current.id,
+      confirmDetails: {
+        title: current.title,
+        type: 'Tarefa'
+      }
+    });
+    onClose();
+  };
+
   return (
-    <Dialog open={!!task} onOpenChange={() => onClose()}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>
-            <Input
-              value={localTitle}
-              onChange={e => {
-                setLocalTitle(e.target.value);
-                debouncedUpdate({ title: e.target.value });
-              }}
-              onBlur={() => handleBlur('title', localTitle)}
-              placeholder="Título da tarefa"
-              className="text-lg font-semibold border-0 px-0 focus-visible:ring-0 bg-transparent"
-            />
-          </DialogTitle>
-        </DialogHeader>
+    <>
+      <Dialog open={!!task} onOpenChange={() => onClose()}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader className="flex flex-row items-center justify-between pr-8">
+            <DialogTitle className="flex-1">
+              <Input
+                value={localTitle}
+                onChange={e => {
+                  setLocalTitle(e.target.value);
+                  debouncedUpdate({ title: e.target.value });
+                }}
+                onBlur={() => handleBlur('title', localTitle)}
+                placeholder="Título da tarefa"
+                className="text-lg font-semibold border-0 px-0 focus-visible:ring-0 bg-transparent w-full"
+              />
+            </DialogTitle>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-muted-foreground hover:text-destructive shrink-0 ml-2"
+              onClick={handleDeleteTask}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </DialogHeader>
 
         <div className="space-y-5">
           {/* Status & Priority */}
@@ -582,6 +605,7 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
           </div>
         </div>
       </DialogContent>
-    </Dialog>
+      </Dialog>
+    </>
   );
 }

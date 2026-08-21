@@ -3,6 +3,7 @@ import { Board, TaskGroup, Task, User, AutomationRule } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { logActivity } from '@/lib/activityLog';
 import { toast } from 'sonner';
+import { DeleteConfirmDialog } from '@/components/ui/DeleteConfirmDialog';
 
 interface AppState {
   boards: Board[];
@@ -17,13 +18,13 @@ type Action =
   | { type: 'SET_STATE'; payload: Partial<AppState> }
   | { type: 'UPDATE_TASK'; payload: Task }
   | { type: 'ADD_TASK'; payload: Task }
-  | { type: 'DELETE_TASK'; payload: string }
+  | { type: 'DELETE_TASK'; payload: string; confirmDetails?: { title: string; type: string } }
   | { type: 'ADD_BOARD'; payload: Board }
   | { type: 'UPDATE_BOARD'; payload: Board }
-  | { type: 'DELETE_BOARD'; payload: string }
+  | { type: 'DELETE_BOARD'; payload: string; confirmDetails?: { title: string; type: string } }
   | { type: 'ADD_GROUP'; payload: TaskGroup }
   | { type: 'UPDATE_GROUP'; payload: TaskGroup }
-  | { type: 'DELETE_GROUP'; payload: string }
+  | { type: 'DELETE_GROUP'; payload: string; confirmDetails?: { title: string; type: string } }
   | { type: 'TOGGLE_GROUP'; payload: string }
   | { type: 'ADD_AUTOMATION'; payload: AutomationRule }
   | { type: 'TOGGLE_AUTOMATION'; payload: string }
@@ -286,16 +287,63 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  const [confirmDelete, setConfirmDelete] = React.useState<{
+    type: 'DELETE_TASK' | 'DELETE_BOARD' | 'DELETE_GROUP';
+    payload: string;
+    title: string;
+    itemType: string;
+    details?: any;
+  } | null>(null);
+
   const wrappedDispatch = useCallback((action: Action) => {
+    // Intercept delete actions for confirmation
+    if ((action.type === 'DELETE_TASK' || action.type === 'DELETE_BOARD' || action.type === 'DELETE_GROUP') && (action as any).confirmDetails) {
+      const details = (action as any).confirmDetails;
+      let itemDetails = undefined;
+      
+      if (action.type === 'DELETE_TASK') {
+        const task = state.tasks.find(t => t.id === action.payload);
+        if (task) {
+          itemDetails = {
+            id: task.id,
+            status: task.status,
+            prioridade: task.priority
+          };
+        }
+      } else if (action.type === 'DELETE_GROUP') {
+        const group = state.groups.find(g => g.id === action.payload);
+        if (group) {
+          itemDetails = {
+            id: group.id,
+            tarefas: state.tasks.filter(t => t.groupId === group.id).length
+          };
+        }
+      }
+      
+      setConfirmDelete({
+        type: action.type,
+        payload: action.payload,
+        title: details.title,
+        itemType: details.type,
+        details: itemDetails
+      });
+      return;
+    }
+
     dispatch(action);
+
+    // If it's a delete action that was ALREADY confirmed (doesn't have confirmDetails)
+    // we let it proceed to the database sync below.
+    // If it has confirmDetails, we already returned early above.
 
     (async () => {
       try {
         let error = null;
+        const { data: { user } } = await supabase.auth.getUser();
+
         switch (action.type) {
           case 'ADD_BOARD': {
             const b = action.payload;
-            const { data: { user } } = await supabase.auth.getUser();
             const res = await supabase.from('boards').insert({
               id: b.id,
               title: b.title,
@@ -320,9 +368,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
             break;
           }
           case 'DELETE_BOARD': {
-            const res = await supabase.from('boards').delete().eq('id', action.payload);
+            const boardId = action.payload;
+            const boardToDelete = state.boards.find(b => b.id === boardId);
+            if (boardToDelete) {
+              await (supabase.from('deletion_log') as any).insert({
+                table_name: 'boards',
+                original_id: boardId,
+                data: boardToDelete as any,
+                deleted_by: user?.id,
+                board_id: boardId,
+                confirm_details: (action as any).confirmDetails || null,
+              });
+            }
+            const res = await supabase.from('boards').delete().eq('id', boardId);
             error = res.error;
-            logActivity('Excluiu quadro', { boardId: action.payload });
+            logActivity('Excluiu quadro', { boardId: boardId });
             break;
           }
           case 'ADD_GROUP': {
@@ -346,7 +406,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
             break;
           }
           case 'DELETE_GROUP': {
-            const res = await supabase.from('task_groups').delete().eq('id', action.payload);
+            const groupId = action.payload;
+            const groupToDelete = state.groups.find(g => g.id === groupId);
+            if (groupToDelete) {
+              await (supabase.from('deletion_log') as any).insert({
+                table_name: 'task_groups',
+                original_id: groupId,
+                data: groupToDelete as any,
+                deleted_by: user?.id,
+                board_id: groupToDelete.boardId,
+                confirm_details: (action as any).confirmDetails || null,
+              });
+            }
+            const res = await supabase.from('task_groups').delete().eq('id', groupId);
             error = res.error;
             break;
           }
@@ -401,9 +473,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
             break;
           }
           case 'DELETE_TASK': {
-            const res = await supabase.from('tasks').delete().eq('id', action.payload);
+            const taskId = action.payload;
+            const taskToDelete = state.tasks.find(t => t.id === taskId);
+            if (taskToDelete) {
+              await (supabase.from('deletion_log') as any).insert({
+                table_name: 'tasks',
+                original_id: taskId,
+                data: taskToDelete as any,
+                deleted_by: user?.id,
+                board_id: taskToDelete.boardId,
+                confirm_details: (action as any).confirmDetails || null,
+              });
+            }
+            const res = await supabase.from('tasks').delete().eq('id', taskId);
             error = res.error;
-            logActivity('Excluiu tarefa', { taskId: action.payload });
+            logActivity('Excluiu tarefa', { taskId: taskId });
             break;
           }
           case 'ADD_AUTOMATION': {
@@ -454,6 +538,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
   return (
     <AppContext.Provider value={{ state, dispatch: wrappedDispatch }}>
       {children}
+      <DeleteConfirmDialog
+        open={!!confirmDelete}
+        onOpenChange={(open) => !open && setConfirmDelete(null)}
+        onConfirm={async () => {
+          if (confirmDelete) {
+            dispatch({ type: confirmDelete.type, payload: confirmDelete.payload } as Action);
+            toast.success(`${confirmDelete.itemType} excluído`);
+            setConfirmDelete(null);
+          }
+        }}
+        title={`Excluir ${confirmDelete?.itemType}`}
+        description={`Você tem certeza que deseja excluir este ${confirmDelete?.itemType?.toLowerCase()}? Ele será movido para a lixeira por 24 horas.`}
+        itemName={confirmDelete?.title}
+        itemDetails={confirmDelete?.details}
+      />
     </AppContext.Provider>
   );
 }
