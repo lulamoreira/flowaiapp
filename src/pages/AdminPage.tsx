@@ -372,6 +372,115 @@ export default function AdminPage() {
     }
   };
 
+  const handleSavePlaceholder = async () => {
+    if (!phName.trim() || !user) return;
+    setPhSaving(true);
+
+    try {
+      if (editingPlaceholder) {
+        const { error } = await supabase.from('placeholder_members').update({
+          full_name: phName.trim(),
+          email: phEmail.trim() || null,
+          intended_role: phRole,
+        }).eq('id', editingPlaceholder.id);
+        if (error) throw error;
+        toast.success('Membro provisório atualizado!');
+      } else {
+        const { error } = await supabase.from('placeholder_members').insert({
+          full_name: phName.trim(),
+          email: phEmail.trim() || null,
+          intended_role: phRole,
+          created_by: user.id,
+        });
+        if (error) throw error;
+        toast.success('Membro provisório criado!');
+      }
+      setPlaceholderDialogOpen(false);
+      fetchAll();
+    } catch (err: any) {
+      toast.error('Erro ao salvar: ' + err.message);
+    } finally {
+      setPhSaving(false);
+    }
+  };
+
+  const handleDeletePlaceholder = async (ph: PlaceholderMember) => {
+    // Count tasks assigned to this placeholder
+    const { count, error: countError } = await supabase
+      .from('tasks')
+      .select('*', { count: 'exact', head: true })
+      .eq('assignee', ph.id);
+    
+    if (countError) {
+      toast.error('Erro ao verificar tarefas: ' + countError.message);
+      return;
+    }
+
+    const message = count && count > 0 
+      ? `Este membro possui ${count} tarefas atribuídas. Se você excluir, estas tarefas ficarão sem responsável. Continuar?`
+      : `Deseja excluir o membro provisório ${ph.full_name}?`;
+
+    if (!confirm(message)) return;
+
+    const { error } = await supabase.from('placeholder_members').delete().eq('id', ph.id);
+    if (error) toast.error(error.message);
+    else {
+      toast.success('Membro provisório excluído.');
+      fetchAll();
+    }
+  };
+
+  const handleClaimPlaceholder = async () => {
+    if (!selectedPlaceholder || !targetUserId) return;
+    setClaiming(true);
+
+    try {
+      const { data, error } = await supabase.rpc('claim_placeholder', {
+        _placeholder_id: selectedPlaceholder.id,
+        _real_user_id: targetUserId,
+      });
+
+      if (error) throw error;
+
+      toast.success(`Sucesso! ${data.tasks_migrated} tarefas migradas.`);
+      setClaimDialogOpen(false);
+      fetchAll();
+    } catch (err: any) {
+      toast.error('Erro na conversão: ' + err.message);
+    } finally {
+      setClaiming(false);
+    }
+  };
+
+  const openPlaceholderDialog = (ph?: PlaceholderMember) => {
+    if (ph) {
+      setEditingPlaceholder(ph);
+      setPhName(ph.full_name);
+      setPhEmail(ph.email || '');
+      setPhRole(ph.intended_role);
+    } else {
+      setEditingPlaceholder(null);
+      setPhName('');
+      setPhEmail('');
+      setPhRole('viewer');
+    }
+    setPlaceholderDialogOpen(true);
+  };
+
+  const openClaimDialog = async (ph: PlaceholderMember) => {
+    setSelectedPlaceholder(ph);
+    setTargetUserId('');
+    setClaimSummary(null);
+    
+    // Fetch summary
+    const { count: taskCount } = await supabase.from('tasks').select('*', { count: 'exact', head: true }).eq('assignee', ph.id);
+    
+    // Subtasks count is harder to get via simple query if stored in JSONB, 
+    // but for the UI summary we can just say "tarefas e subtarefas serão migradas".
+    setClaimSummary({ tasks: taskCount || 0, subtasks: 0 });
+    setClaimDialogOpen(true);
+  };
+
   const roleLabel = (role: AppRole) => {
     switch (role) {
       case 'admin': return 'Admin';
