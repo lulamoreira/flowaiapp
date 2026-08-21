@@ -836,7 +836,7 @@ export type Database = {
       }
       claim_placeholder: {
         Args: { _placeholder_id: string; _real_user_id: string }
-        Returns: undefined
+        Returns: Json
       }
       has_role: {
         Args: {
