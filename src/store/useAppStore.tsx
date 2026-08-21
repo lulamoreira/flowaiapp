@@ -303,10 +303,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'automation_rules' }, () => refetch('automations'))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => refetch('users'))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'placeholder_members' }, () => refetch('users'))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'project_members' }, () => refetch('projectMembers'))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'project_members' }, () => {
+        refetch('projectMembers');
+        refetch('boards');
+      })
     window.addEventListener('focus', () => {
       refetch('users');
       refetch('projectMembers');
+      refetch('boards');
     });
     return () => {
       supabase.removeChannel(channel);
