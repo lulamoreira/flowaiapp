@@ -202,25 +202,6 @@ export function BoardTable({ boardId }: BoardTableProps) {
 
   return (
     <div className="space-y-4">
-      <DeleteConfirmDialog
-        open={!!groupToDelete}
-        onOpenChange={(open) => !open && setGroupToDelete(null)}
-        onConfirm={async () => {
-          if (groupToDelete) {
-            const group = state.groups.find(g => g.id === groupToDelete);
-            dispatch({ type: 'DELETE_GROUP', payload: groupToDelete });
-            toast.success(`Grupo "${group?.title || ''}" excluído`);
-            setGroupToDelete(null);
-          }
-        }}
-        title="Excluir Grupo"
-        description="Você tem certeza que deseja excluir este grupo? Todas as tarefas dele serão movidas para a lixeira."
-        itemName={state.groups.find(g => g.id === groupToDelete)?.title}
-        itemDetails={groupToDelete ? {
-          id: groupToDelete,
-          tarefas: filteredTasks.filter(t => t.groupId === groupToDelete).length
-        } : undefined}
-      />
       <SearchFilterBar
         search={search}
         onSearchChange={setSearch}
