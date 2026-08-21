@@ -276,22 +276,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'task_groups' }, () => refetch('groups'))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => refetch('tasks'))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'automation_rules' }, () => refetch('automations'))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => refetch('tasks')) // Simplified for profile change
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'placeholder_members' }, () => refetch('tasks'))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => refetch('users'))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'placeholder_members' }, () => refetch('users'))
       .subscribe();
 
-    const refetchProfiles = async () => {
-      const data = await fetchPaginated('profiles', 'created_at');
-      const users: User[] = data.map(p => ({
-        id: p.user_id,
-        name: p.full_name || 'Sem nome',
-        email: '',
-        avatar: (p.full_name || '??').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase(),
-      }));
-      dispatch({ type: 'SET_STATE', payload: { users } });
+    window.addEventListener('focus', () => refetch('users'));
+    return () => {
+      supabase.removeChannel(channel);
+      window.removeEventListener('focus', () => refetch('users'));
     };
-
-    window.addEventListener('focus', refetchProfiles);
     return () => {
       supabase.removeChannel(channel);
       window.removeEventListener('focus', refetchProfiles);
