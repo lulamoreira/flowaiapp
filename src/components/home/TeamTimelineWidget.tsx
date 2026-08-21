@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { addDays, differenceInDays, format, parseISO, startOfDay, isBefore, startOfMonth, endOfMonth, getDaysInMonth, isSameDay } from 'date-fns';
+import { addDays, differenceInDays, format, parseISO, startOfDay, isBefore, startOfMonth, endOfMonth, getDaysInMonth, isSameDay, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 import { useAppStore } from '@/store/useAppStore';
@@ -56,8 +56,8 @@ export function TeamTimelineWidget() {
     if (mode === 'week') {
       return addDays(today, offset * 7);
     }
-    const targetMonth = addDays(startOfMonth(today), offset * 32); // generic jump
-    return startOfMonth(targetMonth);
+    const targetMonth = addMonths(startOfMonth(today), offset);
+    return targetMonth;
   }, [today, offset, mode]);
 
   const timelineEnd = useMemo(() => {

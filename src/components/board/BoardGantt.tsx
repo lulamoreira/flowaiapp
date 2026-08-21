@@ -1,7 +1,7 @@
 import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
 import { useAppStore } from '@/store/useAppStore';
 import { Task, TaskGroup } from '@/types';
-import { parseISO, differenceInDays, addDays, format, startOfDay, isBefore, isSameDay, startOfMonth, endOfMonth } from 'date-fns';
+import { parseISO, differenceInDays, addDays, format, startOfDay, isBefore, isSameDay, startOfMonth, endOfMonth, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { TaskDetailModal } from '@/components/task/TaskDetailModal';
 import { ChevronLeft, ChevronRight, CalendarDays, LayoutGrid } from 'lucide-react';
@@ -48,8 +48,8 @@ export function BoardGantt({ boardId, tasks: externalTasks, groups: externalGrou
     if (mode === 'week') {
       return addDays(today, offset);
     }
-    const targetMonth = addDays(startOfMonth(today), offset * 32);
-    return startOfMonth(targetMonth);
+    const targetMonth = addMonths(startOfMonth(today), offset);
+    return targetMonth;
   }, [today, offset, mode]);
 
   const timelineEnd = useMemo(() => {
