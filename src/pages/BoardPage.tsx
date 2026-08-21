@@ -158,7 +158,7 @@ const BoardPage = () => {
           <div className="ml-auto flex items-center gap-2">
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-2">
-                {canEditBoard && (
+                {(isAdminOrCoordinator || canEditBoard) && (
                   <Button 
                     variant="outline" 
                     size="sm" 
