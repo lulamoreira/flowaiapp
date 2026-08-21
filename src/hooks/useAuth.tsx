@@ -40,6 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [authInitialized, setAuthInitialized] = useState(false);
 
   const fetchProfile = useCallback(async (userId: string) => {
+    console.log('useAuth: fetchProfile started for', userId);
     try {
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
@@ -47,20 +48,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .eq('user_id', userId)
         .single();
       
-      if (profileError) console.error('Error fetching profile:', profileError);
+      if (profileError) console.error('useAuth: Error fetching profile:', profileError);
       
       const { data: rolesData, error: rolesError } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', userId);
 
-      if (rolesError) console.error('Error fetching roles:', rolesError);
+      if (rolesError) console.error('useAuth: Error fetching roles:', rolesError);
 
+      console.log('useAuth: fetchProfile roles found:', rolesData?.map(r => r.role));
       setProfile(profileData);
       setRoles(rolesData?.map(r => r.role) || []);
     } catch (err) {
-      console.error('Unexpected error in fetchProfile:', err);
+      console.error('useAuth: Unexpected error in fetchProfile:', err);
     } finally {
+      console.log('useAuth: fetchProfile finished, setting loading false');
       setLoading(false);
       setAuthInitialized(true);
     }
