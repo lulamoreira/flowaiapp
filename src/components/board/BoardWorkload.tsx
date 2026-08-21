@@ -27,7 +27,29 @@ export function BoardWorkload({ boardId }: BoardWorkloadProps) {
     () => filterTasks(state.tasks.filter(t => t.boardId === boardId)),
     [state.tasks, boardId, filterTasks]
   );
-  const members = state.users;
+  const members = useMemo(() => {
+    return state.users.filter(u => authorizedUserIds.includes(u.id));
+  }, [state.users, authorizedUserIds]);
+
+  useEffect(() => {
+    const fetchAuthorized = async () => {
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('project_members' as any)
+          .select('user_id')
+          .eq('board_id', boardId);
+        
+        if (error) throw error;
+        setAuthorizedUserIds(data?.map((m: any) => m.user_id) || []);
+      } catch (err: any) {
+        console.error('Error fetching authorized members:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAuthorized();
+  }, [boardId]);
 
   const { periods, loadMap } = useMemo(() => {
     const today = startOfDay(new Date());
