@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { addDays, differenceInDays, format, parseISO, startOfDay, isBefore, startOfMonth, endOfMonth, getDaysInMonth, isSameDay, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { formatTaskDate } from '@/lib/dateUtils';
 
 import { useAppStore } from '@/store/useAppStore';
 import { supabase } from '@/integrations/supabase/client';
@@ -125,12 +126,12 @@ export function TeamTimelineWidget() {
 
   const navigationLabel = useMemo(() => {
     if (mode === 'month') {
-      return format(timelineStart, "MMMM yyyy", { locale: ptBR });
+      return formatTaskDate(timelineStart, "MMMM yyyy");
     }
     if (offset === 0) return 'Esta semana';
     if (offset === 1) return 'Próxima semana';
     if (offset === -1) return 'Semana passada';
-    return `${format(timelineStart, "dd 'de' MMM", { locale: ptBR })} – ${format(timelineEnd, "dd 'de' MMM", { locale: ptBR })}`;
+    return `${formatTaskDate(timelineStart)} – ${formatTaskDate(timelineEnd)}`;
   }, [offset, timelineStart, timelineEnd, mode]);
 
 
@@ -220,11 +221,11 @@ export function TeamTimelineWidget() {
 
                           {mode === 'week' ? (
                             <>
-                              <div className="text-[10px] uppercase">{format(day, 'EEE', { locale: ptBR })}</div>
-                              <div className="font-semibold text-foreground/80">{format(day, 'dd/MM')}</div>
+                              <div className="text-[10px] uppercase">{formatTaskDate(day, 'EEE')}</div>
+                              <div className="font-semibold text-foreground/80">{formatTaskDate(day, 'dd/MM')}</div>
                             </>
                           ) : (
-                            <div className="font-semibold text-[10px] text-foreground/80">{format(day, 'd')}</div>
+                            <div className="font-semibold text-[10px] text-foreground/80">{formatTaskDate(day, 'd')}</div>
                           )}
 
                         </div>
@@ -307,8 +308,8 @@ export function TeamTimelineWidget() {
                               <div className="text-muted-foreground">Responsável: {memberName}</div>
                               {task.plannedStart && (
                                 <div className="text-muted-foreground">
-                                  {format(parseISO(task.plannedStart), 'dd/MM/yyyy', { locale: ptBR })}
-                                  {task.plannedEnd && ` → ${format(parseISO(task.plannedEnd), 'dd/MM/yyyy', { locale: ptBR })}`}
+                                  {formatTaskDate(task.plannedStart, 'dd/MM/yyyy')}
+                                  {task.plannedEnd && ` → ${formatTaskDate(task.plannedEnd, 'dd/MM/yyyy')}`}
                                 </div>
                               )}
                               <div className="text-primary mt-1">Clique para abrir o projeto</div>

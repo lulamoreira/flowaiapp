@@ -9,6 +9,7 @@ import {
   addMonths, subMonths,
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { formatTaskDate } from '@/lib/dateUtils';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useScopedTasks } from '@/hooks/useScopedTasks';
@@ -56,7 +57,7 @@ export function BoardCalendar({ boardId }: BoardCalendarProps) {
           <ChevronLeft className="h-4 w-4" />
         </Button>
         <h3 className="text-sm font-semibold text-foreground capitalize">
-          {format(currentMonth, 'MMMM yyyy', { locale: ptBR })}
+          {formatTaskDate(currentMonth, 'MMMM yyyy')}
         </h3>
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setCurrentMonth(m => addMonths(m, 1))}>
           <ChevronRight className="h-4 w-4" />
@@ -102,7 +103,7 @@ export function BoardCalendar({ boardId }: BoardCalendarProps) {
               <div className={`text-xs font-medium mb-1 ${
                 today ? 'text-primary font-bold' : inMonth ? 'text-foreground' : 'text-muted-foreground/50'
               }`}>
-                {format(day, 'd')}
+                {formatTaskDate(day, 'd')}
               </div>
               <div className="space-y-0.5">
                 {dayTasks.slice(0, 3).map(task => {

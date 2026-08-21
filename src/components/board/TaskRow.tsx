@@ -2,8 +2,8 @@ import { Task, TaskStatus, TaskPriority } from '@/types';
 import { StatusBadge } from './StatusBadge';
 import { PriorityBadge } from './PriorityBadge';
 import { useAppStore } from '@/store/useAppStore';
-import { format, parseISO, differenceInDays, startOfDay } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { differenceInDays, startOfDay, parseISO } from 'date-fns';
+import { formatTaskDate } from '@/lib/dateUtils';
 import { GripVertical, AlertTriangle, Clock, ChevronDown } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -107,8 +107,8 @@ export function TaskRow({ task, groupColor, onClick, draggable, onDragStart, onD
       </div>
       <div className="w-[150px] px-2 text-xs text-muted-foreground shrink-0">
         {(() => {
-          const startStr = task.plannedStart ? format(parseISO(task.plannedStart), 'dd MMM', { locale: ptBR }) : '—';
-          const endStr = task.plannedEnd ? format(parseISO(task.plannedEnd), 'dd MMM', { locale: ptBR }) : '—';
+          const startStr = task.plannedStart ? formatTaskDate(task.plannedStart) : '—';
+          const endStr = task.plannedEnd ? formatTaskDate(task.plannedEnd) : '—';
           
           if (!task.plannedStart && !task.plannedEnd) return '-';
 

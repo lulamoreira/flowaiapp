@@ -323,12 +323,14 @@ export function BoardTable({ boardId }: BoardTableProps) {
                     case 'status': {
                       const statusOrder: Record<string, number> = {
                         'not_started': 0,
-                        'in_progress': 1,
-                        'blocked': 2,
+                        'working': 1,
+                        'stuck': 2,
                         'waiting': 3,
                         'done': 4
                       };
-                      return (statusOrder[a.status] - statusOrder[b.status]) * dir;
+                      const valA = statusOrder[a.status] ?? 99;
+                      const valB = statusOrder[b.status] ?? 99;
+                      return (valA - valB) * dir;
                     }
 
                     case 'priority': {

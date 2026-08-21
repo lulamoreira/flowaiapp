@@ -3,6 +3,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { Task, TaskGroup } from '@/types';
 import { parseISO, differenceInDays, addDays, format, startOfDay, isBefore, isSameDay, startOfMonth, endOfMonth, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { formatTaskDate } from '@/lib/dateUtils';
 import { TaskDetailModal } from '@/components/task/TaskDetailModal';
 import { ChevronLeft, ChevronRight, CalendarDays, LayoutGrid } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -148,7 +149,7 @@ export function BoardGantt({ boardId, tasks: externalTasks, groups: externalGrou
   const monthSegments = useMemo(() => {
     const segments: { label: string; span: number }[] = [];
     days.forEach(d => {
-      const label = format(d, "MMMM yyyy", { locale: ptBR });
+      const label = formatTaskDate(d, "MMMM yyyy");
       const last = segments[segments.length - 1];
       if (last && last.label === label) last.span++;
       else segments.push({ label, span: 1 });
@@ -157,8 +158,8 @@ export function BoardGantt({ boardId, tasks: externalTasks, groups: externalGrou
   }, [days]);
 
   const rangeLabel = mode === 'week' 
-    ? `${format(days[0], "d 'de' MMM", { locale: ptBR })} – ${format(days[visibleDaysCount - 1], "d 'de' MMM", { locale: ptBR })}`
-    : format(timelineStart, "MMMM yyyy", { locale: ptBR });
+    ? `${formatTaskDate(days[0])} – ${formatTaskDate(days[visibleDaysCount - 1])}`
+    : formatTaskDate(timelineStart, "MMMM yyyy");
 
   return (
     <div className="border border-border rounded-lg bg-card overflow-hidden">
@@ -257,7 +258,7 @@ export function BoardGantt({ boardId, tasks: externalTasks, groups: externalGrou
                     style={{ width: dayWidth, height: 48 }}
                   >
                     <span className={`text-[10px] uppercase tracking-wide ${isToday ? 'text-primary font-semibold' : 'text-muted-foreground'}`}>
-                      {mode === 'week' ? format(day, 'EEE', { locale: ptBR }) : ''}
+                      {mode === 'week' ? formatTaskDate(day, 'EEE') : ''}
                     </span>
                     <span
                       className={`text-sm font-semibold mt-0.5 ${
@@ -266,7 +267,7 @@ export function BoardGantt({ boardId, tasks: externalTasks, groups: externalGrou
                           : 'text-foreground'
                       }`}
                     >
-                      {format(day, 'd')}
+                      {formatTaskDate(day, 'd')}
                     </span>
 
                   </div>
