@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -15,6 +15,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { TaskComments } from '@/components/task/TaskComments';
 import { TaskTimeTracking } from '@/components/task/TaskTimeTracking';
 import { toast } from 'sonner';
+import { parseISO, format, isValid, startOfDay } from 'date-fns';
+import { debounce } from 'lodash';
 
 interface TaskDetailModalProps {
   task: Task | null;
