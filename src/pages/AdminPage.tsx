@@ -904,7 +904,77 @@ export default function AdminPage() {
                   </div>
                 </div>
               )}
-            </TabsContent>
+          </TabsContent>
+
+          {/* TRASH TAB */}
+          <TabsContent value="trash" className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-foreground">Lixeira</h3>
+                <p className="text-sm text-muted-foreground">Itens excluídos recentemente. Permanecem aqui por 24 horas.</p>
+              </div>
+            </div>
+            
+            <div className="bg-card border border-border rounded-xl overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-muted/50">
+                    <th className="text-left p-3 font-medium text-muted-foreground">Tipo</th>
+                    <th className="text-left p-3 font-medium text-muted-foreground">Identificação</th>
+                    <th className="text-left p-3 font-medium text-muted-foreground">Excluído por</th>
+                    <th className="text-left p-3 font-medium text-muted-foreground">Data Exclusão</th>
+                    <th className="text-right p-3 font-medium text-muted-foreground">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {deletionLog.map(log => {
+                    const deletedByUser = users.find(u => u.user_id === log.deleted_by);
+                    let label = "Desconhecido";
+                    let type = "Desconhecido";
+                    
+                    if (log.table_name === 'tasks') {
+                      type = "Tarefa";
+                      label = log.data?.title || log.original_id;
+                    } else if (log.table_name === 'task_groups') {
+                      type = "Grupo";
+                      label = log.data?.name || log.original_id;
+                    } else if (log.table_name === 'boards') {
+                      type = "Quadro";
+                      label = log.data?.name || log.original_id;
+                    }
+
+                    return (
+                      <tr key={log.id} className="border-b border-border last:border-0 hover:bg-muted/30">
+                        <td className="p-3">
+                          <Badge variant="outline" className="capitalize">{type}</Badge>
+                        </td>
+                        <td className="p-3 font-medium text-foreground truncate max-w-[200px]">{label}</td>
+                        <td className="p-3 text-muted-foreground">{deletedByUser?.full_name || 'Sistema'}</td>
+                        <td className="p-3 text-muted-foreground">
+                          {new Date(log.deleted_at).toLocaleString('pt-BR')}
+                        </td>
+                        <td className="p-3 text-right">
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            className="h-8 gap-1 text-primary hover:text-primary hover:bg-primary/5"
+                            onClick={() => handleRestoreItem(log)}
+                            disabled={restoringId === log.id}
+                          >
+                            <RefreshCcw className={cn("h-3.5 w-3.5", restoringId === log.id && "animate-spin")} />
+                            Restaurar
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {deletionLog.length === 0 && (
+                    <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">A lixeira está vazia</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </TabsContent>
           )}
           {/* PLACEHOLDERS TAB */}
           <TabsContent value="placeholders" className="space-y-4">
