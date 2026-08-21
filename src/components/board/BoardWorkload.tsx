@@ -70,8 +70,8 @@ export function BoardWorkload({ boardId }: BoardWorkloadProps) {
     return 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300';
   };
 
-  if (members.length === 0) {
-    return <p className="text-sm text-muted-foreground p-4">Nenhum membro com tarefas atribuídas.</p>;
+  if (state.users.length === 0) {
+    return <p className="text-sm text-muted-foreground p-4">Nenhum colaborador encontrado no sistema.</p>;
   }
 
   return (
