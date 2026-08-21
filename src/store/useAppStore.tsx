@@ -292,10 +292,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     (async () => {
       try {
         let error = null;
+        const { data: { user } } = await supabase.auth.getUser();
+
         switch (action.type) {
           case 'ADD_BOARD': {
             const b = action.payload;
-            const { data: { user } } = await supabase.auth.getUser();
             const res = await supabase.from('boards').insert({
               id: b.id,
               title: b.title,
@@ -320,9 +321,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
             break;
           }
           case 'DELETE_BOARD': {
-            const res = await supabase.from('boards').delete().eq('id', action.payload);
+            const boardId = action.payload;
+            const boardToDelete = state.boards.find(b => b.id === boardId);
+            if (boardToDelete) {
+              await supabase.from('deletion_log').insert({
+                table_name: 'boards',
+                original_id: boardId,
+                data: boardToDelete,
+                deleted_by: user?.id,
+                board_id: boardId
+              });
+            }
+            const res = await supabase.from('boards').delete().eq('id', boardId);
             error = res.error;
-            logActivity('Excluiu quadro', { boardId: action.payload });
+            logActivity('Excluiu quadro', { boardId: boardId });
             break;
           }
           case 'ADD_GROUP': {
