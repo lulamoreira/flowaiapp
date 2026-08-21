@@ -19,12 +19,12 @@ interface ModulePermission {
  * - Viewer: ignora completamente as permissões da função e fica somente leitura.
  */
 export function usePermissions() {
-  const { user, isAdmin, isCoordinator, roles, loading: authLoading } = useAuth();
+  const { user, isAdmin, isCoordinator, isOwner, roles, loading: authLoading } = useAuth();
   const [permissions, setPermissions] = useState<Record<string, ModulePermission>>({});
   const [loading, setLoading] = useState(true);
 
-  const isViewer = roles?.includes('viewer') && !isAdmin && !isCoordinator;
-  const isAdminOrCoordinator = isAdmin || isCoordinator;
+  const isViewer = roles?.includes('viewer') && !isAdmin && !isCoordinator && !isOwner;
+  const isAdminOrCoordinator = isAdmin || isCoordinator || isOwner;
 
   const fetchPermissions = useCallback(async () => {
     if (!user) {
