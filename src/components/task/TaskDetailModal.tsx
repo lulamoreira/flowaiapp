@@ -76,6 +76,7 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
 
 
   const update = (updates: Partial<Task>) => {
+    if (!current) return;
     dispatch({ type: 'UPDATE_TASK', payload: { ...current, ...updates } });
   };
 
@@ -83,8 +84,9 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
     debounce((updates: Partial<Task>) => {
       update(updates);
     }, 800),
-    [current.id]
+    [current?.id]
   );
+
 
   const handleAssigneeChange = (newAssigneeId: string) => {
     const actualId = newAssigneeId === 'none' ? '' : newAssigneeId;
