@@ -179,24 +179,33 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const load = async () => {
     try {
-      const [boardsData, groupsData, tasksData, automationsData, profilesData] = await Promise.all([
+      const [boardsData, groupsData, tasksData, automationsData, profilesData, placeholdersData] = await Promise.all([
         fetchPaginated('boards', 'created_at'),
         fetchPaginated('task_groups', 'position'),
         fetchPaginated('tasks', 'position'),
         fetchPaginated('automation_rules', 'created_at'),
         fetchPaginated('profiles', 'created_at'),
+        fetchPaginated('placeholder_members', 'created_at'),
       ]);
 
       const boards = boardsData.map(dbToBoard);
       const groups = groupsData.map(dbToGroup);
       const tasks = tasksData.map(dbToTask);
       const automations = automationsData.map(dbToAutomation);
-      const users: User[] = profilesData.map(p => ({
+      const realUsers: User[] = profilesData.map(p => ({
         id: p.user_id,
         name: p.full_name || 'Sem nome',
         email: '',
         avatar: (p.full_name || '??').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase(),
       }));
+      const placeholders: User[] = placeholdersData.map(p => ({
+        id: p.id,
+        name: p.full_name + (p.claimed_by ? '' : ' (provisório)'),
+        email: p.email || '',
+        avatar: (p.full_name || '??').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase(),
+        isPlaceholder: true,
+      }));
+      const users = [...realUsers, ...placeholders];
 
       dispatch({ type: 'SET_STATE', payload: { boards, groups, tasks, users, automations, loading: false } });
     } catch (err: any) {
