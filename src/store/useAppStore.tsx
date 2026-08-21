@@ -286,7 +286,49 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  const [confirmDelete, setConfirmDelete] = React.useState<{
+    type: Action['type'];
+    payload: string;
+    title: string;
+    itemType: string;
+    details?: any;
+  } | null>(null);
+
   const wrappedDispatch = useCallback((action: Action) => {
+    // Intercept delete actions for confirmation
+    if ((action.type === 'DELETE_TASK' || action.type === 'DELETE_BOARD' || action.type === 'DELETE_GROUP') && (action as any).confirmDetails) {
+      const details = (action as any).confirmDetails;
+      let itemDetails = undefined;
+      
+      if (action.type === 'DELETE_TASK') {
+        const task = state.tasks.find(t => t.id === action.payload);
+        if (task) {
+          itemDetails = {
+            id: task.id,
+            status: task.status,
+            prioridade: task.priority
+          };
+        }
+      } else if (action.type === 'DELETE_GROUP') {
+        const group = state.groups.find(g => g.id === action.payload);
+        if (group) {
+          itemDetails = {
+            id: group.id,
+            tarefas: state.tasks.filter(t => t.groupId === group.id).length
+          };
+        }
+      }
+      
+      setConfirmDelete({
+        type: action.type,
+        payload: action.payload,
+        title: details.title,
+        itemType: details.type,
+        details: itemDetails
+      });
+      return;
+    }
+
     dispatch(action);
 
     (async () => {
