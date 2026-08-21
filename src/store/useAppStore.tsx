@@ -531,6 +531,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
   return (
     <AppContext.Provider value={{ state, dispatch: wrappedDispatch }}>
       {children}
+      <DeleteConfirmDialog
+        open={!!confirmDelete}
+        onOpenChange={(open) => !open && setConfirmDelete(null)}
+        onConfirm={async () => {
+          if (confirmDelete) {
+            dispatch({ type: confirmDelete.type as any, payload: confirmDelete.payload });
+            toast.success(`${confirmDelete.itemType} excluído`);
+            setConfirmDelete(null);
+          }
+        }}
+        title={`Excluir ${confirmDelete?.itemType}`}
+        description={`Você tem certeza que deseja excluir este ${confirmDelete?.itemType?.toLowerCase()}? Ele será movido para a lixeira por 24 horas.`}
+        itemName={confirmDelete?.title}
+        itemDetails={confirmDelete?.details}
+      />
     </AppContext.Provider>
   );
 }
