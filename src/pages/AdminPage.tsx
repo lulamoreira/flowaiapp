@@ -904,7 +904,7 @@ export default function AdminPage() {
                   </div>
                 </div>
               )}
-          </TabsContent>
+            </TabsContent>
 
           {/* TRASH TAB */}
           <TabsContent value="trash" className="space-y-4">
