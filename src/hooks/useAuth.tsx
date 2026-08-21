@@ -37,10 +37,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [loading, setLoading] = useState(true);
-  const [authInitialized, setAuthInitialized] = useState(false);
 
   const fetchProfile = useCallback(async (userId: string) => {
-    console.log('useAuth: fetchProfile started for', userId);
     try {
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
@@ -48,24 +46,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .eq('user_id', userId)
         .single();
       
-      if (profileError) console.error('useAuth: Error fetching profile:', profileError);
+      if (profileError) console.error('Error fetching profile:', profileError);
       
       const { data: rolesData, error: rolesError } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', userId);
 
-      if (rolesError) console.error('useAuth: Error fetching roles:', rolesError);
+      if (rolesError) console.error('Error fetching roles:', rolesError);
 
-      console.log('useAuth: fetchProfile roles found:', rolesData?.map(r => r.role));
       setProfile(profileData);
       setRoles(rolesData?.map(r => r.role) || []);
     } catch (err) {
-      console.error('useAuth: Unexpected error in fetchProfile:', err);
+      console.error('Unexpected error in fetchProfile:', err);
     } finally {
-      console.log('useAuth: fetchProfile finished, setting loading false');
       setLoading(false);
-      setAuthInitialized(true);
     }
   }, []);
 
@@ -74,51 +69,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user, fetchProfile]);
 
   useEffect(() => {
-    // 4. Safety timeout to prevent permanent loading screen
     const safetyTimeout = setTimeout(() => {
       setLoading(false);
-      setAuthInitialized(true);
     }, 5000);
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('useAuth: onAuthStateChange event:', event);
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
           await fetchProfile(session.user.id);
+          if (event === 'SIGNED_IN') {
+            logActivity('Login', { method: 'auth', email: session.user.email });
+          }
         } else {
           setProfile(null);
           setRoles([]);
           setLoading(false);
-          setAuthInitialized(true);
         }
       }
     );
 
-    const initAuth = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        console.log('useAuth: initAuth session found:', !!session);
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          await fetchProfile(session.user.id);
-        } else {
-          setLoading(false);
-          setAuthInitialized(true);
-        }
-      } catch (err) {
-        console.error('useAuth: Error in initAuth:', err);
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        await fetchProfile(session.user.id);
+      } else {
         setLoading(false);
-        setAuthInitialized(true);
-      } finally {
-        clearTimeout(safetyTimeout);
       }
-    };
-
-    initAuth();
+      clearTimeout(safetyTimeout);
+    }).catch(err => {
+      console.error('Error in getSession:', err);
+      setLoading(false);
+      clearTimeout(safetyTimeout);
+    });
 
     return () => {
       subscription.unsubscribe();
