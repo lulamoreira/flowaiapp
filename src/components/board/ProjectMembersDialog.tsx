@@ -111,14 +111,11 @@ export function ProjectMembersDialog({ open, onOpenChange, boardId }: ProjectMem
               {state.users
                 .filter(u => !u.isPlaceholder) // Somente usuários reais podem ser autorizados explicitamente
                 .map((user) => (
-                <div key={user.id} className="flex items-center space-x-3 p-2 hover:bg-muted/50 rounded-lg transition-colors cursor-pointer" onClick={(e) => {
-                  e.preventDefault();
-                  handleToggle(user.id);
-                }}>
+                <div key={user.id} className="flex items-center space-x-3 p-2 hover:bg-muted/50 rounded-lg transition-colors cursor-pointer" onClick={() => handleToggle(user.id)}>
                   <Checkbox 
                     id={`user-${user.id}`} 
                     checked={authorizedIds.includes(user.id)}
-                    readOnly // Managed by parent div click to avoid double toggle
+                    className="pointer-events-none"
                   />
                   <div className="flex-1">
                     <p className="text-sm font-medium leading-none">{user.name}</p>
