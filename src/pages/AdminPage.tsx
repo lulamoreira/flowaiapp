@@ -244,6 +244,7 @@ export default function AdminPage() {
       'user_custom_functions',
       'activity_log',
       'placeholder_members',
+      'deletion_log',
     ],
     fetchAll,
     { channelName: 'admin-page-rt' }
