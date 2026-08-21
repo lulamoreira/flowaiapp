@@ -442,7 +442,8 @@ export default function AdminPage() {
 
       if (error) throw error;
 
-      toast.success(`Sucesso! ${data.tasks_migrated} tarefas migradas.`);
+      const result = data as { tasks_migrated: number };
+      toast.success(`Sucesso! ${result.tasks_migrated} tarefas migradas.`);
       setClaimDialogOpen(false);
       fetchAll();
     } catch (err: any) {
