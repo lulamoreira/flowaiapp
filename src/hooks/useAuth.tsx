@@ -119,6 +119,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isOwner = roles?.includes('owner') ?? false;
   const isCoordinator = roles?.includes('coordinator') ?? false;
 
+  // Computed values that update correctly when roles are fetched
+  const isAdminOrCoordinator = isAdmin || isCoordinator || isOwner;
+
   return (
     <AuthContext.Provider value={{
       user, session, profile, roles, loading,
