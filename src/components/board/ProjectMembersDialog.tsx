@@ -6,7 +6,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useAppStore } from '@/store/useAppStore';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Loader2, Users } from 'lucide-react';
+import { Loader2, Users, AlertTriangle } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 interface ProjectMembersDialogProps {
   open: boolean;
@@ -15,10 +16,11 @@ interface ProjectMembersDialogProps {
 }
 
 export function ProjectMembersDialog({ open, onOpenChange, boardId }: ProjectMembersDialogProps) {
-  const { state } = useAppStore();
+  const { state, dispatch } = useAppStore();
   const [loading, setLoading] = useState(false);
   const [authorizedIds, setAuthorizedIds] = useState<string[]>([]);
   const [initialAuthorizedIds, setInitialAuthorizedIds] = useState<string[]>([]);
+  const [confirmRemove, setConfirmRemove] = useState<{ userId: string; name: string; tasks: number; subtasks: number } | null>(null);
 
   // Load authorized members for this board
   const loadAuthorized = async () => {
@@ -55,13 +57,81 @@ export function ProjectMembersDialog({ open, onOpenChange, boardId }: ProjectMem
     );
   };
 
-  const handleSave = async () => {
+  const handleSave = async (userIdsToForceRemove?: string[]) => {
     setLoading(true);
     try {
       const toAdd = authorizedIds.filter(id => !initialAuthorizedIds.includes(id));
-      const toRemove = initialAuthorizedIds.filter(id => !authorizedIds.includes(id));
+      let toRemove = initialAuthorizedIds.filter(id => !authorizedIds.includes(id));
+      
+      if (userIdsToForceRemove) {
+        toRemove = userIdsToForceRemove;
+      }
 
+      // 2. AO RETIRAR A AUTORIZAÇÃO, AVISAR E LIBERAR AS TAREFAS.
+      if (!userIdsToForceRemove && toRemove.length > 0) {
+        for (const userId of toRemove) {
+          const boardTasks = state.tasks.filter(t => t.boardId === boardId);
+          const tasksWithAssignee = boardTasks.filter(t => t.assignee === userId);
+          let subtaskCount = 0;
+          boardTasks.forEach(t => {
+            if (t.subtasks && Array.isArray(t.subtasks)) {
+              subtaskCount += t.subtasks.filter((s: any) => s.assignee === userId).length;
+            }
+          });
+
+          if (tasksWithAssignee.length > 0 || subtaskCount > 0) {
+            const user = state.users.find(u => u.id === userId);
+            setConfirmRemove({
+              userId,
+              name: user?.name || 'Usuário',
+              tasks: tasksWithAssignee.length,
+              subtasks: subtaskCount
+            });
+            setLoading(false);
+            return;
+          }
+        }
+      }
+
+      // a) toda escrita no Supabase deve usar await e verificar o campo error
       if (toRemove.length > 0) {
+        // c) ao confirmar, limpar o responsável dessas tarefas (assignee nulo) e também o campo assignee das subtarefas
+        const boardTasks = state.tasks.filter(t => t.boardId === boardId);
+        const affectedTasks = boardTasks.filter(t => {
+          const hasAssignee = toRemove.includes(t.assignee);
+          const hasSubtaskAssignee = t.subtasks?.some((s: any) => toRemove.includes(s.assignee));
+          return hasAssignee || hasSubtaskAssignee;
+        });
+
+        if (affectedTasks.length > 0) {
+          for (const task of affectedTasks) {
+            const updates: any = {};
+            if (toRemove.includes(task.assignee)) updates.assignee = null;
+            if (task.subtasks) {
+              updates.subtasks = task.subtasks.map((s: any) => 
+                toRemove.includes(s.assignee) ? { ...s, assignee: undefined } : s
+              );
+            }
+            const { error } = await supabase.from('tasks').update(updates).eq('id', task.id);
+            if (error) throw error;
+          }
+          
+          // d) ao atualizar o estado local depois de gravar, use um único dispatch do tipo SET_STATE partindo de state.tasks completo
+          const newTasks = state.tasks.map(t => {
+            if (t.boardId !== boardId) return t;
+            if (!toRemove.includes(t.assignee) && !t.subtasks?.some((s: any) => toRemove.includes(s.assignee))) return t;
+            
+            return {
+              ...t,
+              assignee: toRemove.includes(t.assignee) ? '' : t.assignee,
+              subtasks: t.subtasks?.map((s: any) => 
+                toRemove.includes(s.assignee) ? { ...s, assignee: undefined } : s
+              ) || []
+            };
+          });
+          dispatch({ type: 'SET_STATE', payload: { tasks: newTasks } });
+        }
+
         const { error } = await supabase
           .from('project_members' as any)
           .delete()
@@ -84,6 +154,7 @@ export function ProjectMembersDialog({ open, onOpenChange, boardId }: ProjectMem
       toast.error('Erro ao salvar: ' + err.message);
     } finally {
       setLoading(false);
+      setConfirmRemove(null);
     }
   };
 
@@ -125,12 +196,42 @@ export function ProjectMembersDialog({ open, onOpenChange, boardId }: ProjectMem
             </div>
           )}
         </ScrollArea>
+        
+        <AlertDialog open={!!confirmRemove} onOpenChange={() => setConfirmRemove(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-destructive" />
+                Remover autorização?
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                <strong>{confirmRemove?.name}</strong> é responsável por {confirmRemove?.tasks} tarefas e {confirmRemove?.subtasks} subtarefas neste projeto. 
+                Ao remover a autorização, essas tarefas ficarão SEM responsável e poderão ser reatribuídas. Deseja continuar?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => {
+                // Manter diálogo aberto com a pessoa marcada (revertendo o toggle local se necessário)
+                setAuthorizedIds(prev => [...prev, confirmRemove!.userId]);
+                setConfirmRemove(null);
+              }}>
+                Cancelar
+              </AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={() => handleSave()} 
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Confirmar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         <DialogFooter className="mt-4">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
             Cancelar
           </Button>
-          <Button onClick={handleSave} disabled={loading} className="bg-primary">
+          <Button onClick={() => handleSave()} disabled={loading} className="bg-primary">
             {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
             Salvar Alterações
           </Button>

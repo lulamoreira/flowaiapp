@@ -10,6 +10,7 @@ interface AppState {
   groups: TaskGroup[];
   tasks: Task[];
   users: User[];
+  projectMembers: Record<string, string[]>; // boardId -> userId[]
   automations: AutomationRule[];
   loading: boolean;
 }
@@ -36,6 +37,7 @@ const initialState: AppState = {
   groups: [],
   tasks: [],
   users: [],
+  projectMembers: {},
   automations: [],
   loading: true,
 };
@@ -181,13 +183,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const load = async () => {
     try {
-      const [boardsData, groupsData, tasksData, automationsData, profilesData, placeholdersData] = await Promise.all([
+      const [boardsData, groupsData, tasksData, automationsData, profilesData, placeholdersData, membersData] = await Promise.all([
         fetchPaginated('boards', 'created_at'),
         fetchPaginated('task_groups', 'position'),
         fetchPaginated('tasks', 'position'),
         fetchPaginated('automation_rules', 'created_at'),
         fetchPaginated('profiles', 'created_at'),
         fetchPaginated('placeholder_members', 'created_at'),
+        fetchPaginated('project_members', 'created_at'),
       ]);
 
       const boards = boardsData.map(dbToBoard);
@@ -212,8 +215,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
         isPlaceholder: true,
       }));
       const users = [...realUsers, ...placeholders];
+      
+      const projectMembers: Record<string, string[]> = {};
+      membersData.forEach((m: any) => {
+        if (!projectMembers[m.board_id]) projectMembers[m.board_id] = [];
+        projectMembers[m.board_id].push(m.user_id);
+      });
 
-      dispatch({ type: 'SET_STATE', payload: { boards, groups, tasks, users, automations, loading: false } });
+      dispatch({ type: 'SET_STATE', payload: { boards, groups, tasks, users, automations, projectMembers, loading: false } });
     } catch (err: any) {
       console.error('Error loading data:', err);
       toast.error('Erro ao carregar dados: ' + err.message);
@@ -224,7 +233,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     load();
   }, []);
 
-  const refetch = async (type: 'boards' | 'groups' | 'tasks' | 'automations' | 'users') => {
+  const refetch = async (type: 'boards' | 'groups' | 'tasks' | 'automations' | 'users' | 'projectMembers') => {
     try {
       switch (type) {
         case 'boards': {
@@ -268,6 +277,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
           dispatch({ type: 'SET_STATE', payload: { users: [...realUsers, ...placeholders] } });
           break;
         }
+        case 'projectMembers': {
+          const data = await fetchPaginated('project_members', 'created_at');
+          const projectMembers: Record<string, string[]> = {};
+          data.forEach((m: any) => {
+            if (!projectMembers[m.board_id]) projectMembers[m.board_id] = [];
+            projectMembers[m.board_id].push(m.user_id);
+          });
+          dispatch({ type: 'SET_STATE', payload: { projectMembers } });
+          break;
+        }
       }
     } catch (err: any) {
       console.error(`Refetch error (${type}):`, err);
@@ -284,7 +303,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'automation_rules' }, () => refetch('automations'))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => refetch('users'))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'placeholder_members' }, () => refetch('users'))
-    window.addEventListener('focus', () => refetch('users'));
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'project_members' }, () => refetch('projectMembers'))
+    window.addEventListener('focus', () => {
+      refetch('users');
+      refetch('projectMembers');
+    });
     return () => {
       supabase.removeChannel(channel);
       window.removeEventListener('focus', () => refetch('users'));

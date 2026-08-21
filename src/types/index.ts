@@ -5,6 +5,8 @@ export interface Subtask {
   id: string;
   title: string;
   completed: boolean;
+  assignee?: string;
+  dueDate?: string;
 }
 
 export interface Attachment {

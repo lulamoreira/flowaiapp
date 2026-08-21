@@ -168,6 +168,7 @@ export function BoardKanban({ boardId }: BoardKanbanProps) {
         dueDateFilter={dueDateFilter}
         onDueDateChange={setDueDateFilter}
         users={state.users}
+        boardId={boardId}
       />
       <div className="flex gap-4 overflow-x-auto pb-4 min-h-[60vh]">
       {COLUMNS.map(status => {

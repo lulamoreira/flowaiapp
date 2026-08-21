@@ -1,4 +1,5 @@
 import { Search } from 'lucide-react';
+import { useAppStore } from '@/store/useAppStore';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { STATUS_CONFIG, PRIORITY_CONFIG } from '@/types';
@@ -16,6 +17,7 @@ interface SearchFilterBarProps {
   dueDateFilter: string;
   onDueDateChange: (v: string) => void;
   users: User[];
+  boardId?: string;
 }
 
 export function SearchFilterBar({
@@ -25,6 +27,7 @@ export function SearchFilterBar({
   assigneeFilter, onAssigneeChange,
   dueDateFilter, onDueDateChange,
   users,
+  boardId,
 }: SearchFilterBarProps) {
   return (
     <div className="flex items-center gap-3 flex-wrap">
@@ -65,9 +68,31 @@ export function SearchFilterBar({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">Todos</SelectItem>
-          {users.map(u => (
-            <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
-          ))}
+          {(() => {
+            const { state } = useAppStore();
+            const authorizedIds = boardId ? (state.projectMembers[boardId] || []) : [];
+            const hasAuthorized = boardId && authorizedIds.length > 0;
+            
+            const filteredUsers = users.filter(u => {
+              if (u.id === assigneeFilter) return true;
+              if (!hasAuthorized) return true;
+              return authorizedIds.includes(u.id);
+            });
+
+            return filteredUsers.map(u => {
+              const isNotAuthorized = hasAuthorized && !authorizedIds.includes(u.id) && u.id === assigneeFilter;
+              return (
+                <SelectItem key={u.id} value={u.id}>
+                  <div className="flex flex-col">
+                    <span>{u.name}</span>
+                    {isNotAuthorized && (
+                      <span className="text-[9px] text-destructive leading-tight">sem autorização</span>
+                    )}
+                  </div>
+                </SelectItem>
+              );
+            });
+          })()}
         </SelectContent>
       </Select>
       <Select value={dueDateFilter} onValueChange={onDueDateChange}>
