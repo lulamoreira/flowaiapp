@@ -30,19 +30,23 @@ function formatFileSize(bytes: number): string {
 }
 
 /**
- * Converts a database timestamp (ISO-8601) to HTML datetime-local format (yyyy-MM-ddTHH:mm).
- * Handles:
- * - "2026-08-15T10:00:00+00:00"
- * - "2026-08-15 10:00:00"
- * - "2026-08-15"
+ * Converts a database timestamp (ISO-8601 UTC) to HTML datetime-local format (yyyy-MM-ddTHH:mm) without shifting timezones.
  */
 function toInputFormat(dateStr: string | null | undefined): string {
   if (!dateStr) return '';
   try {
+    // For project management, we treat dates as absolute calendar markers.
+    // If the DB has 2026-08-15T00:00:00+00:00, we want to show 2026-08-15T00:00 regardless of local TZ.
     const date = parseISO(dateStr);
     if (!isValid(date)) return '';
-    // Always format to yyyy-MM-ddTHH:mm for datetime-local
-    return format(date, "yyyy-MM-dd'T'HH:mm");
+    
+    const yyyy = date.getUTCFullYear();
+    const mm = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const dd = String(date.getUTCDate()).padStart(2, '0');
+    const hh = String(date.getUTCHours()).padStart(2, '0');
+    const min = String(date.getUTCMinutes()).padStart(2, '0');
+    
+    return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
   } catch (err) {
     console.error('Error parsing date to input format:', dateStr, err);
     return '';
@@ -50,12 +54,18 @@ function toInputFormat(dateStr: string | null | undefined): string {
 }
 
 /**
- * Converts HTML datetime-local value (yyyy-MM-ddTHH:mm) to ISO-8601 for database.
+ * Converts HTML datetime-local value (yyyy-MM-ddTHH:mm) to ISO-8601 UTC for database.
  */
 function fromInputFormat(val: string): string | null {
   if (!val) return null;
   try {
-    const date = parseISO(val);
+    // Treat the input value as a literal UTC time.
+    // If user types 2026-08-15 09:00, we save 2026-08-15T09:00:00.000Z
+    const [datePart, timePart] = val.split('T');
+    const [yyyy, mm, dd] = datePart.split('-').map(Number);
+    const [hh, min] = timePart.split(':').map(Number);
+    
+    const date = new Date(Date.UTC(yyyy, mm - 1, dd, hh, min));
     if (!isValid(date)) return null;
     return date.toISOString();
   } catch {
@@ -108,9 +118,11 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
     [update]
   );
 
-  // Clean up debounce on unmount
+  // Flush pending updates on unmount to prevent data loss
   useEffect(() => {
-    return () => debouncedUpdate.cancel();
+    return () => {
+      debouncedUpdate.flush();
+    };
   }, [debouncedUpdate]);
 
   if (!task || !current) return null;
