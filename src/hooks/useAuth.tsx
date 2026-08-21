@@ -39,19 +39,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = useCallback(async (userId: string) => {
-    const { data: profileData } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('user_id', userId)
-      .single();
-    
-    const { data: rolesData } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', userId);
+    try {
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+      
+      if (profileError) console.error('Error fetching profile:', profileError);
+      
+      const { data: rolesData, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId);
 
-    setProfile(profileData);
-    setRoles(rolesData?.map(r => r.role) || []);
+      if (rolesError) console.error('Error fetching roles:', rolesError);
+
+      setProfile(profileData);
+      setRoles(rolesData?.map(r => r.role) || []);
+    } catch (err) {
+      console.error('Unexpected error in fetchProfile:', err);
+    }
   }, []);
 
   const refreshProfile = useCallback(async () => {
@@ -64,27 +72,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
         
-        if (session?.user) {
-          await fetchProfile(session.user.id);
-          if (event === 'SIGNED_IN') {
-            logActivity('Login', { method: 'auth', email: session.user.email });
+        try {
+          if (session?.user) {
+            await fetchProfile(session.user.id);
+            if (event === 'SIGNED_IN') {
+              logActivity('Login', { method: 'auth', email: session.user.email });
+            }
+          } else {
+            setProfile(null);
+            setRoles([]);
           }
-        } else {
-          setProfile(null);
-          setRoles([]);
+        } finally {
+          setLoading(false);
         }
-        setLoading(false);
       }
     );
 
     const initSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        await fetchProfile(session.user.id);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        setSession(session);
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          await fetchProfile(session.user.id);
+        }
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     initSession();
@@ -105,11 +119,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isOwner = roles?.includes('owner') ?? false;
   const isCoordinator = roles?.includes('coordinator') ?? false;
 
+  const isAdminOrCoordinator = isAdmin || isCoordinator || isOwner;
+
   return (
     <AuthContext.Provider value={{
       user, session, profile, roles, loading,
       isAdmin, isOwner, isCoordinator,
-      isAdminOrCoordinator: isAdmin || isCoordinator || isOwner,
+      isAdminOrCoordinator,
       signOut, refreshProfile,
     }}>
       {children}
