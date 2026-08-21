@@ -612,6 +612,7 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
           </div>
         </div>
       </DialogContent>
-    </Dialog>
+      </Dialog>
+    </>
   );
 }
