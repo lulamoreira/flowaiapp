@@ -54,8 +54,9 @@ export interface Board {
 export interface User {
   id: string;
   name: string;
-  email: string;
+  email?: string;
   avatar: string;
+  isPlaceholder?: boolean;
 }
 
 export interface AutomationRule {
