@@ -92,7 +92,6 @@ describe('Reschedule Logic', () => {
     expect(conflicts).toHaveLength(1);
     expect(conflicts[0].assignee).toBe('User A');
   });
-  });
 
   it('should scale dates when duration decreases', () => {
     // Project duration: 9 days
