@@ -11,8 +11,6 @@ interface ProtectedRouteProps {
 
 export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps) {
   const { user, loading, roles } = useAuth();
-  
-  console.log('ProtectedRoute:', { path: window.location.pathname, user: !!user, loading, roles });
 
   if (loading) {
     return (
@@ -26,14 +24,12 @@ export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps)
   }
 
   if (!user) {
-    console.log('Redirecting to login - no user');
     return <Navigate to="/login" replace />;
   }
 
   if (requiredRoles && requiredRoles.length > 0) {
     const hasRole = requiredRoles.some(r => roles?.includes(r));
     if (!hasRole) {
-      console.log('Redirecting to home - missing roles:', { required: requiredRoles, current: roles });
       return <Navigate to="/" replace />;
     }
   }
