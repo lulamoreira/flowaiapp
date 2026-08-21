@@ -912,6 +912,10 @@ export type Database = {
         Returns: boolean
       }
       is_admin_or_coordinator: { Args: { _user_id: string }; Returns: boolean }
+      is_project_member: {
+        Args: { _board_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_subscribed: { Args: { u_id: string }; Returns: boolean }
     }
     Enums: {
