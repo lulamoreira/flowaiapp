@@ -1,18 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { addDays, differenceInDays, format, parseISO, startOfDay, isBefore } from 'date-fns';
+import { addDays, differenceInDays, format, parseISO, startOfDay, isBefore, startOfMonth, endOfMonth, getDaysInMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useAppStore } from '@/store/useAppStore';
 import { supabase } from '@/integrations/supabase/client';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, GanttChartSquare } from 'lucide-react';
+import { ChevronLeft, ChevronRight, GanttChartSquare, CalendarDays, LayoutGrid } from 'lucide-react';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
-const DAY_WIDTH = 110;
+
 const ROW_HEIGHT = 44;
 const NAME_COL = 240;
-const VISIBLE_DAYS = 7;
 
 interface ProfileLite {
   user_id: string;
@@ -24,7 +24,13 @@ export function TeamTimelineWidget() {
   const { state } = useAppStore();
   const navigate = useNavigate();
   const [profiles, setProfiles] = useState<Record<string, ProfileLite>>({});
-  const [weekOffset, setWeekOffset] = useState(0);
+  const [mode, setMode] = useState<'week' | 'month'>(() => (localStorage.getItem('flowai-timeline-mode') as 'week' | 'month') || 'week');
+  const [offset, setOffset] = useState(0);
+
+  useEffect(() => {
+    localStorage.setItem('flowai-timeline-mode', mode);
+  }, [mode]);
+
 
   useEffect(() => {
     (async () => {
