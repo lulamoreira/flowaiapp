@@ -15,7 +15,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { TaskComments } from '@/components/task/TaskComments';
 import { TaskTimeTracking } from '@/components/task/TaskTimeTracking';
 import { toast } from 'sonner';
-import { parseISO, format, isValid, startOfDay } from 'date-fns';
+import { parseISO, format, isValid } from 'date-fns';
 import { debounce } from 'lodash';
 
 interface TaskDetailModalProps {
@@ -29,14 +29,37 @@ function formatFileSize(bytes: number): string {
   return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 }
 
+/**
+ * Converts a database timestamp (ISO-8601) to HTML datetime-local format (yyyy-MM-ddTHH:mm).
+ * Handles:
+ * - "2026-08-15T10:00:00+00:00"
+ * - "2026-08-15 10:00:00"
+ * - "2026-08-15"
+ */
 function toInputFormat(dateStr: string | null | undefined): string {
   if (!dateStr) return '';
   try {
     const date = parseISO(dateStr);
     if (!isValid(date)) return '';
+    // Always format to yyyy-MM-ddTHH:mm for datetime-local
     return format(date, "yyyy-MM-dd'T'HH:mm");
-  } catch {
+  } catch (err) {
+    console.error('Error parsing date to input format:', dateStr, err);
     return '';
+  }
+}
+
+/**
+ * Converts HTML datetime-local value (yyyy-MM-ddTHH:mm) to ISO-8601 for database.
+ */
+function fromInputFormat(val: string): string | null {
+  if (!val) return null;
+  try {
+    const date = parseISO(val);
+    if (!isValid(date)) return null;
+    return date.toISOString();
+  } catch {
+    return null;
   }
 }
 
@@ -49,7 +72,10 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
   const [expandingDesc, setExpandingDesc] = useState(false);
   const [showSubtaskDetails, setShowSubtaskDetails] = useState<Record<string, boolean>>({});
   
-  // Local state for debounced fields
+  // Find current task in global state to get latest updates
+  const current = task ? (state.tasks.find(t => t.id === task.id) || task) : null;
+
+  // Local state for all editable fields to prevent lag and "echo" issues
   const [localTitle, setLocalTitle] = useState('');
   const [localDescription, setLocalDescription] = useState('');
   const [localPlannedStart, setLocalPlannedStart] = useState('');
@@ -58,11 +84,8 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
   const [localActualEnd, setLocalActualEnd] = useState('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const dropRef = useRef<HTMLDivElement>(null);
 
-  const current = task ? (state.tasks.find(t => t.id === task.id) || task) : null;
-
-  // Sync local state when task changes (only once per task open/re-open or store sync)
+  // Sync local state ONLY when the active task ID changes (open/switch task)
   useEffect(() => {
     if (!current) return;
     setLocalTitle(current.title || '');
@@ -71,21 +94,25 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
     setLocalPlannedEnd(toInputFormat(current.plannedEnd));
     setLocalActualStart(toInputFormat(current.actualStart));
     setLocalActualEnd(toInputFormat(current.actualEnd));
-  }, [current?.id]); // We intentionally only sync on ID change to avoid losing focus while typing
+  }, [current?.id]);
 
-  const update = (updates: Partial<Task>) => {
+  const update = useCallback((updates: Partial<Task>) => {
     if (!current) return;
     dispatch({ type: 'UPDATE_TASK', payload: { ...current, ...updates } });
-  };
+  }, [current, dispatch]);
 
   const debouncedUpdate = useCallback(
     debounce((updates: Partial<Task>) => {
       update(updates);
     }, 800),
-    [current?.id]
+    [update]
   );
 
-  // Early return AFTER hooks
+  // Clean up debounce on unmount
+  useEffect(() => {
+    return () => debouncedUpdate.cancel();
+  }, [debouncedUpdate]);
+
   if (!task || !current) return null;
 
   const handleAssigneeChange = (newAssigneeId: string) => {
@@ -95,7 +122,8 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
 
     if (actualId && actualId !== previousAssignee && actualId !== user?.id) {
       const board = state.boards.find(b => b.id === current.boardId);
-      const assignerName = state.users.find(u => u.id === user?.id)?.name || 'Alguém';
+      const assignerUser = state.users.find(u => u.id === user?.id);
+      const assignerName = assignerUser?.name || 'Alguém';
       createNotification({
         userId: actualId,
         title: '👤 Tarefa atribuída a você',
@@ -105,10 +133,34 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
     }
   };
 
-  // Enhanced subtask with assignee, due date, status
+  const handleDateChange = (field: 'plannedStart' | 'plannedEnd' | 'actualStart' | 'actualEnd', value: string) => {
+    // Update local state immediately
+    switch (field) {
+      case 'plannedStart': setLocalPlannedStart(value); break;
+      case 'plannedEnd': setLocalPlannedEnd(value); break;
+      case 'actualStart': setLocalActualStart(value); break;
+      case 'actualEnd': setLocalActualEnd(value); break;
+    }
+    // Debounce database update
+    debouncedUpdate({ [field]: fromInputFormat(value) });
+  };
+
+  const handleBlur = (field: keyof Task, value: any) => {
+    debouncedUpdate.cancel();
+    const dbValue = (field.includes('Start') || field.includes('End')) && typeof value === 'string' 
+      ? fromInputFormat(value) 
+      : value;
+    
+    // Only update if actually different from the current store value
+    if (dbValue !== (current as any)[field]) {
+      update({ [field]: dbValue });
+    }
+  };
+
+  // Subtask handlers
   const addSubtask = () => {
     if (!newSubtask.trim()) return;
-    const sub: Subtask & { assignee?: string; dueDate?: string; status?: string } = {
+    const sub: Subtask = {
       id: `s${Date.now()}`,
       title: newSubtask.trim(),
       completed: false,
@@ -140,6 +192,7 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
   const completedSubtasks = current.subtasks.filter(s => s.completed).length;
   const subtaskProgress = current.subtasks.length > 0 ? (completedSubtasks / current.subtasks.length) * 100 : 0;
 
+  // Attachment handlers
   const uploadFiles = async (files: File[]) => {
     if (files.length === 0) return;
     setUploading(true);
@@ -168,9 +221,7 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-    await uploadFiles(Array.from(files));
+    if (e.target.files) await uploadFiles(Array.from(e.target.files));
   };
 
   const handleDrop = async (e: React.DragEvent) => {
@@ -187,7 +238,6 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
     toast.success('Anexo removido');
   };
 
-  // AI expand description
   const handleExpandWithAI = async () => {
     if (!current.title) return;
     setExpandingDesc(true);
@@ -197,6 +247,7 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
       });
       if (data?.expanded) {
         update({ description: data.expanded });
+        setLocalDescription(data.expanded);
         toast.success('Descrição expandida com IA');
       } else {
         toast.error('Não foi possível expandir a descrição');
@@ -218,10 +269,8 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
                 setLocalTitle(e.target.value);
                 debouncedUpdate({ title: e.target.value });
               }}
-              onBlur={() => {
-                debouncedUpdate.cancel();
-                if (localTitle !== current.title) update({ title: localTitle });
-              }}
+              onBlur={() => handleBlur('title', localTitle)}
+              placeholder="Título da tarefa"
               className="text-lg font-semibold border-0 px-0 focus-visible:ring-0 bg-transparent"
             />
           </DialogTitle>
@@ -267,7 +316,11 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
               <SelectContent>
                 <SelectItem value="none">Nenhum</SelectItem>
                 {state.users.map(u => (
-                  <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                  <SelectItem key={u.id} value={u.id}>
+                    <span className={u.isPlaceholder ? 'italic opacity-80' : ''}>
+                      {u.name}
+                    </span>
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -280,14 +333,8 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
               <Input 
                 type="datetime-local" 
                 value={localPlannedStart} 
-                onChange={e => {
-                  setLocalPlannedStart(e.target.value);
-                  debouncedUpdate({ plannedStart: e.target.value || null });
-                }} 
-                onBlur={() => {
-                  debouncedUpdate.cancel();
-                  if (localPlannedStart !== toInputFormat(current.plannedStart)) update({ plannedStart: localPlannedStart || null });
-                }}
+                onChange={e => handleDateChange('plannedStart', e.target.value)}
+                onBlur={() => handleBlur('plannedStart', localPlannedStart)}
                 className="h-9" 
               />
             </div>
@@ -296,14 +343,8 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
               <Input 
                 type="datetime-local" 
                 value={localPlannedEnd} 
-                onChange={e => {
-                  setLocalPlannedEnd(e.target.value);
-                  debouncedUpdate({ plannedEnd: e.target.value || null });
-                }}
-                onBlur={() => {
-                  debouncedUpdate.cancel();
-                  if (localPlannedEnd !== toInputFormat(current.plannedEnd)) update({ plannedEnd: localPlannedEnd || null });
-                }}
+                onChange={e => handleDateChange('plannedEnd', e.target.value)}
+                onBlur={() => handleBlur('plannedEnd', localPlannedEnd)}
                 className="h-9" 
               />
             </div>
@@ -314,14 +355,8 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
               <Input 
                 type="datetime-local" 
                 value={localActualStart} 
-                onChange={e => {
-                  setLocalActualStart(e.target.value);
-                  debouncedUpdate({ actualStart: e.target.value || null });
-                }}
-                onBlur={() => {
-                  debouncedUpdate.cancel();
-                  if (localActualStart !== toInputFormat(current.actualStart)) update({ actualStart: localActualStart || null });
-                }}
+                onChange={e => handleDateChange('actualStart', e.target.value)}
+                onBlur={() => handleBlur('actualStart', localActualStart)}
                 className="h-9" 
               />
             </div>
@@ -330,20 +365,14 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
               <Input 
                 type="datetime-local" 
                 value={localActualEnd} 
-                onChange={e => {
-                  setLocalActualEnd(e.target.value);
-                  debouncedUpdate({ actualEnd: e.target.value || null });
-                }}
-                onBlur={() => {
-                  debouncedUpdate.cancel();
-                  if (localActualEnd !== toInputFormat(current.actualEnd)) update({ actualEnd: localActualEnd || null });
-                }}
+                onChange={e => handleDateChange('actualEnd', e.target.value)}
+                onBlur={() => handleBlur('actualEnd', localActualEnd)}
                 className="h-9" 
               />
             </div>
           </div>
 
-          {/* Description with AI expand */}
+          {/* Description */}
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className="text-xs font-medium text-muted-foreground">Descrição</label>
@@ -364,16 +393,13 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
                 setLocalDescription(e.target.value);
                 debouncedUpdate({ description: e.target.value });
               }}
-              onBlur={() => {
-                debouncedUpdate.cancel();
-                if (localDescription !== current.description) update({ description: localDescription });
-              }}
+              onBlur={() => handleBlur('description', localDescription)}
               placeholder="Adicionar descrição..."
               rows={3}
             />
           </div>
 
-          {/* Subtasks with hierarchy */}
+          {/* Subtasks */}
           <div>
             <label className="text-xs font-medium text-muted-foreground mb-1 block">
               Subtarefas ({completedSubtasks}/{current.subtasks.length})
@@ -385,10 +411,16 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
               {current.subtasks.map((sub: any) => (
                 <div key={sub.id} className="group">
                   <div className="flex items-center gap-2">
-                    <button onClick={() => setShowSubtaskDetails(prev => ({ ...prev, [sub.id]: !prev[sub.id] }))} className="text-muted-foreground">
+                    <button 
+                      onClick={() => setShowSubtaskDetails(prev => ({ ...prev, [sub.id]: !prev[sub.id] }))} 
+                      className="text-muted-foreground"
+                    >
                       {showSubtaskDetails[sub.id] ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
                     </button>
-                    <Checkbox checked={sub.completed} onCheckedChange={() => toggleSubtask(sub.id)} />
+                    <Checkbox 
+                      checked={sub.completed} 
+                      onCheckedChange={() => toggleSubtask(sub.id)} 
+                    />
                     <span className={`text-sm flex-1 ${sub.completed ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
                       {sub.title}
                     </span>
@@ -400,7 +432,10 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
                     {sub.dueDate && (
                       <span className="text-[10px] text-muted-foreground">{sub.dueDate?.substring(0, 10)}</span>
                     )}
-                    <button onClick={() => removeSubtask(sub.id)} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive">
+                    <button 
+                      onClick={() => removeSubtask(sub.id)} 
+                      className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive"
+                    >
                       <X className="h-3.5 w-3.5" />
                     </button>
                   </div>
@@ -408,7 +443,10 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
                     <div className="ml-8 mt-1 mb-2 grid grid-cols-3 gap-2">
                       <div>
                         <label className="text-[10px] text-muted-foreground">Responsável</label>
-                        <Select value={sub.assignee || 'none'} onValueChange={v => updateSubtask(sub.id, { assignee: v === 'none' ? undefined : v })}>
+                        <Select 
+                          value={sub.assignee || 'none'} 
+                          onValueChange={v => updateSubtask(sub.id, { assignee: v === 'none' ? undefined : v })}
+                        >
                           <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="none">Nenhum</SelectItem>
@@ -418,11 +456,19 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
                       </div>
                       <div>
                         <label className="text-[10px] text-muted-foreground">Entrega</label>
-                        <Input type="date" value={sub.dueDate || ''} onChange={e => updateSubtask(sub.id, { dueDate: e.target.value || undefined })} className="h-7 text-xs" />
+                        <Input 
+                          type="date" 
+                          value={sub.dueDate || ''} 
+                          onChange={e => updateSubtask(sub.id, { dueDate: e.target.value || undefined })} 
+                          className="h-7 text-xs" 
+                        />
                       </div>
                       <div>
                         <label className="text-[10px] text-muted-foreground">Status</label>
-                        <Select value={sub.status || 'pending'} onValueChange={v => updateSubtask(sub.id, { status: v, completed: v === 'done' })}>
+                        <Select 
+                          value={sub.status || 'pending'} 
+                          onValueChange={v => updateSubtask(sub.id, { status: v, completed: v === 'done' })}
+                        >
                           <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="pending">Pendente</SelectItem>
@@ -460,18 +506,28 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
                   <div key={att.id} className="relative group">
                     {isImage && att.url && (
                       <a href={att.url} target="_blank" rel="noopener noreferrer" className="block">
-                        <img src={att.url} alt={att.name} className="w-full max-h-48 object-cover rounded-md border border-border" loading="lazy" />
+                        <img 
+                          src={att.url} 
+                          alt={att.name} 
+                          className="w-full max-h-48 object-cover rounded-md border border-border" 
+                          loading="lazy" 
+                        />
                       </a>
                     )}
                     <div className="flex items-center gap-2 text-sm text-foreground bg-muted/50 rounded px-3 py-1.5">
                       <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
                       {att.url ? (
-                        <a href={att.url} target="_blank" rel="noopener noreferrer" className="flex-1 hover:underline text-primary truncate">{att.name}</a>
+                        <a href={att.url} target="_blank" rel="noopener noreferrer" className="flex-1 hover:underline text-primary truncate">
+                          {att.name}
+                        </a>
                       ) : (
                         <span className="flex-1 truncate">{att.name}</span>
                       )}
                       <span className="text-xs text-muted-foreground shrink-0">{att.size}</span>
-                      <button onClick={() => removeAttachment(att)} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive shrink-0">
+                      <button 
+                        onClick={() => removeAttachment(att)} 
+                        className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive shrink-0"
+                      >
                         <X className="h-3.5 w-3.5" />
                       </button>
                     </div>
@@ -480,19 +536,26 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
               })}
             </div>
             <div
-              ref={dropRef}
               onDrop={handleDrop}
               onDragOver={e => { e.preventDefault(); e.stopPropagation(); setDragging(true); }}
               onDragLeave={e => { e.preventDefault(); e.stopPropagation(); setDragging(false); }}
               onClick={() => !uploading && fileInputRef.current?.click()}
-              className={`mt-2 border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${dragging ? 'border-primary bg-primary/10' : 'border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/30'}`}
+              className={`mt-2 border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${
+                dragging ? 'border-primary bg-primary/10' : 'border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/30'
+              }`}
             >
               <Upload className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
               <p className="text-xs text-muted-foreground">
                 {uploading ? 'Enviando...' : dragging ? 'Solte os arquivos aqui' : 'Arraste arquivos ou clique para selecionar'}
               </p>
             </div>
-            <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileUpload} />
+            <input 
+              ref={fileInputRef} 
+              type="file" 
+              multiple 
+              className="hidden" 
+              onChange={handleFileUpload} 
+            />
           </div>
 
           {/* Time Tracking */}
