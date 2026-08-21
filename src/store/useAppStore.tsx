@@ -23,7 +23,7 @@ type Action =
   | { type: 'DELETE_BOARD'; payload: string; confirmDetails?: { title: string; type: string } }
   | { type: 'ADD_GROUP'; payload: TaskGroup }
   | { type: 'UPDATE_GROUP'; payload: TaskGroup }
-  | { type: 'DELETE_GROUP'; payload: string }
+  | { type: 'DELETE_GROUP'; payload: string; confirmDetails?: { title: string; type: string } }
   | { type: 'TOGGLE_GROUP'; payload: string }
   | { type: 'ADD_AUTOMATION'; payload: AutomationRule }
   | { type: 'TOGGLE_AUTOMATION'; payload: string }
