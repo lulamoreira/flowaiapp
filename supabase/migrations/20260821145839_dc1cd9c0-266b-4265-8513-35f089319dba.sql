@@ -1,3 +1,3 @@
 -- Neutralized: Do not run data scripts with fixed UUIDs in migrations.
 -- This was originally a test for placeholder conversion.
--- Logic moved to interface verification.
+-- Logic moved to interface verification as requested by the user.
