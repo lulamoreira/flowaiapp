@@ -324,10 +324,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
             const boardId = action.payload;
             const boardToDelete = state.boards.find(b => b.id === boardId);
             if (boardToDelete) {
-              await supabase.from('deletion_log').insert({
+              await (supabase.from('deletion_log') as any).insert({
                 table_name: 'boards',
                 original_id: boardId,
-                data: boardToDelete,
+                data: boardToDelete as any,
                 deleted_by: user?.id,
                 board_id: boardId
               });
