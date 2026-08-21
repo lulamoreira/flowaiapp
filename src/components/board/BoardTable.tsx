@@ -238,8 +238,8 @@ export function BoardTable({ boardId }: BoardTableProps) {
                 </div>
               </div>
               {!group.collapsed && [...groupTasks].sort((a, b) => {
-                const dateA = a.plannedEnd ? new Date(a.plannedEnd).getTime() : Infinity;
-                const dateB = b.plannedEnd ? new Date(b.plannedEnd).getTime() : Infinity;
+                const dateA = a.plannedStart ? new Date(a.plannedStart).getTime() : Infinity;
+                const dateB = b.plannedStart ? new Date(b.plannedStart).getTime() : Infinity;
                 return dateA - dateB;
               }).map(task => (
                 <TaskRow
