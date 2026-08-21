@@ -17,6 +17,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { usePermissions } from '@/hooks/usePermissions';
 import { PublicTimelineDialog } from '@/components/board/PublicTimelineDialog';
 import { RescheduleDialog } from '@/components/board/RescheduleDialog';
+import { ProjectMembersDialog } from '@/components/board/ProjectMembersDialog';
 
 type ViewMode = 'table' | 'kanban' | 'calendar' | 'gantt' | 'workload' | 'automation';
 
