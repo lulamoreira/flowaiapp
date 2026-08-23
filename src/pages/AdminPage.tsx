@@ -1120,24 +1120,40 @@ export default function AdminPage() {
           </TabsContent>
           {/* BACKUPS TAB */}
           <TabsContent value="backups" className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
                 <h3 className="text-lg font-semibold text-foreground">Sistema de Backups</h3>
-                <p className="text-sm text-muted-foreground">Snapshots automáticos (9h e 18h Brasília) e manuais.</p>
+                <p className="text-sm text-muted-foreground">Snapshots automáticos (9h e 18h Brasília) e sincronização com Google Drive.</p>
               </div>
-              <Button 
-                className="gap-1 bg-primary" 
-                onClick={async () => {
-                  const { data, error } = await (supabase.rpc as any)('create_backup', { _source: 'manual' });
-                  if (error) toast.error(error.message);
-                  else {
-                    toast.success('Backup manual criado com sucesso!');
-                    fetchAll();
-                  }
-                }}
-              >
-                <RefreshCcw className="h-4 w-4" /> Fazer backup agora
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button 
+                  variant="outline"
+                  className="gap-1" 
+                  onClick={async () => {
+                    const { data, error } = await supabase.functions.invoke('backup-to-drive');
+                    if (error) toast.error("Falha no envio: " + error.message);
+                    else {
+                      toast.success(`Backup enviado! Arquivo: ${data.fileName}`);
+                      fetchAll();
+                    }
+                  }}
+                >
+                  <Cloud className="h-4 w-4" /> Enviar para o Google Drive agora
+                </Button>
+                <Button 
+                  className="gap-1 bg-primary" 
+                  onClick={async () => {
+                    const { data, error } = await (supabase.rpc as any)('create_backup', { _source: 'manual' });
+                    if (error) toast.error(error.message);
+                    else {
+                      toast.success('Backup manual criado com sucesso!');
+                      fetchAll();
+                    }
+                  }}
+                >
+                  <RefreshCcw className="h-4 w-4" /> Novo Snapshot Local
+                </Button>
+              </div>
             </div>
 
             <div className="bg-card border border-border rounded-xl overflow-hidden">
