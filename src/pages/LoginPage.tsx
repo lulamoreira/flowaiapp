@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Navigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { lovable } from '@/integrations/lovable';
@@ -8,36 +7,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { Mail, Lock, Wand2 } from 'lucide-react';
+import { Mail, Lock } from 'lucide-react';
 
 export default function LoginPage() {
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [magicEmail, setMagicEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [resetMode, setResetMode] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
-  const [showSignup, setShowSignup] = useState(false);
-  const [signupEmail, setSignupEmail] = useState('');
-  const [signupPassword, setSignupPassword] = useState('');
-  const [signupName, setSignupName] = useState('');
 
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    const { error } = await supabase.auth.signUp({
-      email: signupEmail,
-      password: signupPassword,
-      options: {
-        data: { full_name: signupName },
-        emailRedirectTo: window.location.origin,
-      },
-    });
-    if (error) toast.error(error.message);
-    else toast.success('Conta criada com sucesso!');
-    setLoading(false);
-  };
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -46,24 +25,16 @@ export default function LoginPage() {
     setLoading(false);
   };
 
-  const handleMagicLink = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    const { error } = await supabase.auth.signInWithOtp({
-      email: magicEmail,
-      options: { emailRedirectTo: window.location.origin },
-    });
-    if (error) toast.error(error.message);
-    else toast.success('Link mágico enviado! Verifique seu email.');
-    setLoading(false);
-  };
-
-  const handleSocialLogin = async (provider: 'google' | 'apple') => {
+  const handleSocialLogin = async (provider: 'google') => {
+    // Para login social, precisamos garantir que o token de convite (se houver) 
+    // seja persistido para o callback, mas aqui é login, não registro.
+    // Se o usuário já tem conta, o provedor social funciona normalmente.
     const result = await lovable.auth.signInWithOAuth(provider, {
       redirect_uri: window.location.origin,
     });
     if (result?.error) toast.error(String(result.error));
   };
+
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
