@@ -16,6 +16,82 @@ import { TaskDetailModal } from '@/components/task/TaskDetailModal';
 import { ImportPdfDialog } from '@/components/board/ImportPdfDialog';
 import { Button } from '@/components/ui/button';
 
+interface BoardCardProps {
+  board: Board;
+  taskCount: number;
+  doneCount: number;
+  onNavigate: (id: string) => void;
+  onToggleFavorite: (e: React.MouseEvent, board: Board) => void;
+}
+
+const BoardCard = memo(({ board, taskCount, doneCount, onNavigate, onToggleFavorite }: BoardCardProps) => {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onNavigate(board.id);
+    }
+  };
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={() => onNavigate(board.id)}
+      onKeyDown={handleKeyDown}
+      className="bg-card border border-border rounded-xl overflow-hidden cursor-pointer hover:shadow-lg transition-shadow group focus:outline-none focus:ring-2 focus:ring-primary/50"
+    >
+      <div className="h-2 w-full" style={{ backgroundColor: board.color }} />
+      <div className="p-4">
+        <div className="flex items-start justify-between mb-0.5">
+          <h4 className="font-semibold text-foreground group-hover:text-primary transition-colors">
+            {board.title}
+          </h4>
+          <button
+            onClick={e => {
+              e.stopPropagation();
+              e.preventDefault();
+              onToggleFavorite(e, board);
+            }}
+            className="shrink-0 ml-2 p-0.5 hover:bg-muted rounded-full transition-colors"
+            aria-label={board.favorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+          >
+            <Star
+              className={`h-4 w-4 transition-colors ${
+                board.favorite
+                  ? 'fill-yellow-400 text-yellow-400'
+                  : 'text-muted-foreground/40 hover:text-yellow-400'
+              }`}
+            />
+          </button>
+        </div>
+        <p className="text-xs text-muted-foreground mb-3">
+          {board.description || 'Sem descrição'}
+        </p>
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">
+            {format(parseISO(board.updatedAt), "dd/MM/yyyy", { locale: ptBR })}
+          </span>
+          {taskCount > 0 && (
+            <span className="text-[10px] text-muted-foreground">
+              {doneCount}/{taskCount} concluídas
+            </span>
+          )}
+        </div>
+        {taskCount > 0 && (
+          <div className="mt-2 h-1 bg-muted rounded-full overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all"
+              style={{ width: `${(doneCount / taskCount) * 100}%`, backgroundColor: board.color }}
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+});
+
+BoardCard.displayName = 'BoardCard';
+
 const Index = () => {
   const { state, dispatch } = useAppStore();
   const navigate = useNavigate();
@@ -102,59 +178,6 @@ const Index = () => {
     [...state.boards].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
     [state.boards]
   );
-
-  const BoardCard = ({ board }: { board: Board }) => {
-    const taskCount = state.tasks.filter(t => t.boardId === board.id).length;
-    const doneCount = state.tasks.filter(t => t.boardId === board.id && t.status === 'done').length;
-    return (
-      <div
-        onClick={() => navigate(`/board/${board.id}`)}
-        className="bg-card border border-border rounded-xl overflow-hidden cursor-pointer hover:shadow-lg transition-shadow group"
-      >
-        <div className="h-2 w-full" style={{ backgroundColor: board.color }} />
-        <div className="p-4">
-          <div className="flex items-start justify-between mb-0.5">
-            <h4 className="font-semibold text-foreground group-hover:text-primary transition-colors">
-              {board.title}
-            </h4>
-            <button
-              onClick={e => toggleFavorite(e, board)}
-              className="shrink-0 ml-2 p-0.5"
-            >
-              <Star
-                className={`h-4 w-4 transition-colors ${
-                  board.favorite
-                    ? 'fill-yellow-400 text-yellow-400'
-                    : 'text-muted-foreground/40 hover:text-yellow-400'
-                }`}
-              />
-            </button>
-          </div>
-          <p className="text-xs text-muted-foreground mb-3">
-            {board.description || 'Sem descrição'}
-          </p>
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-muted-foreground">
-              {format(parseISO(board.updatedAt), "dd/MM/yyyy", { locale: ptBR })}
-            </span>
-            {taskCount > 0 && (
-              <span className="text-[10px] text-muted-foreground">
-                {doneCount}/{taskCount} concluídas
-              </span>
-            )}
-          </div>
-          {taskCount > 0 && (
-            <div className="mt-2 h-1 bg-muted rounded-full overflow-hidden">
-              <div
-                className="h-full rounded-full transition-all"
-                style={{ width: `${(doneCount / taskCount) * 100}%`, backgroundColor: board.color }}
-              />
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
