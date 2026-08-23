@@ -104,8 +104,8 @@ const ProfilePage = () => {
   return (
     <div className="flex-1 flex flex-col min-h-0">
       <Header title="Meu Perfil" />
-      <main className="flex-1 overflow-y-auto bg-muted/30">
-        <div className="max-w-lg mx-auto py-10 px-4 space-y-8">
+      <main className="flex-1 overflow-y-auto bg-muted/30 pb-12">
+        <div className="max-w-xl mx-auto py-8 md:py-12 px-4 space-y-8">
           {/* Avatar */}
           <div className="flex flex-col items-center gap-3">
             <div className="relative group">
