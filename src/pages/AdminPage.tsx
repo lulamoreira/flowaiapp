@@ -1313,7 +1313,8 @@ export default function AdminPage() {
             </div>
           </TabsContent>
         </Tabs>
-      </main>
+      </div>
+    </main>
 
       {/* Invite Dialog */}
       <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
