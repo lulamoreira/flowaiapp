@@ -951,6 +951,10 @@ export type Database = {
         Args: { _board_id: string; _user_id: string }
         Returns: boolean
       }
+      can_access_task_by_id: {
+        Args: { _task_id: string; _user_id: string }
+        Returns: boolean
+      }
       claim_invitation: { Args: { _token: string }; Returns: undefined }
       claim_placeholder: {
         Args: { p_placeholder_id: string; p_target_user_id: string }
@@ -970,6 +974,7 @@ export type Database = {
         Args: { _board_id: string; _user_id: string }
         Returns: boolean
       }
+      is_public_board: { Args: { _board_id: string }; Returns: boolean }
       is_subscribed: { Args: { u_id: string }; Returns: boolean }
       process_invitation_by_user: {
         Args: { _token: string; _user_id: string }
