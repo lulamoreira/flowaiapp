@@ -350,6 +350,27 @@ export type Database = {
           },
         ]
       }
+      internal_secrets: {
+        Row: {
+          created_at: string | null
+          key: string
+          updated_at: string | null
+          value: string
+        }
+        Insert: {
+          created_at?: string | null
+          key: string
+          updated_at?: string | null
+          value: string
+        }
+        Update: {
+          created_at?: string | null
+          key?: string
+          updated_at?: string | null
+          value?: string
+        }
+        Relationships: []
+      }
       invitations: {
         Row: {
           accepted_at: string | null
@@ -946,6 +967,7 @@ export type Database = {
         Args: { _board_id?: string; _mode: string; _snapshot_id: string }
         Returns: Json
       }
+      trigger_drive_backup: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "coordinator" | "viewer" | "user" | "owner"
