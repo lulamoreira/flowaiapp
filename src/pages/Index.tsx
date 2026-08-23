@@ -245,7 +245,14 @@ const Index = () => {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {recentBoards.map(board => (
-                <BoardCard key={board.id} board={board} />
+                <BoardCard 
+                  key={board.id} 
+                  board={board} 
+                  taskCount={state.tasks.filter(t => t.boardId === board.id).length}
+                  doneCount={state.tasks.filter(t => t.boardId === board.id && t.status === 'done').length}
+                  onNavigate={(id) => navigate(`/board/${id}`)}
+                  onToggleFavorite={toggleFavorite}
+                />
               ))}
               <div
                 onClick={handleCreateBoard}
