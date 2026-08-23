@@ -773,7 +773,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           description: string
-          group_id: string
+          group_id: string | null
           id: string
           planned_end: string | null
           planned_start: string | null
@@ -793,7 +793,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string
-          group_id: string
+          group_id?: string | null
           id?: string
           planned_end?: string | null
           planned_start?: string | null
@@ -813,7 +813,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string
-          group_id?: string
+          group_id?: string | null
           id?: string
           planned_end?: string | null
           planned_start?: string | null
@@ -962,6 +962,7 @@ export type Database = {
       }
       cleanup_old_deletions: { Args: never; Returns: undefined }
       create_backup: { Args: { _source: string }; Returns: Json }
+      get_board_id_from_task: { Args: { _task_id: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
