@@ -27,6 +27,7 @@ interface AuthContextType {
   isCoordinator: boolean;
   isAdminOrCoordinator: boolean;
   signOut: () => Promise<void>;
+  clearAuthState: () => void;
   refreshProfile: () => Promise<void>;
 }
 
@@ -135,6 +136,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [fetchProfile]);
 
+  const clearAuthState = () => {
+    setUser(null);
+    setSession(null);
+    setProfile(null);
+    setRoles([]);
+    setLoading(false);
+    setFetchingUserId(null);
+    setAuthError(null);
+  };
+
   const signOut = async () => {
     // Agora o botão Sair navega para /logout, mas mantemos o método por compatibilidade se invocado programaticamente
     window.location.href = '/logout';
@@ -151,7 +162,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user, session, profile, roles, loading,
       isAdmin, isOwner, isCoordinator,
       isAdminOrCoordinator,
-      signOut, refreshProfile,
+      signOut, clearAuthState, refreshProfile,
     }}>
       {session && !loading && roles.length === 0 && !authError && (
         <div className="fixed top-0 left-0 w-full z-[100] bg-orange-600 text-white p-2 text-center text-xs font-medium flex items-center justify-center gap-4 shadow-md">
