@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 
 const LogoutPage = () => {
   const navigate = useNavigate();
-  const { signOut } = useAuth();
+  const { clearAuthState } = useAuth();
 
   useEffect(() => {
     const performLogout = async () => {
@@ -38,12 +38,11 @@ const LogoutPage = () => {
           console.error('Storage clear error:', e);
         }
 
-        // c) O hook useAuth signOut já limpa o estado local
-        // Mas vamos chamar o signOut do hook para garantir a consistência do estado do React
+        // c) O hook useAuth clearAuthState limpa o estado do React SEM navegar
         try {
-          await signOut();
+          clearAuthState();
         } catch (e) {
-          console.error('Auth hook signOut error:', e);
+          console.error('Auth hook clearAuthState error:', e);
         }
 
       } finally {
@@ -56,7 +55,7 @@ const LogoutPage = () => {
     };
 
     performLogout();
-  }, [navigate, signOut]);
+  }, [navigate, clearAuthState]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
