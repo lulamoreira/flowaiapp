@@ -230,7 +230,7 @@ export default function AdminPage() {
       const { data: delLogs } = await supabase.from('deletion_log').select('*').order('deleted_at', { ascending: false });
       setDeletionLog(delLogs || []);
 
-      const { data: backupData } = await supabase.from('backup_snapshots').select('*').order('created_at', { ascending: false });
+      const { data: backupData } = await (supabase.from('backup_snapshots' as any) as any).select('*').order('created_at', { ascending: false });
       setBackups(backupData || []);
     }
 
