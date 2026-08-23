@@ -13,7 +13,7 @@ export default function PublicTimelinePage() {
     if (!token) return;
     const load = async () => {
       // @ts-ignore
-      const { data: b } = await supabase.from('boards').select('*').eq('public_token', token).eq('public_timeline_enabled', true).single();
+      const { data: b } = await supabase.from('boards').select('*').eq('public_token', token).eq('public_timeline_enabled', true).maybeSingle();
 
       if (b) {
         setBoard(b);
