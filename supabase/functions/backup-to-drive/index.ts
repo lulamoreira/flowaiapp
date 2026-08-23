@@ -13,7 +13,7 @@ serve(async (req) => {
 
   try {
     const cronSecret = req.headers.get("x-cron-secret");
-    const expectedSecret = Deno.env.get("BACKUP_CRON_SECRET");
+    const expectedSecret = Deno.env.get("BACKUP_CRON_SECRET"); console.log("Received:", cronSecret, "Expected:", expectedSecret);
 
     // Se for chamada manual do Admin, verificamos o token Supabase
     // Se for cron, verificamos o segredo customizado
