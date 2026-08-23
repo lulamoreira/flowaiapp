@@ -380,6 +380,7 @@ export type Database = {
           id: string
           invited_by: string
           invited_name: string | null
+          role: Database["public"]["Enums"]["app_role"]
           status: Database["public"]["Enums"]["invitation_status"]
           token: string
         }
@@ -391,6 +392,7 @@ export type Database = {
           id?: string
           invited_by: string
           invited_name?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
           status?: Database["public"]["Enums"]["invitation_status"]
           token?: string
         }
@@ -402,6 +404,7 @@ export type Database = {
           id?: string
           invited_by?: string
           invited_name?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
           status?: Database["public"]["Enums"]["invitation_status"]
           token?: string
         }
@@ -944,6 +947,11 @@ export type Database = {
         Args: { _accepted_user_id?: string; _token: string }
         Returns: Json
       }
+      can_access_board: {
+        Args: { _board_id: string; _user_id: string }
+        Returns: boolean
+      }
+      claim_invitation: { Args: { _token: string }; Returns: undefined }
       claim_placeholder: {
         Args: { p_placeholder_id: string; p_target_user_id: string }
         Returns: Json
@@ -963,11 +971,24 @@ export type Database = {
         Returns: boolean
       }
       is_subscribed: { Args: { u_id: string }; Returns: boolean }
+      process_invitation_by_user: {
+        Args: { _token: string; _user_id: string }
+        Returns: undefined
+      }
       restore_backup: {
         Args: { _board_id?: string; _mode: string; _snapshot_id: string }
         Returns: Json
       }
       trigger_drive_backup: { Args: never; Returns: undefined }
+      validate_invitation: {
+        Args: { _token: string }
+        Returns: {
+          email: string
+          invited_name: string
+          is_valid: boolean
+          role: Database["public"]["Enums"]["app_role"]
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "coordinator" | "viewer" | "user" | "owner"
