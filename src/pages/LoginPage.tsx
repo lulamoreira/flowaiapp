@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { lovable } from '@/integrations/lovable';
@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { Lock } from 'lucide-react';
+import { Lock, Info } from 'lucide-react';
 
 export default function LoginPage() {
   const { user } = useAuth();
@@ -16,6 +16,17 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [resetMode, setResetMode] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
+  const [showPreviewWarning, setShowPreviewWarning] = useState(false);
+
+  useEffect(() => {
+    const isFramed = window.parent && window.parent !== window;
+    const isPreview = window.location.hostname.includes('lovable.app') || 
+                      window.location.hostname.includes('gptengineer.run');
+    
+    if (isFramed && isPreview) {
+      setShowPreviewWarning(true);
+    }
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,7 +85,15 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4 py-12">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-muted/30 px-4 py-12">
+      {showPreviewWarning && (
+        <div className="w-full max-w-[400px] mb-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-start gap-3 animate-in slide-in-from-top-4 duration-500">
+          <Info className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+          <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed">
+            Você está no preview do editor. Se o login não persistir aqui, abra o app em uma aba separada.
+          </p>
+        </div>
+      )}
       <div className="w-full max-w-[400px]">
         <div className="bg-card border border-border rounded-2xl p-6 md:p-8 shadow-xl">
           {/* Logo */}
