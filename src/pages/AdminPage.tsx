@@ -1129,8 +1129,11 @@ export default function AdminPage() {
                 <Button 
                   variant="outline"
                   className="gap-1" 
+                  disabled={loading}
                   onClick={async () => {
+                    setLoading(true);
                     const { data, error } = await supabase.functions.invoke('backup-to-drive');
+                    setLoading(false);
                     if (error) toast.error("Falha no envio: " + error.message);
                     else {
                       toast.success(`Backup enviado! Arquivo: ${data.fileName}`);
@@ -1138,12 +1141,16 @@ export default function AdminPage() {
                     }
                   }}
                 >
-                  <Cloud className="h-4 w-4" /> Enviar para o Google Drive agora
+                  <Cloud className="h-4 w-4" /> 
+                  {loading ? 'Enviando...' : 'Enviar para o Google Drive agora'}
                 </Button>
                 <Button 
                   className="gap-1 bg-primary" 
+                  disabled={loading}
                   onClick={async () => {
+                    setLoading(true);
                     const { data, error } = await (supabase.rpc as any)('create_backup', { _source: 'manual' });
+                    setLoading(false);
                     if (error) toast.error(error.message);
                     else {
                       toast.success('Backup manual criado com sucesso!');
@@ -1151,7 +1158,8 @@ export default function AdminPage() {
                     }
                   }}
                 >
-                  <RefreshCcw className="h-4 w-4" /> Novo Snapshot Local
+                  <RefreshCcw className="h-4 w-4" /> 
+                  {loading ? 'Criando Snapshot...' : 'Novo Snapshot Local'}
                 </Button>
               </div>
             </div>

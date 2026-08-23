@@ -123,10 +123,28 @@ serve(async (req) => {
 
     if (!snapshotRow) throw new Error("Snapshot payload not found");
 
-    // 4. Upload para o Drive
-    const now = new Date();
-    const brDate = new Date(now.getTime() - 3 * 3600 * 1000);
-    const fileName = `flowai-backup-${brDate.toISOString().replace(/T/, "-").replace(/:/g, "").slice(0, 15)}.json`;
+    // 4. Upload para o Drive (Idempotente)
+    const fileName = `flowai-backup-${brDate.getFullYear()}-${(brDate.getMonth()+1).toString().padStart(2, '0')}-${brDate.getDate().toString().padStart(2, '0')}-${brDate.getHours().toString().padStart(2, '0')}${brDate.getMinutes().toString().padStart(2, '0')}${brDate.getSeconds().toString().padStart(2, '0')}.json`;
+
+    // Verificar se arquivo já existe para evitar duplicidade no Drive
+    const checkFileRes = await fetch(
+      `https://www.googleapis.com/drive/v3/files?q=name='${fileName}' and '${folderId}' in parents and trashed=false`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    const checkFileData = await checkFileRes.json();
+    
+    if (checkFileData.files && checkFileData.files.length > 0) {
+      console.log(`File ${fileName} already exists in Drive, skipping upload.`);
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          fileName, 
+          skipped: true,
+          snapshotId: snapshot.id
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     const metadata = {
       name: fileName,
