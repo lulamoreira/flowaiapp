@@ -621,13 +621,14 @@ export default function AdminPage() {
       </div>
     );
   }
-
+  
   return (
     <div className="flex-1 flex flex-col min-h-0">
       <Header title={isAdmin || isOwner ? 'Painel Admin' : 'Painel do Coordenador'} />
-      <main className="flex-1 overflow-y-auto bg-muted/30 p-6">
-        <Tabs defaultValue="users" className="space-y-4">
-          <TabsList className="flex-wrap">
+      <main className="flex-1 overflow-y-auto bg-muted/30 pb-12">
+        <div className="max-w-7xl mx-auto py-6 px-4 md:px-6 lg:px-8">
+          <Tabs defaultValue="users" className="space-y-6">
+            <TabsList className="w-full flex justify-start overflow-x-auto bg-card border border-border p-1 gap-1">
             <TabsTrigger value="users" className="gap-1"><Users className="h-3.5 w-3.5" /> Usuários</TabsTrigger>
             <TabsTrigger value="invites" className="gap-1"><Mail className="h-3.5 w-3.5" /> Convites</TabsTrigger>
             <TabsTrigger value="functions" className="gap-1"><Settings className="h-3.5 w-3.5" /> Funções</TabsTrigger>
