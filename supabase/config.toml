@@ -1,13 +1,2 @@
-project_id = "oprfcycipohpktitivhl"
-
-[functions.stripe-webhook]
+[functions.backup-to-drive]
 verify_jwt = false
-
-[functions.stripe-checkout]
-verify_jwt = true
-
-[functions.ai-expand-description]
-verify_jwt = true
-
-[functions.check-deadlines]
-verify_jwt = true
