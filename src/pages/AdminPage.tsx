@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { Users, Mail, History, Shield, UserPlus, Settings, Trash2, Pencil, Activity, Search, CalendarIcon, X, UserCheck, CheckCircle2, RefreshCcw } from 'lucide-react';
+import { Users, Mail, History, Shield, UserPlus, Settings, Trash2, Pencil, Activity, Search, CalendarIcon, X, UserCheck, CheckCircle2, RefreshCcw, Cloud, AlertTriangle } from 'lucide-react';
 import { DeleteConfirmDialog } from '@/components/ui/DeleteConfirmDialog';
 import { format, parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -1120,24 +1120,40 @@ export default function AdminPage() {
           </TabsContent>
           {/* BACKUPS TAB */}
           <TabsContent value="backups" className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
                 <h3 className="text-lg font-semibold text-foreground">Sistema de Backups</h3>
-                <p className="text-sm text-muted-foreground">Snapshots automáticos (9h e 18h Brasília) e manuais.</p>
+                <p className="text-sm text-muted-foreground">Snapshots automáticos (9h e 18h Brasília) e sincronização com Google Drive.</p>
               </div>
-              <Button 
-                className="gap-1 bg-primary" 
-                onClick={async () => {
-                  const { data, error } = await (supabase.rpc as any)('create_backup', { _source: 'manual' });
-                  if (error) toast.error(error.message);
-                  else {
-                    toast.success('Backup manual criado com sucesso!');
-                    fetchAll();
-                  }
-                }}
-              >
-                <RefreshCcw className="h-4 w-4" /> Fazer backup agora
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button 
+                  variant="outline"
+                  className="gap-1" 
+                  onClick={async () => {
+                    const { data, error } = await supabase.functions.invoke('backup-to-drive');
+                    if (error) toast.error("Falha no envio: " + error.message);
+                    else {
+                      toast.success(`Backup enviado! Arquivo: ${data.fileName}`);
+                      fetchAll();
+                    }
+                  }}
+                >
+                  <Cloud className="h-4 w-4" /> Enviar para o Google Drive agora
+                </Button>
+                <Button 
+                  className="gap-1 bg-primary" 
+                  onClick={async () => {
+                    const { data, error } = await (supabase.rpc as any)('create_backup', { _source: 'manual' });
+                    if (error) toast.error(error.message);
+                    else {
+                      toast.success('Backup manual criado com sucesso!');
+                      fetchAll();
+                    }
+                  }}
+                >
+                  <RefreshCcw className="h-4 w-4" /> Novo Snapshot Local
+                </Button>
+              </div>
             </div>
 
             <div className="bg-card border border-border rounded-xl overflow-hidden">
@@ -1156,7 +1172,16 @@ export default function AdminPage() {
                       <td className="p-3 font-medium text-foreground">
                         {format(parseISO(b.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
                       </td>
-                      <td className="p-3 capitalize">{b.trigger_source}</td>
+                      <td className="p-3">
+                        <div className="flex flex-col gap-1">
+                          <span className="capitalize">{b.trigger_source}</span>
+                          {b.trigger_source?.includes('drive_sync') && (
+                            <Badge variant="outline" className="w-fit text-[10px] bg-green-500/10 text-green-500 border-green-500/20 gap-1 px-1.5 py-0">
+                              <Cloud className="h-2.5 w-2.5" /> Google Drive OK
+                            </Badge>
+                          )}
+                        </div>
+                      </td>
                       <td className="p-3 text-xs text-muted-foreground">
                         {Object.entries(b.counts || {}).map(([t, c]) => `${t}: ${c}`).join(' | ')}
                       </td>
