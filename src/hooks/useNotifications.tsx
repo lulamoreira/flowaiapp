@@ -15,18 +15,30 @@ export function useNotifications() {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
+  const isFetchingRef = useRef(false);
 
   const fetchNotifications = useCallback(async () => {
-    if (!user) return;
-    const { data } = await supabase
-      .from('notifications')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(50);
-    if (data) setNotifications(data);
-    setLoading(false);
-  }, [user]);
+    const userId = user?.id;
+    if (!userId || isFetchingRef.current) return;
+    
+    isFetchingRef.current = true;
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(50);
+      
+      if (error) throw error;
+      if (data) setNotifications(data);
+    } catch (err) {
+      console.error('Error fetching notifications:', err);
+    } finally {
+      setLoading(false);
+      isFetchingRef.current = false;
+    }
+  }, [user?.id]);
 
   useEffect(() => {
     fetchNotifications();
