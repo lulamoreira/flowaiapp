@@ -984,6 +984,10 @@ export type Database = {
         Args: { _board_id?: string; _mode: string; _snapshot_id: string }
         Returns: Json
       }
+      shares_project_with: {
+        Args: { _other_user_id: string; _user_id: string }
+        Returns: boolean
+      }
       trigger_drive_backup: { Args: never; Returns: undefined }
       validate_invitation: {
         Args: { _token: string }

@@ -71,7 +71,7 @@ export default function IntakeFormPage() {
       status: 'not_started',
       priority,
       board_id: form.board_id,
-      group_id: form.target_group_id || '',
+      group_id: form.target_group_id || null,
       subtasks: [],
       attachments: [],
     });
