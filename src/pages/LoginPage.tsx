@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 import { Mail, Lock, Wand2 } from 'lucide-react';
 
 export default function LoginPage() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [magicEmail, setMagicEmail] = useState('');
@@ -77,7 +77,8 @@ export default function LoginPage() {
     setResetMode(false);
   };
 
-  if (user) return <Navigate to="/" replace />;
+  // Removido o redirecionamento automático
+  // if (user) return <Navigate to="/" replace />;
 
   if (resetMode) {
     return (
@@ -117,6 +118,27 @@ export default function LoginPage() {
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#6c6ff5] to-[#ab68ff] flex items-center justify-center text-sm font-bold text-white">F</div>
             <span className="text-2xl font-bold text-foreground">FlowAI</span>
           </div>
+
+          {user && (
+            <div className="mb-6 p-4 bg-muted/50 border border-primary/20 rounded-lg space-y-3 animate-in fade-in zoom-in duration-300">
+              <p className="text-sm text-center text-muted-foreground">
+                Você já possui uma sessão ativa como:<br/>
+                <strong className="text-foreground">{user.email}</strong>
+              </p>
+              <div className="flex flex-col gap-2">
+                <Button className="w-full bg-primary" onClick={() => window.location.href = '/'}>
+                  Continuar como {user.email?.split('@')[0]}
+                </Button>
+                <Button variant="outline" className="w-full" onClick={() => window.location.href = '/logout'}>
+                  Entrar com outra conta
+                </Button>
+              </div>
+              <div className="relative my-4">
+                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div>
+                <div className="relative flex justify-center text-[10px] uppercase tracking-wider"><span className="bg-card px-2 text-muted-foreground">Ou use o formulário abaixo</span></div>
+              </div>
+            </div>
+          )}
 
           <h2 className="text-lg font-semibold text-foreground text-center mb-1">Bem-vindo de volta</h2>
           <p className="text-sm text-muted-foreground text-center mb-6">Faça login para continuar</p>

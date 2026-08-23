@@ -136,36 +136,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [fetchProfile]);
 
   const signOut = async () => {
-    const clearState = () => {
-      setUser(null);
-      setSession(null);
-      setProfile(null);
-      setRoles([]);
-      window.location.href = '/login';
-    };
-
-    // Garantia de 3 segundos para limpar estado e redirecionar
-    const timeout = setTimeout(clearState, 3000);
-
-    try {
-      // 1. Chama signOut do Supabase primeiro
-      await supabase.auth.signOut();
-      
-      // 2. Limpa estado e limpa timeout
-      clearTimeout(timeout);
-      clearState();
-      
-      // 3. Registra log sem await e em try/catch
-      try {
-        logActivity('Logout');
-      } catch (logErr) {
-        console.error('Error logging logout:', logErr);
-      }
-    } catch (err) {
-      console.error('Error during signOut:', err);
-      clearTimeout(timeout);
-      clearState();
-    }
+    // Agora o botão Sair navega para /logout, mas mantemos o método por compatibilidade se invocado programaticamente
+    window.location.href = '/logout';
   };
 
   const isAdmin = roles.includes('admin') || roles.includes('owner');
@@ -181,6 +153,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAdminOrCoordinator,
       signOut, refreshProfile,
     }}>
+      {session && !loading && roles.length === 0 && !authError && (
+        <div className="fixed top-0 left-0 w-full z-[100] bg-orange-600 text-white p-2 text-center text-xs font-medium flex items-center justify-center gap-4 shadow-md">
+          <span>⚠️ Não foi possível carregar suas permissões corretamente.</span>
+          <button 
+            onClick={() => window.location.href = '/logout'}
+            className="bg-white text-orange-600 px-3 py-0.5 rounded font-bold hover:bg-orange-50 transition-colors shadow-sm"
+          >
+            Limpar sessão e entrar novamente
+          </button>
+        </div>
+      )}
       {authError && (
         <div className="fixed bottom-4 right-4 z-[9999] bg-destructive text-destructive-foreground p-4 rounded-lg shadow-2xl flex items-center gap-4 max-w-md animate-in fade-in slide-in-from-bottom-4">
           <div className="flex-1">

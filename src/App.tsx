@@ -39,6 +39,7 @@ const App = () => (
               <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/form" element={<IntakeFormPage />} />
               <Route path="/timeline/public/:token" element={<PublicTimelinePage />} />
+              <Route path="/logout" element={<LogoutPage />} />
 
               {/* Protected routes */}
               <Route path="/*" element={
