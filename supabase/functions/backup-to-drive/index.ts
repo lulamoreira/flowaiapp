@@ -124,6 +124,8 @@ serve(async (req) => {
     if (!snapshotRow) throw new Error("Snapshot payload not found");
 
     // 4. Upload para o Drive (Idempotente)
+    const nowTimestamp = new Date();
+    const brDate = new Date(nowTimestamp.getTime() - 3 * 3600 * 1000);
     const fileName = `flowai-backup-${brDate.getFullYear()}-${(brDate.getMonth()+1).toString().padStart(2, '0')}-${brDate.getDate().toString().padStart(2, '0')}-${brDate.getHours().toString().padStart(2, '0')}${brDate.getMinutes().toString().padStart(2, '0')}${brDate.getSeconds().toString().padStart(2, '0')}.json`;
 
     // Verificar se arquivo já existe para evitar duplicidade no Drive
