@@ -93,13 +93,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        const currentUser = session?.user ?? null;
         setSession(session);
-        setUser(session?.user ?? null);
+        setUser(currentUser);
         
-        if (session?.user) {
-          await fetchProfile(session.user.id);
+        if (currentUser) {
+          // Apenas busca se o usuário mudou ou se é um evento de login explícito
+          await fetchProfile(currentUser.id);
           if (event === 'SIGNED_IN') {
-            logActivity('Login', { method: 'auth', email: session.user.email });
+            logActivity('Login', { method: 'auth', email: currentUser.email });
           }
         } else {
           setProfile(null);
@@ -109,11 +111,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     );
 
+    // O getSession ainda é necessário para o carregamento inicial caso onAuthStateChange demore
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      const currentUser = session?.user ?? null;
       setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        await fetchProfile(session.user.id);
+      setUser(currentUser);
+      
+      if (currentUser) {
+        await fetchProfile(currentUser.id);
       } else {
         setLoading(false);
       }
