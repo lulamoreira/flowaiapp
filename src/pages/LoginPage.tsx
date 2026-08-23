@@ -109,9 +109,9 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
-      <div className="w-full max-w-md">
-        <div className="bg-card border border-border rounded-2xl p-8 shadow-lg">
+    <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4 py-12">
+      <div className="w-full max-w-[400px]">
+        <div className="bg-card border border-border rounded-2xl p-6 md:p-8 shadow-xl">
           {/* Logo */}
           <div className="flex items-center gap-2 mb-8 justify-center">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#6c6ff5] to-[#ab68ff] flex items-center justify-center text-sm font-bold text-white">F</div>
