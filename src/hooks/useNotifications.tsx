@@ -46,16 +46,18 @@ export function useNotifications() {
 
   // Real-time subscription
   useEffect(() => {
-    if (!user) return;
+    const userId = user?.id;
+    if (!userId) return;
+
     const channel = supabase
-      .channel('user-notifications')
+      .channel(`user-notifications-${userId}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
           table: 'notifications',
-          filter: `user_id=eq.${user.id}`,
+          filter: `user_id=eq.${userId}`,
         },
         (payload) => {
           setNotifications(prev => [payload.new as Notification, ...prev]);
@@ -67,7 +69,7 @@ export function useNotifications() {
           event: 'UPDATE',
           schema: 'public',
           table: 'notifications',
-          filter: `user_id=eq.${user.id}`,
+          filter: `user_id=eq.${userId}`,
         },
         (payload) => {
           setNotifications(prev =>
@@ -80,7 +82,7 @@ export function useNotifications() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user?.id]);
 
   const markAsRead = useCallback(async (id: string) => {
     await supabase.from('notifications').update({ read: true }).eq('id', id);
@@ -88,12 +90,13 @@ export function useNotifications() {
   }, []);
 
   const markAllAsRead = useCallback(async () => {
-    if (!user) return;
+    const userId = user?.id;
+    if (!userId) return;
     const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
     if (unreadIds.length === 0) return;
     await supabase.from('notifications').update({ read: true }).in('id', unreadIds);
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-  }, [user, notifications]);
+  }, [user?.id, notifications]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
