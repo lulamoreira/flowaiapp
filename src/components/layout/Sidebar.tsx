@@ -213,7 +213,7 @@ export function AppSidebar() {
               {!collapsed && <span>Meu Perfil</span>}
             </button>
             <button
-              onClick={signOut}
+              onClick={() => window.location.href = '/logout'}
               className="flex items-center gap-2 text-[#9699a8] hover:text-white text-sm w-full transition-colors px-1 py-1.5"
             >
               <LogOut className="h-4 w-4 shrink-0" />

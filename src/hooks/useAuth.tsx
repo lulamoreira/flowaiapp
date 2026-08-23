@@ -61,8 +61,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (rolesError) throw rolesError;
 
-      setProfile(profileData);
-      setRoles(rolesData?.map(r => r.role) || []);
+      if (profileData) setProfile(profileData);
+      if (rolesData) setRoles(rolesData.map(r => r.role) || []);
       setAuthError(null);
     } catch (err: any) {
       console.error(`Attempt ${retryCount + 1} failed for fetchProfile:`, err);
