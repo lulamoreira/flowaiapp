@@ -19,6 +19,8 @@ import NotFound from "./pages/NotFound.tsx";
 import ProfilePage from "./pages/ProfilePage.tsx";
 import IntakeFormPage from "./pages/IntakeFormPage.tsx";
 import PublicTimelinePage from "./pages/PublicTimelinePage.tsx";
+import LogoutPage from "./pages/LogoutPage.tsx";
+
 
 const queryClient = new QueryClient();
 
