@@ -5,7 +5,7 @@ import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { LayoutGrid, CheckCircle2, Clock, AlertCircle, Star, Plus, FileText } from 'lucide-react';
 import { Board, STATUS_CONFIG, PRIORITY_CONFIG, Task, TaskStatus } from '@/types';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, memo } from 'react';
 import { toast } from 'sonner';
 import { useDeadlineNotifier } from '@/hooks/useDeadlineNotifier';
 import { useAuth } from '@/hooks/useAuth';
