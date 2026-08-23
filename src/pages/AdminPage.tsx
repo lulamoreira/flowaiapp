@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { Users, Mail, History, Shield, UserPlus, Settings, Trash2, Pencil, Activity, Search, CalendarIcon, X, UserCheck, CheckCircle2, RefreshCcw } from 'lucide-react';
+import { Users, Mail, History, Shield, UserPlus, Settings, Trash2, Pencil, Activity, Search, CalendarIcon, X, UserCheck, CheckCircle2, RefreshCcw, Cloud, AlertTriangle } from 'lucide-react';
 import { DeleteConfirmDialog } from '@/components/ui/DeleteConfirmDialog';
 import { format, parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
