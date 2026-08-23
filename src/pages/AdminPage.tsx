@@ -90,6 +90,7 @@ export default function AdminPage() {
   const [activityLog, setActivityLog] = useState<ActivityEntry[]>([]);
   const [placeholders, setPlaceholders] = useState<PlaceholderMember[]>([]);
   const [deletionLog, setDeletionLog] = useState<DeletionLogEntry[]>([]);
+  const [backups, setBackups] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [restoringId, setRestoringId] = useState<string | null>(null);
 
@@ -228,6 +229,9 @@ export default function AdminPage() {
       
       const { data: delLogs } = await supabase.from('deletion_log').select('*').order('deleted_at', { ascending: false });
       setDeletionLog(delLogs || []);
+
+      const { data: backupData } = await supabase.from('backup_snapshots').select('*').order('created_at', { ascending: false });
+      setBackups(backupData || []);
     }
 
     setLoading(false);
@@ -629,6 +633,7 @@ export default function AdminPage() {
             <TabsTrigger value="functions" className="gap-1"><Settings className="h-3.5 w-3.5" /> Funções</TabsTrigger>
             <TabsTrigger value="placeholders" className="gap-1"><Users className="h-3.5 w-3.5" /> Provisórios</TabsTrigger>
             <TabsTrigger value="trash" className="gap-1"><Trash2 className="h-3.5 w-3.5" /> Lixeira</TabsTrigger>
+            {(isAdmin || isOwner) && <TabsTrigger value="backups" className="gap-1"><History className="h-3.5 w-3.5" /> Backups</TabsTrigger>}
             {isAdminOrCoordinator && <TabsTrigger value="activity" className="gap-1"><Activity className="h-3.5 w-3.5" /> Log</TabsTrigger>}
           </TabsList>
 
@@ -1113,6 +1118,105 @@ export default function AdminPage() {
               </table>
             </div>
           </TabsContent>
+          {/* BACKUPS TAB */}
+          <TabsContent value="backups" className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-foreground">Sistema de Backups</h3>
+                <p className="text-sm text-muted-foreground">Snapshots automáticos (9h e 18h Brasília) e manuais.</p>
+              </div>
+              <Button 
+                className="gap-1 bg-primary" 
+                onClick={async () => {
+                  const { data, error } = await supabase.rpc('create_backup', { _source: 'manual' });
+                  if (error) toast.error(error.message);
+                  else {
+                    toast.success('Backup manual criado com sucesso!');
+                    fetchAll();
+                  }
+                }}
+              >
+                <RefreshCcw className="h-4 w-4" /> Fazer backup agora
+              </Button>
+            </div>
+
+            <div className="bg-card border border-border rounded-xl overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-muted/50">
+                    <th className="text-left p-3 font-medium text-muted-foreground">Data/Hora (Brasília)</th>
+                    <th className="text-left p-3 font-medium text-muted-foreground">Origem</th>
+                    <th className="text-left p-3 font-medium text-muted-foreground">Resumo</th>
+                    <th className="text-right p-3 font-medium text-muted-foreground">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {/* We need a state for backups or fetch them here. 
+                      Since fetchAll fetches deletionLog, I should update fetchAll to fetch backups too.
+                  */}
+                  {(window as any).backups?.map((b: any) => (
+                    <tr key={b.id} className="border-b border-border last:border-0 hover:bg-muted/30">
+                      <td className="p-3 font-medium text-foreground">
+                        {format(parseISO(b.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                      </td>
+                      <td className="p-3 capitalize">{b.trigger_source}</td>
+                      <td className="p-3 text-xs text-muted-foreground">
+                        {Object.entries(b.counts || {}).map(([t, c]) => `${t}: ${c}`).join(' | ')}
+                      </td>
+                      <td className="p-3 text-right space-x-2">
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="h-7 text-xs"
+                          onClick={() => {
+                            const blob = new Blob([JSON.stringify(b.payload, null, 2)], { type: 'application/json' });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `backup-${b.created_at}.json`;
+                            a.click();
+                          }}
+                        >
+                          Baixar
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="h-7 text-xs"
+                          onClick={async () => {
+                            if (!confirm('Restaurar apenas o que está faltando? Nada será apagado.')) return;
+                            const { data, error } = await supabase.rpc('restore_backup', { _snapshot_id: b.id, _mode: 'missing_only' });
+                            if (error) toast.error(error.message);
+                            else toast.success('Restauração concluída: ' + JSON.stringify(data));
+                          }}
+                        >
+                          Restaurar Faltante
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="destructive" 
+                          className="h-7 text-xs"
+                          onClick={async () => {
+                            const confirmText = prompt('Esta operação substituirá TODOS os dados atuais. Digite RESTAURAR para confirmar:');
+                            if (confirmText !== 'RESTAURAR') return;
+                            const { data, error } = await supabase.rpc('restore_backup', { _snapshot_id: b.id, _mode: 'full_replace' });
+                            if (error) toast.error(error.message);
+                            else toast.success('Restauração completa concluída!');
+                          }}
+                        >
+                          Restaurar Tudo
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                  {(!(window as any).backups || (window as any).backups.length === 0) && (
+                    <tr><td colSpan={4} className="p-6 text-center text-muted-foreground">Carregando backups ou nenhum encontrado...</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </TabsContent>
+
           {/* PLACEHOLDERS TAB */}
           <TabsContent value="placeholders" className="space-y-4">
             <div className="flex items-center justify-between">
