@@ -418,16 +418,23 @@ export default function AdminPage() {
     if (!assignUserId || !assignFuncId || !user) return;
     
     // Upsert (delete old, insert new)
-    await supabase.from('user_custom_functions').delete().eq('user_id', assignUserId);
+    const { error: deleteError } = await supabase.from('user_custom_functions').delete().eq('user_id', assignUserId);
+    if (deleteError) {
+      toast.error('Erro ao remover função anterior: ' + deleteError.message);
+      return;
+    }
+
     const { error } = await supabase.from('user_custom_functions').insert({
       user_id: assignUserId,
       function_id: assignFuncId,
       assigned_by: user.id,
     });
-    if (error) toast.error(error.message);
-    else {
+    if (error) {
+      toast.error('Erro ao atribuir função: ' + error.message);
+    } else {
       toast.success('Função atribuída!');
       setAssignOpen(false);
+      fetchAll();
     }
   };
 
@@ -482,11 +489,16 @@ export default function AdminPage() {
     if (!confirm(message)) return;
 
     // Explicitly delete project memberships since FK CASCADE was removed
-    await supabase.from('project_members' as any).delete().eq('user_id', ph.id);
+    const { error: membersError } = await supabase.from('project_members' as any).delete().eq('user_id', ph.id);
+    if (membersError) {
+      toast.error('Erro ao remover participações em projetos: ' + membersError.message);
+      return;
+    }
     
     const { error } = await supabase.from('placeholder_members').delete().eq('id', ph.id);
-    if (error) toast.error(error.message);
-    else {
+    if (error) {
+      toast.error('Erro ao excluir membro provisório: ' + error.message);
+    } else {
       toast.success('Membro provisório excluído.');
       fetchAll();
     }
@@ -633,13 +645,89 @@ export default function AdminPage() {
                     size="sm" 
                     className="gap-1"
                     onClick={async () => {
-                      if (!confirm(`Tem certeza que deseja remover ${selectedUser.full_name}?`)) return;
-                      const { error } = await supabase.from('profiles').delete().eq('user_id', selectedUser.user_id);
-                      if (error) toast.error('Erro ao remover usuário: ' + error.message);
-                      else {
-                        toast.success('Usuário removido com sucesso');
+                      if (!user || !selectedUser) return;
+                      
+                      // Proteção: não pode excluir a si mesmo
+                      if (selectedUser.user_id === user.id) {
+                        toast.error('Você não pode excluir sua própria conta.');
+                        return;
+                      }
+
+                      // Proteção: não pode deixar o sistema sem admin/owner
+                      if (selectedUser.roles.some(r => r === 'admin' || r === 'owner')) {
+                        const otherAdmins = users.filter(u => 
+                          u.user_id !== selectedUser.user_id && 
+                          u.roles.some(r => r === 'admin' || r === 'owner')
+                        );
+                        if (otherAdmins.length === 0) {
+                          toast.error('Operação bloqueada: o sistema não pode ficar sem nenhum administrador ou dono.');
+                          return;
+                        }
+                      }
+
+                      // Análise de impacto
+                      const { data: userTasks } = await supabase
+                        .from('tasks')
+                        .select('id, title, board_id, boards(title)')
+                        .eq('assignee', selectedUser.user_id);
+
+                      const taskCount = userTasks?.length || 0;
+                      const affectedBoards = Array.from(new Set((userTasks || []).map(t => (t.boards as any)?.title).filter(Boolean)));
+                      
+                      let description = `Tem certeza que deseja remover o perfil de ${selectedUser.full_name}? A conta de login continuará existindo, mas o perfil e os papéis serão excluídos. Nada é removido de auth.users.`;
+                      
+                      if (taskCount > 0) {
+                        description += `\n\nEste usuário é responsável por ${taskCount} tarefa(s) nos quadros: ${affectedBoards.join(', ')}. Ao confirmar, essas tarefas ficarão sem responsável.`;
+                      }
+
+                      if (!confirm(description)) return;
+
+                      try {
+                        // 1. Log na lixeira
+                        const { data: userRoles } = await supabase.from('user_roles').select('*').eq('user_id', selectedUser.user_id);
+                        const { data: projectMembers } = await supabase.from('project_members').select('*').eq('user_id', selectedUser.user_id);
+                        
+                        const logData = {
+                          profile: selectedUser,
+                          roles: userRoles || [],
+                          project_members: projectMembers || [],
+                          tasks: userTasks || []
+                        };
+
+                        const { error: logErr } = await (supabase.from('deletion_log') as any).insert({
+                          table_name: 'profiles',
+                          original_id: selectedUser.user_id,
+                          data: logData,
+                          deleted_by: user.id
+                        });
+                        if (logErr) throw logErr;
+
+                        // 2. Limpar tarefas
+                        const { error: taskError } = await supabase
+                          .from('tasks')
+                          .update({ assignee: null })
+                          .eq('assignee', selectedUser.user_id);
+                        if (taskError) throw taskError;
+
+                        // 3. Remover papéis e participações
+                        const { error: rolesError } = await supabase.from('user_roles').delete().eq('user_id', selectedUser.user_id);
+                        if (rolesError) throw rolesError;
+
+                        const { error: membersError } = await supabase.from('project_members').delete().eq('user_id', selectedUser.user_id);
+                        if (membersError) throw membersError;
+
+                        const { error: funcError } = await supabase.from('user_custom_functions').delete().eq('user_id', selectedUser.user_id);
+                        if (funcError) throw funcError;
+
+                        // 4. Deletar perfil
+                        const { error: profileError } = await supabase.from('profiles').delete().eq('user_id', selectedUser.user_id);
+                        if (profileError) throw profileError;
+
+                        toast.success('Perfil removido com sucesso!');
                         setSelectedUser(null);
                         fetchAll();
+                      } catch (err: any) {
+                        toast.error('Erro ao remover perfil: ' + err.message);
                       }
                     }}
                   >
