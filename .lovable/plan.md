@@ -1,63 +1,63 @@
-# Plano de Reformulação da Autenticação e Gestão de Usuários
+# Plano de Reformulação: Autenticação Restrita e Segurança de Dados
 
-Este plano visa tornar o sistema de autenticação do FlowAI restrito a convites, seguro contra vazamento de dados e com fluxos de permissão robustos e centralizados no banco de dados.
+Este plano implementa um sistema de convites obrigatório, remove fluxos de cadastro abertos e corrige vulnerabilidades de RLS para garantir que usuários sem convite não tenham acesso a nenhum dado.
 
-## 1. Alterações no Banco de Dados (Migrations)
+## 1. Fase de Segurança: Endurecimento de RLS (Hardening)
 
-Criaremos uma migration para:
-- **Tabela `invitations`**:
-    - Adicionar coluna `role` (tipo `app_role`, default 'viewer') para armazenar o papel pretendido.
-    - Alterar a coluna `email` para ser opcional (`NULLABLE`), permitindo convites por link genérico onde o usuário informa o e-mail no cadastro.
-    - Remover a política `Anyone can read invitation by token` (que hoje permite `USING (true)`).
-- **Funções `SECURITY DEFINER`**:
-    - `validate_invitation(token UUID)`: Retorna apenas `{is_valid: boolean, invited_name: text, email: text, role: app_role}`. Usada pela tela de registro sem expor outros tokens.
-    - `process_invitation_acceptance()`: Chamada via gatilho após o cadastro. Valida o token, cria a entrada em `user_roles` com o papel do convite e marca o convite como aceito.
+Detectamos que as tabelas `boards` e `tasks` possuem políticas `USING (true)` para usuários autenticados. Isso será corrigido imediatamente.
+
+**Novas Políticas de Acesso:**
+- **Tabela `boards`**:
+    - `SELECT`: Apenas se for `admin/owner/coordinator` OU se estiver na tabela `project_members` do quadro.
+    - `INSERT`: Apenas `admin/owner/coordinator`.
+    - `UPDATE/DELETE`: Apenas `admin/owner/coordinator` OU o criador do quadro.
+- **Tabela `tasks` (e tabelas dependentes como `task_groups`, `task_comments`, `task_custom_values`, `custom_fields`, `automation_rules`)**:
+    - O acesso será condicionado à existência de acesso ao `board_id` relacionado, seguindo a lógica da tabela `boards`.
 - **Tabela `profiles`**:
-    - Adicionar coluna `email` (caso não exista, ou garantir que seja preenchida).
-    - Atualizar o gatilho `handle_new_user` para copiar o e-mail do `auth.users` para `public.profiles`.
-    - Script de correção para preencher e-mails em perfis órfãos existentes.
+    - `SELECT`: Usuários podem ver seu próprio perfil. Outros perfis só podem ser vistos se compartilharem um projeto em comum ou se o visualizador for `admin/owner/coordinator`.
+- **Tabela `user_roles`**:
+    - `SELECT`: Apenas `admin/owner/coordinator` podem ver todos. Usuários comuns veem apenas seus próprios papéis.
 
-## 2. Mudanças no Front-end
+## 2. Fase de Banco de Dados (Migration)
 
-### Autenticação (`src/pages/LoginPage.tsx`)
-- Remover botão "Criar conta de teste".
-- Remover opções de Magic Link e Apple login.
-- Manter apenas E-mail/Senha e Google.
+- **Tabela `invitations`**:
+    - Adicionar `role app_role DEFAULT 'viewer'`.
+    - Tornar `email` opcional (`NULLABLE`).
+    - **Legado**: `UPDATE invitations SET role = 'viewer' WHERE status = 'pending'`. Relataremos a contagem de afetados.
+    - Remover política `Anyone can read invitation by token`.
+- **Funções e Gatilhos**:
+    - **`validate_invitation(token UUID)`**: RPC `SECURITY DEFINER` que retorna apenas o essencial para a tela de registro (nome, email, validade).
+    - **`claim_invitation(token UUID)`**: RPC `SECURITY DEFINER` que valida o convite, aplica o papel gravado em `user_roles`, vincula o e-mail (se necessário) e marca como aceito.
+    - **`handle_new_user`**: Ajustar para processar `invitation_token` enviado via `raw_user_meta_data` durante o `signUp` por e-mail/senha.
+- **Ajuste `profiles`**:
+    - Garantir que o gatilho sempre copie o e-mail de `auth.users`.
 
-### Cadastro (`src/pages/RegisterPage.tsx`)
-- Parar de ler `role` da URL. O papel será aplicado pelo backend via `process_invitation_acceptance`.
-- Usar a nova função RPC `validate_invitation` para carregar dados do convite.
-- Remover tentativa de escrita manual em `user_roles`.
+## 3. Fase de Front-end
 
-### Gestão de Convites (`src/pages/AdminPage.tsx` e `InviteDialog.tsx`)
-- **InviteDialog**: Adicionar seletor de papel (`role`) ao criar convite.
-- Remover o fluxo de `mailto` automático.
-- Exibir o link gerado com botão "Copiar Link".
-- **AdminPage**: Lista de convites atualizada com coluna "Papel" e status, permitindo revogação (exclusão).
+- **`LoginPage.tsx`**:
+    - Remoção física do botão e modal de "Criar conta de teste".
+    - Remoção completa do código de Magic Link e Apple login.
+- **`RegisterPage.tsx`**:
+    - Substituir leitura direta de `invitations` pela RPC `validate_invitation`.
+    - **E-mail/Senha**: Enviar `invitation_token` em `options.data.invitation_token` no `signUp`.
+    - **Google OAuth**: 
+        - Persistir token no `localStorage` ('flowai-invite-token') antes do redirect.
+        - Ao retornar (no `useEffect`), se autenticado e com token no storage, chamar `claim_invitation` e limpar o storage.
+- **`AdminPage.tsx` e `InviteDialog.tsx`**:
+    - Adicionar seletor de papel na criação do convite.
+    - Substituir `mailto` por exibição do link com botão de "Copiar".
+    - Mostrar lista de convites com Papel, Expiração e botão de Revogação.
+- **`ProfilePage.tsx`**:
+    - Exibir E-mail (read-only) e Papel atual.
 
-### Perfil (`src/pages/ProfilePage.tsx`)
-- Adicionar campo de E-mail (read-only).
-- Exibir o papel atual de forma clara.
-- Garantir que campos de Nome e Data de Nascimento funcionem corretamente.
+## 4. Verificação e Teste Final
 
-## 3. Fluxo do Convite
-
-1. **Admin/Owner**: Acessa "Convidar", escolhe o papel (ex: 'user') e gera um link.
-2. **Sistema**: Cria linha em `invitations` com `token` único e `role` escolhido.
-3. **Convidado**: Acessa o link `.../register?token=XYZ`.
-4. **RegisterPage**: Chama `validate_invitation(XYZ)`. Se válido, mostra o formulário.
-5. **Convidado**: Finaliza o cadastro (E-mail/Senha ou Google).
-6. **Backend (Trigger)**: Detecta o novo usuário, localiza o convite pelo token (ou e-mail vinculado), insere o papel em `user_roles` e marca o convite como aceito.
-7. **Convidado**: Entra no sistema já com o papel correto, sem intervenção manual no front-end.
-
-## 4. Arquivos Afetados
-- `supabase/migrations/[data]_security_rehaul.sql` (Nova migration)
-- `src/pages/LoginPage.tsx` (Limpeza de métodos de login)
-- `src/pages/RegisterPage.tsx` (Nova validação e remoção de lógica de papel via URL)
-- `src/pages/AdminPage.tsx` (Gestão de convites e papéis)
-- `src/pages/ProfilePage.tsx` (Campos adicionais)
-- `src/components/invite/InviteDialog.tsx` (Seleção de papel e link copying)
-- `src/hooks/useAuth.tsx` (Pequenos ajustes de tipos, se necessário)
+1. **Teste de Acesso Sem Convite**: Criar conta via console ou ferramenta externa e verificar que o usuário não tem papéis e não vê nada (boards vazios, erro de permissão em tarefas).
+2. **Teste de Convite Coordinator**:
+    - Admin cria convite para 'coordinator'.
+    - Link aberto em aba anônima.
+    - Cadastro realizado.
+    - Confirmar que o usuário entra com papel de 'coordinator' e acesso administrativo.
 
 ---
-*Este plano preserva a resiliência do `fetchProfile`, o fluxo de `/logout`, a proteção do último admin e os membros provisórios.*
+*Este plano incorpora todas as correções obrigatórias e resolve as brechas de segurança identificadas.*
