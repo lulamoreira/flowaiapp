@@ -1128,7 +1128,7 @@ export default function AdminPage() {
               <Button 
                 className="gap-1 bg-primary" 
                 onClick={async () => {
-                  const { data, error } = await supabase.rpc('create_backup', { _source: 'manual' });
+                  const { data, error } = await (supabase.rpc as any)('create_backup', { _source: 'manual' });
                   if (error) toast.error(error.message);
                   else {
                     toast.success('Backup manual criado com sucesso!');
@@ -1151,10 +1151,7 @@ export default function AdminPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {/* We need a state for backups or fetch them here. 
-                      Since fetchAll fetches deletionLog, I should update fetchAll to fetch backups too.
-                  */}
-                  {(window as any).backups?.map((b: any) => (
+                  {backups?.map((b: any) => (
                     <tr key={b.id} className="border-b border-border last:border-0 hover:bg-muted/30">
                       <td className="p-3 font-medium text-foreground">
                         {format(parseISO(b.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
@@ -1185,7 +1182,7 @@ export default function AdminPage() {
                           className="h-7 text-xs"
                           onClick={async () => {
                             if (!confirm('Restaurar apenas o que está faltando? Nada será apagado.')) return;
-                            const { data, error } = await supabase.rpc('restore_backup', { _snapshot_id: b.id, _mode: 'missing_only' });
+                            const { data, error } = await (supabase.rpc as any)('restore_backup', { _snapshot_id: b.id, _mode: 'missing_only' });
                             if (error) toast.error(error.message);
                             else toast.success('Restauração concluída: ' + JSON.stringify(data));
                           }}
@@ -1199,7 +1196,7 @@ export default function AdminPage() {
                           onClick={async () => {
                             const confirmText = prompt('Esta operação substituirá TODOS os dados atuais. Digite RESTAURAR para confirmar:');
                             if (confirmText !== 'RESTAURAR') return;
-                            const { data, error } = await supabase.rpc('restore_backup', { _snapshot_id: b.id, _mode: 'full_replace' });
+                            const { data, error } = await (supabase.rpc as any)('restore_backup', { _snapshot_id: b.id, _mode: 'full_replace' });
                             if (error) toast.error(error.message);
                             else toast.success('Restauração completa concluída!');
                           }}
@@ -1209,7 +1206,7 @@ export default function AdminPage() {
                       </td>
                     </tr>
                   ))}
-                  {(!(window as any).backups || (window as any).backups.length === 0) && (
+                  {backups.length === 0 && (
                     <tr><td colSpan={4} className="p-6 text-center text-muted-foreground">Carregando backups ou nenhum encontrado...</td></tr>
                   )}
                 </tbody>
