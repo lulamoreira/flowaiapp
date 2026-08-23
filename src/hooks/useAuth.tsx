@@ -113,17 +113,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [fetchProfile]);
 
   const signOut = async () => {
-    await logActivity('Logout');
-    await supabase.auth.signOut();
-    setUser(null);
-    setSession(null);
-    setProfile(null);
-    setRoles([]);
+    const clearState = () => {
+      setUser(null);
+      setSession(null);
+      setProfile(null);
+      setRoles([]);
+      window.location.href = '/login';
+    };
+
+    // Garantia de 3 segundos para limpar estado e redirecionar
+    const timeout = setTimeout(clearState, 3000);
+
+    try {
+      // 1. Chama signOut do Supabase primeiro
+      await supabase.auth.signOut();
+      
+      // 2. Limpa estado e limpa timeout
+      clearTimeout(timeout);
+      clearState();
+      
+      // 3. Registra log sem await e em try/catch
+      try {
+        logActivity('Logout');
+      } catch (logErr) {
+        console.error('Error logging logout:', logErr);
+      }
+    } catch (err) {
+      console.error('Error during signOut:', err);
+      clearTimeout(timeout);
+      clearState();
+    }
   };
 
-  const isAdmin = roles.includes('admin');
+  const isAdmin = roles.includes('admin') || roles.includes('owner');
   const isOwner = roles.includes('owner');
-  const isCoordinator = roles.includes('coordinator');
+  const isCoordinator = roles.includes('coordinator') || roles.includes('admin') || roles.includes('owner');
 
   const isAdminOrCoordinator = isAdmin || isCoordinator || isOwner;
 
