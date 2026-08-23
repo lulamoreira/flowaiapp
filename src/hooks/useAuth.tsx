@@ -39,7 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [loading, setLoading] = useState(true);
-  const [authError, setAuthError] = useState<string | null>(null);
+  const [permissionsLoadFailed, setPermissionsLoadFailed] = useState(false);
   const [fetchingUserId, setFetchingUserId] = useState<string | null>(null);
 
   const fetchProfile = useCallback(async (userId: string, retryCount = 0) => {
@@ -64,7 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (profileData) setProfile(profileData);
       if (rolesData) setRoles(rolesData.map(r => r.role) || []);
-      setAuthError(null);
+      setPermissionsLoadFailed(false);
     } catch (err: any) {
       console.error(`Attempt ${retryCount + 1} failed for fetchProfile:`, err);
       
@@ -72,8 +72,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const delay = Math.pow(2, retryCount) * 1000;
         setTimeout(() => fetchProfile(userId, retryCount + 1), delay);
       } else {
-        setAuthError('Não foi possível carregar as permissões do usuário.');
-        toast.error('Erro ao carregar permissões. Algumas funcionalidades podem estar limitadas.');
+        setPermissionsLoadFailed(true);
+        // Toast removido para ser silencioso, a faixa UI cuidará do aviso
       }
     } finally {
       if (retryCount === 0 || retryCount === 3) {
@@ -143,7 +143,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setRoles([]);
     setLoading(false);
     setFetchingUserId(null);
-    setAuthError(null);
+    setPermissionsLoadFailed(false);
   };
 
   const signOut = async () => {
@@ -164,32 +164,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAdminOrCoordinator,
       signOut, clearAuthState, refreshProfile,
     }}>
-      {session && !loading && roles.length === 0 && !authError && (
-        <div className="fixed top-0 left-0 w-full z-[100] bg-orange-600 text-white p-2 text-center text-xs font-medium flex items-center justify-center gap-4 shadow-md">
-          <span>⚠️ Não foi possível carregar suas permissões corretamente.</span>
-          <button 
-            onClick={() => window.location.href = '/logout'}
-            className="bg-white text-orange-600 px-3 py-0.5 rounded font-bold hover:bg-orange-50 transition-colors shadow-sm"
-          >
-            Limpar sessão e entrar novamente
-          </button>
-        </div>
-      )}
-      {authError && (
+      {permissionsLoadFailed && !loading && session && 
+       !['/login', '/register', '/reset-password', '/logout', '/form', '/timeline/public'].some(p => window.location.pathname.startsWith(p)) && (
         <div className="fixed bottom-4 right-4 z-[9999] bg-destructive text-destructive-foreground p-4 rounded-lg shadow-2xl flex items-center gap-4 max-w-md animate-in fade-in slide-in-from-bottom-4">
           <div className="flex-1">
-            <p className="font-bold text-sm">Erro de Permissão</p>
-            <p className="text-xs opacity-90">{authError}</p>
+            <p className="font-bold text-sm">Falha na Sincronização</p>
+            <p className="text-xs opacity-90">Não foi possível carregar suas permissões. Algumas ações podem falhar.</p>
           </div>
           <button 
             onClick={() => user && fetchProfile(user.id)}
             className="px-3 py-1 bg-background text-foreground rounded text-xs font-bold hover:bg-background/90 transition-colors"
           >
-            Tentar de novo
+            Tentar agora
           </button>
         </div>
       )}
-      {children}
+
+      {session && !loading && roles.length === 0 && 
+       !['/login', '/register', '/reset-password', '/logout', '/form', '/timeline/public'].some(p => window.location.pathname.startsWith(p)) ? (
+        <div className="min-h-screen flex flex-col items-center justify-center bg-background text-foreground p-6 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mb-6">
+            <svg className="w-8 h-8 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+          <h1 className="text-xl font-bold mb-2">Acesso Restrito</h1>
+          <p className="text-muted-foreground max-w-sm mb-8">
+            Sua conta ainda não tem acesso a este espaço de trabalho. Peça um convite ao administrador para começar.
+          </p>
+          <button 
+            onClick={() => window.location.href = '/logout'}
+            className="px-6 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 transition-opacity shadow-lg"
+          >
+            Sair da conta
+          </button>
+        </div>
+      ) : children}
     </AuthContext.Provider>
   );
 }

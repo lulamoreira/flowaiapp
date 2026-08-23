@@ -101,9 +101,10 @@ export default function RegisterPage() {
       options: {
         data: { 
           full_name: fullName,
+          date_of_birth: dateOfBirth || null,
           invitation_token: token
         },
-        emailRedirectTo: window.location.origin,
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
 
@@ -115,10 +116,15 @@ export default function RegisterPage() {
 
     // Se a conta for criada mas a sessão não for imediata (e-mail confirm), o trigger no banco já cuidou do token
     if (authData.user) {
-      await supabase.from('profiles').update({
+      const { error: profileError } = await supabase.from('profiles').update({
         full_name: fullName,
         date_of_birth: dateOfBirth || null,
       }).eq('user_id', authData.user.id);
+
+      if (profileError) {
+        console.error('Erro ao atualizar perfil adicional:', profileError);
+        // O handle_new_user já deve ter gravado o básico via raw_user_meta_data
+      }
     }
 
     toast.success('Cadastro realizado com sucesso! Verifique seu e-mail se necessário.');
