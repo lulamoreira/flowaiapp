@@ -3,6 +3,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Mail, Check, Link2, Copy, Loader2 } from 'lucide-react';
@@ -11,53 +13,49 @@ import { toast } from 'sonner';
 interface InviteDialogProps {
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  onInviteSent?: () => void;
 }
 
-export function InviteDialog({ open, onOpenChange }: InviteDialogProps) {
-  const { user } = useAuth();
-  const [email, setEmail] = useState('');
+type AppRole = 'admin' | 'coordinator' | 'user' | 'viewer';
 
-  // Link tab state
-  const [linkName, setLinkName] = useState('');
+export function InviteDialog({ open, onOpenChange, onInviteSent }: InviteDialogProps) {
+  const { user } = useAuth();
+  
+  // State
+  const [invitedName, setInvitedName] = useState('');
+  const [invitedEmail, setInvitedEmail] = useState('');
+  const [invitedRole, setInvitedRole] = useState<AppRole>('viewer');
   const [generating, setGenerating] = useState(false);
   const [generatedLink, setGeneratedLink] = useState('');
   const [copied, setCopied] = useState(false);
 
-  const sendEmailInvite = () => {
-    if (!email) return;
-    const subject = encodeURIComponent('Convite para entrada no sistema');
-    const body = encodeURIComponent(`Olá!\n\nVocê foi convidado para participar do FlowAI, nossa plataforma de gerenciamento de projetos.\n\nAcesse: https://flowai.app\n\nAguardamos você!`);
-    window.open(`mailto:${email}?subject=${subject}&body=${body}`);
-    setEmail('');
-  };
-
   const generateLink = async () => {
-    const name = linkName.trim();
-    if (!name || !user) return;
-    if (name.length > 50) {
-      toast.error('O nome deve ter no máximo 50 caracteres');
-      return;
-    }
+    if (!user) return;
+    
     setGenerating(true);
     try {
       const { data, error } = await supabase
         .from('invitations')
-        .insert({ invited_name: name, invited_by: user.id, email: null })
+        .insert({ 
+          invited_name: invitedName.trim() || null, 
+          invited_by: user.id, 
+          email: invitedEmail.trim() || null,
+          role: invitedRole
+        })
         .select('token')
         .single();
+
       if (error) throw error;
-      // Always use the published public URL for invite links — the preview URL
-      // (lovableproject.com) shows a Lovable login wall to non-collaborators,
-      // which causes invitees to register on Lovable instead of FlowAI.
-      const PUBLIC_BASE_URL = 'https://flowaiapp.lovable.app';
-      const isPreview = window.location.hostname.includes('lovableproject.com')
-        || window.location.hostname.includes('lovable.dev');
-      const baseUrl = isPreview ? PUBLIC_BASE_URL : window.location.origin;
+
+      const isPreview = window.location.hostname.includes('lovable.app');
+      const baseUrl = isPreview ? window.location.origin : 'https://flowaiapp.lovable.app';
       const link = `${baseUrl}/register?token=${data.token}`;
+      
       setGeneratedLink(link);
-      toast.success(`Link gerado para ${name}`);
+      toast.success('Convite gerado com sucesso!');
+      if (onInviteSent) onInviteSent();
     } catch (err: any) {
-      toast.error(err.message || 'Erro ao gerar link');
+      toast.error(err.message || 'Erro ao gerar convite');
     } finally {
       setGenerating(false);
     }
@@ -73,7 +71,9 @@ export function InviteDialog({ open, onOpenChange }: InviteDialogProps) {
 
   const resetLink = () => {
     setGeneratedLink('');
-    setLinkName('');
+    setInvitedName('');
+    setInvitedEmail('');
+    setInvitedRole('viewer');
     setCopied(false);
   };
 
@@ -81,85 +81,87 @@ export function InviteDialog({ open, onOpenChange }: InviteDialogProps) {
     <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) resetLink(); }}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Convidar pessoas</DialogTitle>
+          <DialogTitle>Convidar para a Equipe</DialogTitle>
         </DialogHeader>
-        <Tabs defaultValue="email" className="mt-2">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="email" className="text-xs">
-              <Mail className="h-3.5 w-3.5 mr-1" />
-              Email
-            </TabsTrigger>
-            <TabsTrigger value="link" className="text-xs">
-              <Link2 className="h-3.5 w-3.5 mr-1" />
-              Link
-            </TabsTrigger>
-          </TabsList>
+        
+        {!generatedLink ? (
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="inv-name">Nome do Convidado (opcional)</Label>
+              <Input
+                id="inv-name"
+                placeholder="Ex: João Silva"
+                value={invitedName}
+                onChange={e => setInvitedName(e.target.value)}
+                className="h-9"
+              />
+            </div>
 
-          <TabsContent value="email" className="space-y-3 mt-3">
-            <p className="text-sm text-muted-foreground">
-              Envie um convite por email para uma nova pessoa entrar no sistema.
-            </p>
-            <Input
-              type="email"
-              placeholder="email@exemplo.com"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              className="h-9"
-              onKeyDown={e => e.key === 'Enter' && sendEmailInvite()}
-            />
-            <Button onClick={sendEmailInvite} className="w-full bg-[#0073ea] hover:bg-[#0060c2] text-white">
-              <Mail className="h-4 w-4 mr-2" />
-              Enviar convite
+            <div className="space-y-2">
+              <Label htmlFor="inv-email">E-mail do Convidado (opcional)</Label>
+              <Input
+                id="inv-email"
+                type="email"
+                placeholder="email@exemplo.com"
+                value={invitedEmail}
+                onChange={e => setInvitedEmail(e.target.value)}
+                className="h-9"
+              />
+              <p className="text-[10px] text-muted-foreground">
+                Se informado, apenas este e-mail poderá aceitar o convite.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Papel no Sistema</Label>
+              <Select value={invitedRole} onValueChange={(v: AppRole) => setInvitedRole(v)}>
+                <SelectTrigger className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="viewer">Visualizador</SelectItem>
+                  <SelectItem value="user">Usuário</SelectItem>
+                  <SelectItem value="coordinator">Coordenador</SelectItem>
+                  <SelectItem value="admin">Administrador</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Button
+              onClick={generateLink}
+              disabled={generating}
+              className="w-full bg-primary hover:bg-primary/90 text-white mt-2"
+            >
+              {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Link2 className="h-4 w-4 mr-2" />}
+              Gerar Link de Convite
             </Button>
-          </TabsContent>
-
-          <TabsContent value="link" className="space-y-3 mt-3">
-            <p className="text-sm text-muted-foreground">
-              Digite o primeiro nome da pessoa, gere o link e envie por onde preferir. Ela mesma informará o email no cadastro.
-            </p>
-            <Input
-              placeholder="Primeiro nome"
-              value={linkName}
-              onChange={e => setLinkName(e.target.value)}
-              className="h-9"
-              maxLength={50}
-              disabled={!!generatedLink}
-              onKeyDown={e => e.key === 'Enter' && !generatedLink && generateLink()}
-            />
-
-            {!generatedLink ? (
-              <Button
-                onClick={generateLink}
-                disabled={!linkName.trim() || generating}
-                className="w-full bg-[#0073ea] hover:bg-[#0060c2] text-white"
-              >
-                {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Link2 className="h-4 w-4 mr-2" />}
-                Gerar link de convite
-              </Button>
-            ) : (
-              <div className="space-y-2">
-                <div className="flex gap-2">
-                  <Input value={generatedLink} readOnly className="h-9 text-xs font-mono" />
-                  <Button
-                    onClick={copyLink}
-                    variant="outline"
-                    size="sm"
-                    className="h-9 shrink-0"
-                  >
-                    {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                  </Button>
-                </div>
-                <p className="text-[11px] text-muted-foreground">
-                  Link válido por 72h. Convite associado a <strong>{linkName}</strong>.
-                </p>
-                <Button onClick={resetLink} variant="ghost" size="sm" className="w-full text-xs">
-                  Gerar outro link
+          </div>
+        ) : (
+          <div className="space-y-4 py-4">
+            <div className="p-4 bg-muted/50 border border-primary/20 rounded-xl space-y-3">
+              <p className="text-sm font-medium text-center">Convite pronto!</p>
+              <div className="flex gap-2">
+                <Input value={generatedLink} readOnly className="h-9 text-xs font-mono bg-background" />
+                <Button
+                  onClick={copyLink}
+                  variant="outline"
+                  size="sm"
+                  className="h-9 shrink-0"
+                >
+                  {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
                 </Button>
               </div>
-            )}
-          </TabsContent>
-        </Tabs>
+              <p className="text-[11px] text-muted-foreground text-center">
+                Este link expira em 72 horas e concede acesso como <strong>{invitedRole}</strong>.
+              </p>
+            </div>
+            <Button onClick={resetLink} variant="ghost" size="sm" className="w-full text-xs">
+              Criar outro convite
+            </Button>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
 }
+

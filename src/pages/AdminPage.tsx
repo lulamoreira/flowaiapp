@@ -262,16 +262,22 @@ export default function AdminPage() {
     const { data, error } = await supabase.from('invitations').insert({
       invited_by: user.id,
       email: inviteEmail.trim(),
+      role: inviteRole,
+      invited_name: inviteName
     }).select().single();
 
     if (error) {
       toast.error('Erro ao criar convite: ' + error.message);
     } else if (data) {
-      const registerUrl = `${window.location.origin}/register?token=${data.token}&name=${encodeURIComponent(inviteName)}&role=${inviteRole}`;
-      const subject = encodeURIComponent('Convite para o FlowAI');
-      const body = encodeURIComponent(`Olá${inviteName ? ' ' + inviteName : ''}!\n\nVocê foi convidado para participar do FlowAI.\n\nClique no link para se cadastrar:\n${registerUrl}\n\nVocê pode acessar com Google, Apple ou criar uma senha.\n\nEste convite expira em 72 horas.\n\nAguardamos você!`);
-      window.open(`mailto:${inviteEmail}?subject=${subject}&body=${body}`);
-      toast.success('Convite criado! O email será aberto para envio.');
+      const baseUrl = window.location.hostname.includes('lovable.app') 
+        ? window.location.origin 
+        : 'https://flowaiapp.lovable.app';
+      const registerUrl = `${baseUrl}/register?token=${data.token}`;
+      
+      // Armazena o link no clipboard e avisa o usuário
+      await navigator.clipboard.writeText(registerUrl);
+      toast.success('Convite criado e link copiado para a área de transferência!');
+      
       setInviteEmail('');
       setInviteName('');
       setInviteRole('viewer');
@@ -280,6 +286,7 @@ export default function AdminPage() {
     }
     setInviteSending(false);
   };
+
 
   const handleChangeRole = async () => {
     if (!selectedUser || !user) return;

@@ -144,9 +144,17 @@ const ProfilePage = () => {
 
           {/* Form */}
           <div className="bg-card border border-border rounded-xl p-6 space-y-5">
-            <div className="space-y-2">
-              <Label htmlFor="email">E-mail</Label>
-              <Input id="email" value={user?.email || ''} disabled className="bg-muted" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="space-y-2">
+                <Label htmlFor="email">E-mail (apenas leitura)</Label>
+                <Input id="email" value={user?.email || ''} disabled className="bg-muted" />
+              </div>
+              <div className="space-y-2">
+                <Label>Papel no Sistema</Label>
+                <div className="h-10 px-3 flex items-center bg-muted border border-border rounded-md text-sm font-medium text-foreground">
+                  {roleLabel}
+                </div>
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -169,7 +177,7 @@ const ProfilePage = () => {
               />
             </div>
 
-            <Button onClick={handleSave} disabled={saving} className="w-full gap-2">
+            <Button onClick={handleSave} disabled={saving} className="w-full gap-2 mt-2">
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               Salvar alterações
             </Button>
