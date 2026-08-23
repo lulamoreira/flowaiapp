@@ -103,6 +103,30 @@ export type Database = {
           },
         ]
       }
+      backup_snapshots: {
+        Row: {
+          counts: Json
+          created_at: string
+          id: string
+          payload: Json
+          trigger_source: string
+        }
+        Insert: {
+          counts: Json
+          created_at?: string
+          id?: string
+          payload: Json
+          trigger_source: string
+        }
+        Update: {
+          counts?: Json
+          created_at?: string
+          id?: string
+          payload?: Json
+          trigger_source?: string
+        }
+        Relationships: []
+      }
       boards: {
         Row: {
           color: string
@@ -904,6 +928,7 @@ export type Database = {
         Returns: Json
       }
       cleanup_old_deletions: { Args: never; Returns: undefined }
+      create_backup: { Args: { _source: string }; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -917,6 +942,10 @@ export type Database = {
         Returns: boolean
       }
       is_subscribed: { Args: { u_id: string }; Returns: boolean }
+      restore_backup: {
+        Args: { _board_id?: string; _mode: string; _snapshot_id: string }
+        Returns: Json
+      }
     }
     Enums: {
       app_role: "admin" | "coordinator" | "viewer" | "user" | "owner"
