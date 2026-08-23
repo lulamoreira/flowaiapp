@@ -90,12 +90,13 @@ export function useNotifications() {
   }, []);
 
   const markAllAsRead = useCallback(async () => {
-    if (!user) return;
+    const userId = user?.id;
+    if (!userId) return;
     const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
     if (unreadIds.length === 0) return;
     await supabase.from('notifications').update({ read: true }).in('id', unreadIds);
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-  }, [user, notifications]);
+  }, [user?.id, notifications]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
