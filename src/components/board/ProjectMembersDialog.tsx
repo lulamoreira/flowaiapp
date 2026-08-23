@@ -20,25 +20,34 @@ export function ProjectMembersDialog({ open, onOpenChange, boardId }: ProjectMem
   const [loading, setLoading] = useState(false);
   const [authorizedIds, setAuthorizedIds] = useState<string[]>([]);
   const [initialAuthorizedIds, setInitialAuthorizedIds] = useState<string[]>([]);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [confirmRemove, setConfirmRemove] = useState<{ userId: string; name: string; tasks: number; subtasks: number } | null>(null);
 
   // Load authorized members for this board
   const loadAuthorized = async () => {
     setLoading(true);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
     try {
       const { data, error } = await supabase
         .from('project_members' as any)
         .select('user_id')
-        .eq('board_id', boardId);
+        .eq('board_id', boardId)
+        .abortSignal(controller.signal);
       
       if (error) throw error;
       const ids = (data as any[])?.map((m: any) => m.user_id) || [];
       setAuthorizedIds(ids);
       setInitialAuthorizedIds(ids);
+      setFetchError(null);
     } catch (err: any) {
       console.error('Error loading members:', err);
-      toast.error('Erro ao carregar membros: ' + err.message);
+      const msg = err.name === 'AbortError' ? 'Tempo limite de 10s excedido.' : err.message;
+      setFetchError(msg);
+      toast.error('Erro ao carregar membros: ' + msg);
     } finally {
+      clearTimeout(timeoutId);
       setLoading(false);
     }
   };
@@ -59,6 +68,9 @@ export function ProjectMembersDialog({ open, onOpenChange, boardId }: ProjectMem
 
   const handleSave = async (userIdsToForceRemove?: string[]) => {
     setLoading(true);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
     try {
       const toAdd = authorizedIds.filter(id => !initialAuthorizedIds.includes(id));
       let toRemove = initialAuthorizedIds.filter(id => !authorizedIds.includes(id));
@@ -67,7 +79,6 @@ export function ProjectMembersDialog({ open, onOpenChange, boardId }: ProjectMem
         toRemove = userIdsToForceRemove;
       }
 
-      // 2. AO RETIRAR A AUTORIZAÇÃO, AVISAR E LIBERAR AS TAREFAS.
       if (!userIdsToForceRemove && toRemove.length > 0) {
         for (const userId of toRemove) {
           const boardTasks = state.tasks.filter(t => t.boardId === boardId);
@@ -88,14 +99,13 @@ export function ProjectMembersDialog({ open, onOpenChange, boardId }: ProjectMem
               subtasks: subtaskCount
             });
             setLoading(false);
+            clearTimeout(timeoutId);
             return;
           }
         }
       }
 
-      // a) toda escrita no Supabase deve usar await e verificar o campo error
       if (toRemove.length > 0) {
-        // c) ao confirmar, limpar o responsável dessas tarefas (assignee nulo) e também o campo assignee das subtarefas
         const boardTasks = state.tasks.filter(t => t.boardId === boardId);
         const affectedTasks = boardTasks.filter(t => {
           const hasAssignee = toRemove.includes(t.assignee);
@@ -112,11 +122,10 @@ export function ProjectMembersDialog({ open, onOpenChange, boardId }: ProjectMem
                 toRemove.includes(s.assignee) ? { ...s, assignee: undefined } : s
               );
             }
-            const { error } = await supabase.from('tasks').update(updates).eq('id', task.id);
+            const { error } = await supabase.from('tasks').update(updates).eq('id', task.id).abortSignal(controller.signal);
             if (error) throw error;
           }
           
-          // d) ao atualizar o estado local depois de gravar, use um único dispatch do tipo SET_STATE partindo de state.tasks completo
           const newTasks = state.tasks.map(t => {
             if (t.boardId !== boardId) return t;
             if (!toRemove.includes(t.assignee) && !t.subtasks?.some((s: any) => toRemove.includes(s.assignee))) return t;
@@ -136,23 +145,29 @@ export function ProjectMembersDialog({ open, onOpenChange, boardId }: ProjectMem
           .from('project_members' as any)
           .delete()
           .eq('board_id', boardId)
-          .in('user_id', toRemove);
+          .in('user_id', toRemove)
+          .abortSignal(controller.signal);
         if (error) throw error;
       }
 
       if (toAdd.length > 0) {
         const { error } = await supabase
           .from('project_members' as any)
-          .insert(toAdd.map(uid => ({ board_id: boardId, user_id: uid })));
+          .insert(toAdd.map(uid => ({ board_id: boardId, user_id: uid })))
+          .abortSignal(controller.signal);
         if (error) throw error;
       }
 
       toast.success('Membros atualizados com sucesso');
       onOpenChange(false);
+      setFetchError(null);
     } catch (err: any) {
       console.error('Error saving members:', err);
-      toast.error('Erro ao salvar: ' + err.message);
+      const msg = err.name === 'AbortError' ? 'Tempo limite de 10s excedido.' : err.message;
+      setFetchError(msg);
+      toast.error('Erro ao salvar: ' + msg);
     } finally {
+      clearTimeout(timeoutId);
       setLoading(false);
       setConfirmRemove(null);
     }
@@ -177,10 +192,22 @@ export function ProjectMembersDialog({ open, onOpenChange, boardId }: ProjectMem
             <div className="flex items-center justify-center h-full">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
             </div>
+          ) : fetchError ? (
+            <div className="flex flex-col items-center justify-center h-full text-center p-4">
+              <AlertTriangle className="h-8 w-8 text-destructive mb-2" />
+              <p className="text-sm font-medium text-destructive">{fetchError}</p>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="mt-4"
+                onClick={() => loadAuthorized()}
+              >
+                Tentar novamente
+              </Button>
+            </div>
           ) : (
             <div className="space-y-3">
-              {state.users
-                .map((user) => (
+              {state.users.map((user) => (
                 <div key={user.id} className="flex items-center space-x-3 p-2 hover:bg-muted/50 rounded-lg transition-colors cursor-pointer" onClick={() => handleToggle(user.id)}>
                   <Checkbox 
                     id={`user-${user.id}`} 

@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { logActivity } from '@/lib/activityLog';
 import { toast } from 'sonner';
@@ -40,11 +40,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [permissionsLoadFailed, setPermissionsLoadFailed] = useState(false);
-  const [fetchingUserId, setFetchingUserId] = useState<string | null>(null);
+  const [isFetching, setIsFetching] = useState(false);
+  const fetchControllerRef = useRef<AbortController | null>(null);
+  const retryCountRef = useRef<number>(0);
 
-  const fetchProfile = useCallback(async (userId: string, retryCount = 0) => {
-    if (fetchingUserId === userId && retryCount === 0) return;
-    setFetchingUserId(userId);
+  const fetchProfile = useCallback(async (userId: string) => {
+    if (isFetching || retryCountRef.current >= 3) return;
+    
+    setIsFetching(true);
+    if (fetchControllerRef.current) fetchControllerRef.current.abort();
+    fetchControllerRef.current = new AbortController();
 
     try {
       const { data: profileData, error: profileError } = await supabase
@@ -65,27 +70,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (profileData) setProfile(profileData);
       if (rolesData) setRoles(rolesData.map(r => r.role) || []);
       setPermissionsLoadFailed(false);
+      retryCountRef.current = 0; // Reset on success
     } catch (err: any) {
-      console.error(`Attempt ${retryCount + 1} failed for fetchProfile:`, err);
+      if (err.name === 'AbortError') return;
       
-      if (retryCount < 3) {
-        const delay = Math.pow(2, retryCount) * 1000;
-        setTimeout(() => fetchProfile(userId, retryCount + 1), delay);
+      console.error(`Attempt ${retryCountRef.current + 1} failed for fetchProfile:`, err);
+      retryCountRef.current += 1;
+      
+      if (retryCountRef.current < 3) {
+        const delay = Math.pow(2, retryCountRef.current) * 1000;
+        setTimeout(() => fetchProfile(userId), delay);
       } else {
         setPermissionsLoadFailed(true);
-        // Toast removido para ser silencioso, a faixa UI cuidará do aviso
       }
     } finally {
-      if (retryCount === 0 || retryCount === 3) {
+      setIsFetching(false);
+      if (retryCountRef.current === 0 || retryCountRef.current >= 3) {
         setLoading(false);
-        setFetchingUserId(null);
       }
     }
-  }, [fetchingUserId]);
+  }, [isFetching]);
 
   const refreshProfile = useCallback(async () => {
-    if (user) await fetchProfile(user.id);
-  }, [user, fetchProfile]);
+    if (user?.id) {
+      retryCountRef.current = 0;
+      await fetchProfile(user.id);
+    }
+  }, [user?.id, fetchProfile]);
+
+  const clearAuthState = useCallback(() => {
+    setUser(null);
+    setSession(null);
+    setProfile(null);
+    setRoles([]);
+    setLoading(false);
+    setIsFetching(false);
+    setPermissionsLoadFailed(false);
+    retryCountRef.current = 0;
+  }, []);
+
+  const signOut = useCallback(async () => {
+    window.location.href = '/logout';
+  }, []);
 
   useEffect(() => {
     const safetyTimeout = setTimeout(() => {
@@ -99,26 +125,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(currentUser);
         
         if (currentUser) {
-          // Apenas busca se o usuário mudou ou se é um evento de login explícito
+          retryCountRef.current = 0;
           await fetchProfile(currentUser.id);
           if (event === 'SIGNED_IN') {
             logActivity('Login', { method: 'auth', email: currentUser.email });
           }
         } else {
-          setProfile(null);
-          setRoles([]);
-          setLoading(false);
+          clearAuthState();
         }
       }
     );
 
-    // O getSession ainda é necessário para o carregamento inicial caso onAuthStateChange demore
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       const currentUser = session?.user ?? null;
       setSession(session);
       setUser(currentUser);
       
       if (currentUser) {
+        retryCountRef.current = 0;
         await fetchProfile(currentUser.id);
       } else {
         setLoading(false);
@@ -134,36 +158,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       subscription.unsubscribe();
       clearTimeout(safetyTimeout);
     };
-  }, [fetchProfile]);
+  }, [fetchProfile, clearAuthState]);
 
-  const clearAuthState = () => {
-    setUser(null);
-    setSession(null);
-    setProfile(null);
-    setRoles([]);
-    setLoading(false);
-    setFetchingUserId(null);
-    setPermissionsLoadFailed(false);
-  };
+  const rolesString = JSON.stringify(roles);
+  const isAdmin = useMemo(() => roles.includes('admin') || roles.includes('owner'), [rolesString]);
+  const isOwner = useMemo(() => roles.includes('owner'), [rolesString]);
+  const isCoordinator = useMemo(() => roles.includes('coordinator') || roles.includes('admin') || roles.includes('owner'), [rolesString]);
+  const isAdminOrCoordinator = useMemo(() => isAdmin || isCoordinator || isOwner, [isAdmin, isCoordinator, isOwner]);
 
-  const signOut = async () => {
-    // Agora o botão Sair navega para /logout, mas mantemos o método por compatibilidade se invocado programaticamente
-    window.location.href = '/logout';
-  };
-
-  const isAdmin = roles.includes('admin') || roles.includes('owner');
-  const isOwner = roles.includes('owner');
-  const isCoordinator = roles.includes('coordinator') || roles.includes('admin') || roles.includes('owner');
-
-  const isAdminOrCoordinator = isAdmin || isCoordinator || isOwner;
+  const contextValue = useMemo(() => ({
+    user, session, profile, roles, loading,
+    isAdmin, isOwner, isCoordinator,
+    isAdminOrCoordinator,
+    signOut, clearAuthState, refreshProfile,
+  }), [
+    user?.id, session?.access_token, profile?.id, rolesString, loading,
+    isAdmin, isOwner, isCoordinator,
+    isAdminOrCoordinator,
+    signOut, clearAuthState, refreshProfile
+  ]);
 
   return (
-    <AuthContext.Provider value={{
-      user, session, profile, roles, loading,
-      isAdmin, isOwner, isCoordinator,
-      isAdminOrCoordinator,
-      signOut, clearAuthState, refreshProfile,
-    }}>
+    <AuthContext.Provider value={contextValue}>
       {permissionsLoadFailed && !loading && session && 
        !['/login', '/register', '/reset-password', '/logout', '/form', '/timeline/public'].some(p => window.location.pathname.startsWith(p)) && (
         <div className="fixed bottom-4 right-4 z-[9999] bg-destructive text-destructive-foreground p-4 rounded-lg shadow-2xl flex items-center gap-4 max-w-md animate-in fade-in slide-in-from-bottom-4">
@@ -172,7 +188,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             <p className="text-xs opacity-90">Não foi possível carregar suas permissões. Algumas ações podem falhar.</p>
           </div>
           <button 
-            onClick={() => user && fetchProfile(user.id)}
+            onClick={() => user?.id && fetchProfile(user.id)}
             className="px-3 py-1 bg-background text-foreground rounded text-xs font-bold hover:bg-background/90 transition-colors"
           >
             Tentar agora
