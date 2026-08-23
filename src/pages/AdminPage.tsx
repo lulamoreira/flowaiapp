@@ -1172,7 +1172,16 @@ export default function AdminPage() {
                       <td className="p-3 font-medium text-foreground">
                         {format(parseISO(b.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
                       </td>
-                      <td className="p-3 capitalize">{b.trigger_source}</td>
+                      <td className="p-3">
+                        <div className="flex flex-col gap-1">
+                          <span className="capitalize">{b.trigger_source}</span>
+                          {b.trigger_source?.includes('drive_sync') && (
+                            <Badge variant="outline" className="w-fit text-[10px] bg-green-500/10 text-green-500 border-green-500/20 gap-1 px-1.5 py-0">
+                              <Cloud className="h-2.5 w-2.5" /> Google Drive OK
+                            </Badge>
+                          )}
+                        </div>
+                      </td>
                       <td className="p-3 text-xs text-muted-foreground">
                         {Object.entries(b.counts || {}).map(([t, c]) => `${t}: ${c}`).join(' | ')}
                       </td>
