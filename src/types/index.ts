@@ -34,6 +34,8 @@ export interface Task {
   attachments: Attachment[];
   createdAt: string;
   position?: number;
+  /** Número sequencial da tarefa dentro do quadro (public.tasks.task_number). */
+  taskNumber?: number | null;
 }
 
 export interface TaskGroup {

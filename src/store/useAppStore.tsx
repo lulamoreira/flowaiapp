@@ -130,6 +130,7 @@ function dbToTask(row: any): Task {
     attachments: row.attachments || [],
     createdAt: row.created_at?.split('T')[0] || '',
     position: row.position ?? 0,
+    taskNumber: typeof row.task_number === 'number' ? row.task_number : null,
   };
 }
 
@@ -551,6 +552,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
               subtasks: t.subtasks as any,
               attachments: t.attachments as any,
               position: t.position ?? 0,
+              ...(typeof t.taskNumber === 'number' ? { task_number: t.taskNumber } : {}),
               created_by: user?.id,
             });
             error = res.error;
@@ -575,6 +577,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
               subtasks: t.subtasks as any,
               attachments: t.attachments as any,
               position: t.position ?? 0,
+              ...(typeof t.taskNumber === 'number' ? { task_number: t.taskNumber } : {}),
             }).eq('id', t.id);
             error = res.error;
             if (oldTask && oldTask.status !== t.status) {

@@ -10,7 +10,13 @@ import { BoardWorkload } from '@/components/board/BoardWorkload';
 import { AutomationPanel } from '@/components/automation/AutomationPanel';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Zap, Table, Columns3, Plus, Pencil, Check, X, CalendarDays, GanttChart, Users, Share2 } from 'lucide-react';
+import { Zap, Table, Columns3, Plus, Pencil, Check, X, CalendarDays, GanttChart, Users, Share2, ListOrdered } from 'lucide-react';
+import {
+  applyTaskNumbers,
+  assignmentsFromOrder,
+  buildBoardOrder,
+  persistTaskNumbers,
+} from '@/lib/taskNumbering';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -31,6 +37,30 @@ const BoardPage = () => {
   const [titleDraft, setTitleDraft] = useState(board?.title ?? '');
   const [descDraft, setDescDraft] = useState(board?.description ?? '');
   const [membersDialogOpen, setMembersDialogOpen] = useState(false);
+  const [renumbering, setRenumbering] = useState(false);
+
+  /** Refaz a numeração de 1 a N seguindo a ordem atual (grupos + números). */
+  const renumberBoard = async () => {
+    if (!id || renumbering) return;
+    setRenumbering(true);
+    try {
+      const ordered = buildBoardOrder(state.tasks, state.groups, id);
+      const updates = assignmentsFromOrder(ordered);
+      if (!updates.length) {
+        toast.success('O quadro já está numerado de 1 a N.');
+        return;
+      }
+      const { error } = await persistTaskNumbers(updates);
+      if (error) {
+        toast.error('Erro ao renumerar: ' + error);
+        return;
+      }
+      dispatch({ type: 'SET_STATE', payload: { tasks: applyTaskNumbers(state.tasks, updates) } });
+      toast.success(`${updates.length} tarefa(s) renumerada(s).`);
+    } finally {
+      setRenumbering(false);
+    }
+  };
   const { canEdit, canDelete, isAdminOrCoordinator } = usePermissions();
   const canEditBoard = canEdit('boards');
   const canEditTasks = canEdit('tasks');
@@ -173,6 +203,18 @@ const BoardPage = () => {
                   board={board} 
                   tasks={state.tasks.filter(t => t.boardId === board.id)} 
                 />
+              )}
+              {canEditTasks && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs"
+                  disabled={renumbering}
+                  onClick={renumberBoard}
+                >
+                  <ListOrdered className="h-3.5 w-3.5 mr-1" />
+                  {renumbering ? 'Renumerando...' : 'Renumerar quadro'}
+                </Button>
               )}
               <PublicTimelineDialog
                 boardId={board.id}

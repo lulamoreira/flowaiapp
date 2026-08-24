@@ -233,6 +233,9 @@ export function BoardKanban({ boardId }: BoardKanbanProps) {
                         <GripVertical className="h-4 w-4 text-muted-foreground/40 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 cursor-grab" />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-foreground truncate">
+                            {typeof task.taskNumber === 'number' && (
+                              <span className="text-muted-foreground tabular-nums mr-1.5">#{task.taskNumber}</span>
+                            )}
                             {task.title}
                           </p>
                           {task.description && (

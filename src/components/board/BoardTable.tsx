@@ -11,6 +11,16 @@ import { GripVertical, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useScopedTasks } from '@/hooks/useScopedTasks';
 import { cn } from '@/lib/utils';
+import {
+  assignmentsForManualNumber,
+  assignmentsFromOrder,
+  applyTaskNumbers,
+  buildBoardOrder,
+  compareByTaskNumber,
+  nextTaskNumber,
+  persistTaskNumbers,
+  TaskNumberUpdate,
+} from '@/lib/taskNumbering';
 import { DeleteConfirmDialog } from '@/components/ui/DeleteConfirmDialog';
 
 type SortConfig = {
@@ -118,10 +128,59 @@ export function BoardTable({ boardId }: BoardTableProps) {
       subtasks: [],
       attachments: [],
       createdAt: new Date().toISOString().split('T')[0],
+      taskNumber: nextTaskNumber(state.tasks, boardId),
     };
     dispatch({ type: 'ADD_TASK', payload: newTask });
     setSelectedTask(newTask);
   };
+
+  /**
+   * Grava as atualizações de numeração uma a uma (parando no primeiro erro) e,
+   * só em caso de sucesso, atualiza o estado local com um único SET_STATE.
+   */
+  const commitNumbers = useCallback(async (updates: TaskNumberUpdate[]) => {
+    if (!updates.length) return;
+    const { error } = await persistTaskNumbers(updates);
+    if (error) {
+      toast.error('Erro ao gravar a numeração: ' + error);
+      return;
+    }
+    dispatch({
+      type: 'SET_STATE',
+      payload: { tasks: applyTaskNumbers(state.tasks, updates) },
+    });
+  }, [state.tasks, dispatch]);
+
+  const handleNumberCommit = useCallback((taskId: string, value: number) => {
+    const ordered = buildBoardOrder(state.tasks, state.groups, boardId);
+    const updates = assignmentsForManualNumber(ordered, taskId, value);
+    if (!updates.length) return;
+    void commitNumbers(updates);
+  }, [state.tasks, state.groups, boardId, commitNumbers]);
+
+  /** Reordena (dentro ou entre grupos) e renumera o quadro de 1 a N. */
+  const reorderTask = useCallback((taskId: string, targetGroupId: string, beforeTaskId: string | null) => {
+    const ordered = buildBoardOrder(state.tasks, state.groups, boardId);
+    const moved = ordered.find(t => t.id === taskId);
+    if (!moved) return;
+
+    const without = ordered.filter(t => t.id !== taskId);
+    let insertAt: number;
+    if (beforeTaskId) {
+      const idx = without.findIndex(t => t.id === beforeTaskId);
+      insertAt = idx === -1 ? without.length : idx;
+    } else {
+      // Solto na área do grupo: vai para o fim daquele grupo.
+      let last = -1;
+      without.forEach((t, i) => { if (t.groupId === targetGroupId) last = i; });
+      insertAt = last === -1 ? without.length : last + 1;
+    }
+    without.splice(insertAt, 0, moved);
+
+    const updates = assignmentsFromOrder(without, { [taskId]: targetGroupId });
+    if (!updates.length) return;
+    void commitNumbers(updates);
+  }, [state.tasks, state.groups, boardId, commitNumbers]);
 
   // Task drag
   const handleDragStart = (e: React.DragEvent, taskId: string) => {
@@ -140,10 +199,22 @@ export function BoardTable({ boardId }: BoardTableProps) {
     e.preventDefault();
     setDragOverGroupId(null);
     if (!draggedTaskId) return;
-    const task = state.tasks.find(t => t.id === draggedTaskId);
-    if (task && task.groupId !== targetGroupId) {
-      dispatch({ type: 'UPDATE_TASK', payload: { ...task, groupId: targetGroupId } });
+    reorderTask(draggedTaskId, targetGroupId, null);
+    setDraggedTaskId(null);
+  };
+
+  /** Soltar sobre uma linha: insere antes ou depois dela, conforme a metade. */
+  const handleRowDrop = (e: React.DragEvent, targetTask: Task, nextTaskId: string | null) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverGroupId(null);
+    if (!draggedTaskId || draggedTaskId === targetTask.id) {
+      setDraggedTaskId(null);
+      return;
     }
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const dropAfter = e.clientY >= rect.top + rect.height / 2;
+    reorderTask(draggedTaskId, targetTask.groupId, dropAfter ? nextTaskId : targetTask.id);
     setDraggedTaskId(null);
   };
 
@@ -221,6 +292,13 @@ export function BoardTable({ boardId }: BoardTableProps) {
       <div className="flex items-center text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border pb-2 group/header">
         <div className="w-7 shrink-0" />
         <div className="w-1 self-stretch shrink-0" />
+        <button
+          onClick={() => setSort({ column: null, direction: null })}
+          className="w-12 px-1 shrink-0 flex items-center justify-center hover:text-foreground transition-colors"
+          title="Ordem por número"
+        >
+          Nº
+        </button>
         <button 
           onClick={() => handleSort('item')}
           className="flex-1 px-3 min-w-[200px] flex items-center hover:text-foreground transition-colors group"
@@ -255,7 +333,7 @@ export function BoardTable({ boardId }: BoardTableProps) {
       
       {sort.column && (
         <div className="text-[10px] text-muted-foreground italic px-1">
-          Ordenado por {sort.column === 'item' ? 'Item' : sort.column === 'assignee' ? 'Responsável' : sort.column === 'status' ? 'Status' : sort.column === 'priority' ? 'Prioridade' : 'Data'} — volte para a ordem manual para reordenar arrastando
+          Ordenado por {sort.column === 'item' ? 'Item' : sort.column === 'assignee' ? 'Responsável' : sort.column === 'status' ? 'Status' : sort.column === 'priority' ? 'Prioridade' : 'Data'} — volte para a ordem por número para reordenar arrastando
         </div>
       )}
 
@@ -372,9 +450,9 @@ export function BoardTable({ boardId }: BoardTableProps) {
                   }
                 }
                 
-                // Manual order (position)
-                return (a.position ?? 0) - (b.position ?? 0);
-              }).map(task => (
+                // Ordem por número (padrão)
+                return compareByTaskNumber(a, b);
+              }).map((task, taskIndex, sortedTasks) => (
                 <TaskRow
                   key={task.id}
                   task={task}
@@ -383,7 +461,10 @@ export function BoardTable({ boardId }: BoardTableProps) {
                   draggable={canEditTasks && !sort.column}
                   onDragStart={canEditTasks && !sort.column ? e => handleDragStart(e, task.id) : undefined}
                   onDragEnd={handleDragEnd}
+                  onDragOver={canEditTasks && !sort.column && draggedTaskId ? e => { e.preventDefault(); e.stopPropagation(); } : undefined}
+                  onDrop={canEditTasks && !sort.column ? e => handleRowDrop(e, task, sortedTasks[taskIndex + 1]?.id ?? null) : undefined}
                   isDragging={draggedTaskId === task.id}
+                  onNumberCommit={canEditTasks ? value => handleNumberCommit(task.id, value) : undefined}
                 />
               ))}
             </div>
