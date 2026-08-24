@@ -259,18 +259,44 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
       const { data, error } = await supabase.functions.invoke('ai-expand-description', {
         body: { title: current.title, description: current.description },
       });
+
+      if (error) {
+        // supabase-js embrulha respostas não-2xx: o corpo real está em error.context
+        let detail = error.message;
+        try {
+          const ctx = (error as any)?.context;
+          if (ctx && typeof ctx.text === 'function') {
+            const raw = await ctx.text();
+            try {
+              detail = JSON.parse(raw)?.error || raw || detail;
+            } catch {
+              detail = raw || detail;
+            }
+          }
+        } catch { /* mantém error.message */ }
+        toast.error(detail);
+        return;
+      }
+
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
+
       if (data?.expanded) {
         update({ description: data.expanded });
         setLocalDescription(data.expanded);
         toast.success('Descrição expandida com IA');
       } else {
-        toast.error('Não foi possível expandir a descrição');
+        toast.error('A IA não retornou nenhum conteúdo.');
       }
-    } catch {
-      toast.error('Erro ao conectar com IA');
+    } catch (err: any) {
+      toast.error(err?.message || 'Erro ao conectar com IA');
+    } finally {
+      setExpandingDesc(false);
     }
-    setExpandingDesc(false);
   };
+
 
   const handleDeleteTask = async () => {
     dispatch({ 

@@ -3,6 +3,8 @@ export const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+const AI_GATEWAY_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions'
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -12,7 +14,7 @@ Deno.serve(async (req) => {
     const { title, description } = await req.json()
 
     if (!title) {
-      return new Response(JSON.stringify({ error: 'Title is required' }), {
+      return new Response(JSON.stringify({ error: 'O título da tarefa é obrigatório.' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
@@ -20,7 +22,7 @@ Deno.serve(async (req) => {
 
     const apiKey = Deno.env.get('LOVABLE_API_KEY')
     if (!apiKey) {
-      return new Response(JSON.stringify({ error: 'API key not configured' }), {
+      return new Response(JSON.stringify({ error: 'LOVABLE_API_KEY não está configurada no backend.' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
@@ -33,11 +35,12 @@ Descrição atual: ${description || '(vazia)'}
 
 Forneça a descrição expandida diretamente, sem prefixos ou explicações.`
 
-    const response = await fetch('https://ai.lovable.dev/chat/completions', {
+    const response = await fetch(AI_GATEWAY_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
+        'Lovable-API-Key': apiKey,
+        'X-Lovable-AIG-SDK': 'fetch',
       },
       body: JSON.stringify({
         model: 'google/gemini-2.5-flash',
@@ -46,14 +49,40 @@ Forneça a descrição expandida diretamente, sem prefixos ou explicações.`
       }),
     })
 
+    if (!response.ok) {
+      const raw = await response.text()
+      let message = raw
+      try {
+        message = JSON.parse(raw)?.error?.message ?? JSON.parse(raw)?.message ?? raw
+      } catch (_) { /* mantém texto bruto */ }
+
+      if (response.status === 429) {
+        message = 'Limite de requisições da IA atingido. Tente novamente em alguns instantes.'
+      } else if (response.status === 402) {
+        message = message || 'Créditos de IA esgotados. Adicione créditos para continuar.'
+      }
+
+      return new Response(JSON.stringify({ error: message, status: response.status }), {
+        status: response.status,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
     const result = await response.json()
-    const expanded = result.choices?.[0]?.message?.content || ''
+    const expanded = result.choices?.[0]?.message?.content?.trim() || ''
+
+    if (!expanded) {
+      return new Response(JSON.stringify({ error: 'A IA não retornou nenhum conteúdo.' }), {
+        status: 502,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
 
     return new Response(JSON.stringify({ expanded }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: (error as Error).message || 'Erro inesperado.' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })

@@ -38,6 +38,8 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
   const [parsedData, setParsedData] = useState<{ title: string; tasks: ParsedTask[] } | null>(null);
   const [baseYear, setBaseYear] = useState(new Date().getFullYear().toString());
   const [showYearInput, setShowYearInput] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
   
   const { state, dispatch } = useAppStore();
   const navigate = useNavigate();
@@ -50,8 +52,10 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
       setStep('upload');
       setLoading(false);
       setShowYearInput(false);
+      setErrorMessage(null);
     }
   }, [open]);
+
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -109,20 +113,63 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
     });
   };
 
+  /**
+   * Extrai a mensagem real de erro devolvida por uma Edge Function.
+   * O supabase-js embrulha respostas não-2xx em FunctionsHttpError, cujo corpo
+   * só é acessível através de `error.context` (um Response). Sem isto o usuário
+   * receberia apenas "Edge Function returned a non-2xx status code".
+   */
+  const extractFunctionError = async (error: any): Promise<string> => {
+    try {
+      const ctx = error?.context;
+      if (ctx && typeof ctx.text === 'function') {
+        const raw = await ctx.text();
+        try {
+          const parsed = JSON.parse(raw);
+          return parsed?.error || parsed?.message || raw;
+        } catch {
+          return raw || error.message;
+        }
+      }
+    } catch {
+      /* cai no fallback abaixo */
+    }
+    return error?.message || 'Erro desconhecido ao chamar a IA.';
+  };
+
   const handleAnalyze = async () => {
     if (!file) return;
     setLoading(true);
-    
+    setErrorMessage(null);
+
     try {
       const extractedText = await extractTextFromPdf(file);
-      
+
       const { data, error } = await supabase.functions.invoke('ai-parse-schedule', {
         body: { text: extractedText }
       });
 
-      if (error) throw error;
+      if (error) {
+        const detail = await extractFunctionError(error);
+        setErrorMessage(detail);
+        toast.error(detail);
+        return;
+      }
 
-      const rawTasks = data.tasks || [];
+      if (data?.error) {
+        setErrorMessage(data.error);
+        toast.error(data.error);
+        return;
+      }
+
+      const rawTasks = data?.tasks || [];
+      if (rawTasks.length === 0) {
+        const msg = 'Nenhuma tarefa foi identificada neste PDF.';
+        setErrorMessage(msg);
+        toast.error(msg);
+        return;
+      }
+
       const hasMissingYear = rawTasks.some((t: any) => 
         (t.startDate && t.startDate.includes('YYYY')) || 
         (t.endDate && t.endDate.includes('YYYY'))
@@ -141,15 +188,16 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
       toast.success('Documento analisado com sucesso!');
     } catch (error: any) {
       console.error(error);
-      if (error.message === "OCR_REQUIRED") {
-        toast.error('Este PDF parece ser digitalizado e não contém texto selecionável.');
-      } else {
-        toast.error('Não foi possível processar o documento.');
-      }
+      const msg = error?.message === 'OCR_REQUIRED'
+        ? 'Este PDF parece ser digitalizado e não contém texto selecionável.'
+        : (error?.message || 'Não foi possível processar o documento.');
+      setErrorMessage(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
   };
+
 
   const handleTaskEdit = (index: number, field: keyof ParsedTask, value: string) => {
     if (!parsedData) return;
@@ -285,6 +333,21 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
               : 'Revise os dados extraídos antes de criar o projeto.'}
           </DialogDescription>
         </DialogHeader>
+
+        {errorMessage && (
+          <div
+            role="alert"
+            className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+          >
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+            <div className="space-y-1">
+              <p className="font-medium">Falha ao processar o cronograma</p>
+              <p className="break-words text-xs opacity-90">{errorMessage}</p>
+            </div>
+          </div>
+        )}
+
+
 
         {step === 'upload' ? (
           <div className="py-8 flex flex-col items-center justify-center border-2 border-dashed border-border rounded-lg bg-muted/30">
