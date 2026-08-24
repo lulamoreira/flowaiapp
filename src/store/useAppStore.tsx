@@ -552,6 +552,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
               subtasks: t.subtasks as any,
               attachments: t.attachments as any,
               position: t.position ?? 0,
+              ...(typeof t.taskNumber === 'number' ? { task_number: t.taskNumber } : {}),
               created_by: user?.id,
             });
             error = res.error;
