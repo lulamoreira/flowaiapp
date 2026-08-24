@@ -134,21 +134,15 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
     [update]
   );
 
-  // Intercept Escape while editing the title to discard changes instead of closing the modal
-  useEffect(() => {
-    if (!current) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && document.activeElement === titleInputRef.current) {
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        debouncedUpdate.cancel();
-        setLocalTitle(titleBeforeEdit);
-        titleInputRef.current?.blur();
-      }
-    };
-    document.addEventListener('keydown', handleKeyDown, true);
-    return () => document.removeEventListener('keydown', handleKeyDown, true);
-  }, [current, titleBeforeEdit, debouncedUpdate]);
+  // Handle Escape on the modal: if the title is being edited, discard changes and keep the modal open.
+  const handleDialogEscape = useCallback((e: React.KeyboardEvent) => {
+    if (document.activeElement === titleInputRef.current) {
+      e.preventDefault();
+      debouncedUpdate.cancel();
+      setLocalTitle(titleBeforeEdit);
+      titleInputRef.current?.blur();
+    }
+  }, [titleBeforeEdit, debouncedUpdate]);
 
   // Flush pending updates on unmount to prevent data loss
   useEffect(() => {
