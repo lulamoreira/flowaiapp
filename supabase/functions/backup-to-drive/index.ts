@@ -15,24 +15,53 @@ serve(async (req) => {
     const cronSecret = req.headers.get("x-cron-secret");
     const expectedSecret = Deno.env.get("BACKUP_CRON_SECRET");
 
-    console.log("Auth attempt - cronSecret:", cronSecret ? "present" : "missing", "expectedSecret:", expectedSecret ? "set" : "missing");
-
-    // Autorização: Se vier o segredo OU se for uma chamada autenticada do Admin
     let isAuthorized = false;
+
     if (cronSecret && expectedSecret && cronSecret === expectedSecret) {
+      // (a) Chamada do agendador (pg_cron)
       isAuthorized = true;
     } else {
-      // Tentar validar token Supabase se não houver segredo
+      // (b) Exigir token Supabase VÁLIDO
       const authHeader = req.headers.get("Authorization");
-      if (authHeader) {
-        // Como verify_jwt = false, precisamos validar manualmente ou confiar no gateway se for do domínio app
-        // Para simplificar e permitir o botão da UI, permitimos se houver Authorization
-        isAuthorized = true;
+      if (!authHeader) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
+
+      const supabaseAuth = createClient(
+        Deno.env.get("SUPABASE_URL") ?? "",
+        Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+        { global: { headers: { Authorization: authHeader } } }
+      );
+
+      const { data: userData, error: userErr } = await supabaseAuth.auth.getUser();
+      const user = userData?.user;
+      if (userErr || !user) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // (c) Exigir papel admin ou owner
+      const [adminRes, ownerRes] = await Promise.all([
+        supabaseAuth.rpc("has_role", { _user_id: user.id, _role: "admin" }),
+        supabaseAuth.rpc("has_role", { _user_id: user.id, _role: "owner" }),
+      ]);
+
+      if (adminRes.error || ownerRes.error || !(adminRes.data === true || ownerRes.data === true)) {
+        return new Response(JSON.stringify({ error: "Forbidden" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      isAuthorized = true;
     }
 
     if (!isAuthorized) {
-      console.error("Authorization failed");
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
