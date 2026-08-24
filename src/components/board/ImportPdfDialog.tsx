@@ -334,6 +334,21 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
           </DialogDescription>
         </DialogHeader>
 
+        {errorMessage && (
+          <div
+            role="alert"
+            className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+          >
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+            <div className="space-y-1">
+              <p className="font-medium">Falha ao processar o cronograma</p>
+              <p className="break-words text-xs opacity-90">{errorMessage}</p>
+            </div>
+          </div>
+        )}
+
+
+
         {step === 'upload' ? (
           <div className="py-8 flex flex-col items-center justify-center border-2 border-dashed border-border rounded-lg bg-muted/30">
             <Upload className="h-10 w-10 text-muted-foreground mb-4" />
