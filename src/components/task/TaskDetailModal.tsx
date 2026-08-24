@@ -121,6 +121,18 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
     return () => clearTimeout(timer);
   }, [current?.id]);
 
+  const update = useCallback((updates: Partial<Task>) => {
+    if (!current) return;
+    dispatch({ type: 'UPDATE_TASK', payload: { ...current, ...updates } });
+  }, [current, dispatch]);
+
+  const debouncedUpdate = useCallback(
+    debounce((updates: Partial<Task>) => {
+      update(updates);
+    }, 800),
+    [update]
+  );
+
   // Intercept Escape while editing the title to discard changes instead of closing the modal
   useEffect(() => {
     if (!current) return;
@@ -136,18 +148,6 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
     document.addEventListener('keydown', handleKeyDown, true);
     return () => document.removeEventListener('keydown', handleKeyDown, true);
   }, [current, titleBeforeEdit, debouncedUpdate]);
-
-  const update = useCallback((updates: Partial<Task>) => {
-    if (!current) return;
-    dispatch({ type: 'UPDATE_TASK', payload: { ...current, ...updates } });
-  }, [current, dispatch]);
-
-  const debouncedUpdate = useCallback(
-    debounce((updates: Partial<Task>) => {
-      update(updates);
-    }, 800),
-    [update]
-  );
 
   // Flush pending updates on unmount to prevent data loss
   useEffect(() => {
