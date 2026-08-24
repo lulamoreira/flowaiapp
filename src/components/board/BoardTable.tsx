@@ -128,10 +128,59 @@ export function BoardTable({ boardId }: BoardTableProps) {
       subtasks: [],
       attachments: [],
       createdAt: new Date().toISOString().split('T')[0],
+      taskNumber: nextTaskNumber(state.tasks, boardId),
     };
     dispatch({ type: 'ADD_TASK', payload: newTask });
     setSelectedTask(newTask);
   };
+
+  /**
+   * Grava as atualizações de numeração uma a uma (parando no primeiro erro) e,
+   * só em caso de sucesso, atualiza o estado local com um único SET_STATE.
+   */
+  const commitNumbers = useCallback(async (updates: TaskNumberUpdate[]) => {
+    if (!updates.length) return;
+    const { error } = await persistTaskNumbers(updates);
+    if (error) {
+      toast.error('Erro ao gravar a numeração: ' + error);
+      return;
+    }
+    dispatch({
+      type: 'SET_STATE',
+      payload: { tasks: applyTaskNumbers(state.tasks, updates) },
+    });
+  }, [state.tasks, dispatch]);
+
+  const handleNumberCommit = useCallback((taskId: string, value: number) => {
+    const ordered = buildBoardOrder(state.tasks, state.groups, boardId);
+    const updates = assignmentsForManualNumber(ordered, taskId, value);
+    if (!updates.length) return;
+    void commitNumbers(updates);
+  }, [state.tasks, state.groups, boardId, commitNumbers]);
+
+  /** Reordena (dentro ou entre grupos) e renumera o quadro de 1 a N. */
+  const reorderTask = useCallback((taskId: string, targetGroupId: string, beforeTaskId: string | null) => {
+    const ordered = buildBoardOrder(state.tasks, state.groups, boardId);
+    const moved = ordered.find(t => t.id === taskId);
+    if (!moved) return;
+
+    const without = ordered.filter(t => t.id !== taskId);
+    let insertAt: number;
+    if (beforeTaskId) {
+      const idx = without.findIndex(t => t.id === beforeTaskId);
+      insertAt = idx === -1 ? without.length : idx;
+    } else {
+      // Solto na área do grupo: vai para o fim daquele grupo.
+      let last = -1;
+      without.forEach((t, i) => { if (t.groupId === targetGroupId) last = i; });
+      insertAt = last === -1 ? without.length : last + 1;
+    }
+    without.splice(insertAt, 0, moved);
+
+    const updates = assignmentsFromOrder(without, { [taskId]: targetGroupId });
+    if (!updates.length) return;
+    void commitNumbers(updates);
+  }, [state.tasks, state.groups, boardId, commitNumbers]);
 
   // Task drag
   const handleDragStart = (e: React.DragEvent, taskId: string) => {
@@ -150,10 +199,22 @@ export function BoardTable({ boardId }: BoardTableProps) {
     e.preventDefault();
     setDragOverGroupId(null);
     if (!draggedTaskId) return;
-    const task = state.tasks.find(t => t.id === draggedTaskId);
-    if (task && task.groupId !== targetGroupId) {
-      dispatch({ type: 'UPDATE_TASK', payload: { ...task, groupId: targetGroupId } });
+    reorderTask(draggedTaskId, targetGroupId, null);
+    setDraggedTaskId(null);
+  };
+
+  /** Soltar sobre uma linha: insere antes ou depois dela, conforme a metade. */
+  const handleRowDrop = (e: React.DragEvent, targetTask: Task, nextTaskId: string | null) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverGroupId(null);
+    if (!draggedTaskId || draggedTaskId === targetTask.id) {
+      setDraggedTaskId(null);
+      return;
     }
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const dropAfter = e.clientY >= rect.top + rect.height / 2;
+    reorderTask(draggedTaskId, targetTask.groupId, dropAfter ? nextTaskId : targetTask.id);
     setDraggedTaskId(null);
   };
 
