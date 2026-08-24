@@ -58,8 +58,8 @@ export function useTimeTracking(taskId?: string) {
   }, []);
 
   useEffect(() => {
-    if (taskId) fetchEntries(taskId);
-  }, [taskId, fetchEntries]);
+    if (taskId && user?.id) fetchEntries(taskId);
+  }, [taskId, user?.id, fetchEntries]);
 
   // Timer tick
   useEffect(() => {

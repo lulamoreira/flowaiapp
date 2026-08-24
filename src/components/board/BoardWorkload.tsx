@@ -48,6 +48,7 @@ export function BoardWorkload({ boardId }: BoardWorkloadProps) {
   }, [state.users, authorizedUserIds, tasks]);
 
   useEffect(() => {
+    if (!boardId) return;
     const fetchAuthorized = async () => {
       setLoading(true);
       try {
