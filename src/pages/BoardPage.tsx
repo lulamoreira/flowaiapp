@@ -174,6 +174,18 @@ const BoardPage = () => {
                   tasks={state.tasks.filter(t => t.boardId === board.id)} 
                 />
               )}
+              {canEditTasks && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs"
+                  disabled={renumbering}
+                  onClick={renumberBoard}
+                >
+                  <ListOrdered className="h-3.5 w-3.5 mr-1" />
+                  {renumbering ? 'Renumerando...' : 'Renumerar quadro'}
+                </Button>
+              )}
               <PublicTimelineDialog
                 boardId={board.id}
                 initialEnabled={(board as any).public_timeline_enabled}
