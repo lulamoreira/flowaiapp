@@ -337,7 +337,7 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
   return (
     <>
       <Dialog open={!!task} onOpenChange={() => onClose()}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto" onEscapeKeyDown={handleDialogEscape}>
           <DialogHeader className="flex flex-row items-start justify-between pr-8 gap-4">
             <DialogTitle className="flex-1">
               <Textarea
