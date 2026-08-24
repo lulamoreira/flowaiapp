@@ -443,9 +443,9 @@ export function BoardTable({ boardId }: BoardTableProps) {
                   }
                 }
                 
-                // Manual order (position)
-                return (a.position ?? 0) - (b.position ?? 0);
-              }).map(task => (
+                // Ordem por número (padrão)
+                return compareByTaskNumber(a, b);
+              }).map((task, taskIndex, sortedTasks) => (
                 <TaskRow
                   key={task.id}
                   task={task}
@@ -454,7 +454,10 @@ export function BoardTable({ boardId }: BoardTableProps) {
                   draggable={canEditTasks && !sort.column}
                   onDragStart={canEditTasks && !sort.column ? e => handleDragStart(e, task.id) : undefined}
                   onDragEnd={handleDragEnd}
+                  onDragOver={canEditTasks && !sort.column && draggedTaskId ? e => { e.preventDefault(); e.stopPropagation(); } : undefined}
+                  onDrop={canEditTasks && !sort.column ? e => handleRowDrop(e, task, sortedTasks[taskIndex + 1]?.id ?? null) : undefined}
                   isDragging={draggedTaskId === task.id}
+                  onNumberCommit={canEditTasks ? value => handleNumberCommit(task.id, value) : undefined}
                 />
               ))}
             </div>
