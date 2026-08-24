@@ -104,6 +104,7 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
     if (!current) return;
     const normalizedTitle = !current.title || current.title.trim() === 'Nova tarefa' ? '' : current.title;
     setLocalTitle(normalizedTitle);
+    setTitleBeforeEdit(normalizedTitle);
     setLocalDescription(current.description || '');
     setLocalPlannedStart(toInputFormat(current.plannedStart));
     setLocalPlannedEnd(toInputFormat(current.plannedEnd));
@@ -352,7 +353,12 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
                   setLocalTitle(e.target.value);
                   debouncedUpdate({ title: e.target.value });
                 }}
-                onFocus={() => setTitleBeforeEdit(localTitle)}
+              onFocus={() => {
+                // Capture the task's original title from current, not from local state,
+                // so that auto-focus during modal open doesn't record an empty/placeholder value.
+                const normalized = !current?.title || current.title.trim() === 'Nova tarefa' ? '' : current.title;
+                setTitleBeforeEdit(normalized);
+              }}
                 onBlur={() => handleBlur('title', localTitle)}
                 onKeyDown={e => {
                   if (e.key === 'Enter') {
