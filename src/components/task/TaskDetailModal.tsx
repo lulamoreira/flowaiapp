@@ -341,10 +341,13 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
                 onKeyDown={e => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
+                    debouncedUpdate.cancel();
                     handleBlur('title', localTitle);
                     titleInputRef.current?.blur();
                   } else if (e.key === 'Escape') {
                     e.preventDefault();
+                    e.stopPropagation();
+                    debouncedUpdate.cancel();
                     setLocalTitle(titleBeforeEdit);
                     titleInputRef.current?.blur();
                   }
