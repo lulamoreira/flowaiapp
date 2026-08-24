@@ -643,10 +643,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
       }
     }
-  }, [state.automations, state.tasks]);
+  }, [dispatch]);
+
+  const contextValue = useMemo(() => ({ state, dispatch: wrappedDispatch }), [state, wrappedDispatch]);
 
   return (
-    <AppContext.Provider value={{ state, dispatch: wrappedDispatch }}>
+    <AppContext.Provider value={contextValue}>
       {children}
       <DeleteConfirmDialog
         open={!!confirmDelete}
