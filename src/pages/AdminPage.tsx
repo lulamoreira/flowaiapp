@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { Users, Mail, History, Shield, UserPlus, Settings, Trash2, Pencil, Activity, Search, CalendarIcon, X, UserCheck, CheckCircle2, RefreshCcw, Cloud, AlertTriangle } from 'lucide-react';
+import { Users, Mail, History, Shield, UserPlus, Settings, Trash2, Pencil, Activity, Search, CalendarIcon, X, UserCheck, CheckCircle2, RefreshCcw, Cloud, AlertTriangle, Link2, Copy, Check, Loader2 } from 'lucide-react';
 import { DeleteConfirmDialog } from '@/components/ui/DeleteConfirmDialog';
 import { format, parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -42,6 +42,8 @@ interface Invitation {
   expires_at: string;
   accepted_at: string | null;
   invited_by: string;
+  token?: string;
+  role?: AppRole;
 }
 
 interface CustomFunction {
@@ -115,6 +117,8 @@ export default function AdminPage() {
   const [inviteName, setInviteName] = useState('');
   const [inviteRole, setInviteRole] = useState<AppRole>('viewer');
   const [inviteSending, setInviteSending] = useState(false);
+  const [generatedLink, setGeneratedLink] = useState('');
+  const [copied, setCopied] = useState(false);
 
   // Role dialog
   const [roleDialogOpen, setRoleDialogOpen] = useState(false);
@@ -258,33 +262,45 @@ export default function AdminPage() {
   const handleSendInvite = async () => {
     if (!inviteEmail.trim() || !user) return;
     setInviteSending(true);
+    setGeneratedLink('');
 
-    const { data, error } = await supabase.from('invitations').insert({
-      invited_by: user.id,
-      email: inviteEmail.trim(),
-      role: inviteRole,
-      invited_name: inviteName
-    }).select().single();
+    try {
+      const { data, error } = await supabase.from('invitations').insert({
+        invited_by: user.id,
+        email: inviteEmail.trim(),
+        role: inviteRole,
+        invited_name: inviteName
+      }).select().single();
 
-    if (error) {
+      if (error) throw error;
+      
+      if (data) {
+        const baseUrl = window.location.hostname.includes('lovable.app') 
+          ? window.location.origin 
+          : 'https://flowaiapp.lovable.app';
+        const registerUrl = `${baseUrl}/register?token=${data.token}`;
+        
+        setGeneratedLink(registerUrl);
+        toast.success('Convite criado com sucesso!');
+        fetchAll();
+      }
+    } catch (error: any) {
       toast.error('Erro ao criar convite: ' + error.message);
-    } else if (data) {
-      const baseUrl = window.location.hostname.includes('lovable.app') 
-        ? window.location.origin 
-        : 'https://flowaiapp.lovable.app';
-      const registerUrl = `${baseUrl}/register?token=${data.token}`;
-      
-      // Armazena o link no clipboard e avisa o usuário
-      await navigator.clipboard.writeText(registerUrl);
-      toast.success('Convite criado e link copiado para a área de transferência!');
-      
-      setInviteEmail('');
-      setInviteName('');
-      setInviteRole('viewer');
-      setInviteOpen(false);
-      fetchAll();
+    } finally {
+      setInviteSending(false);
     }
-    setInviteSending(false);
+  };
+
+  const copyLink = async (link: string) => {
+    if (!link) return;
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+      toast.success('Link copiado!');
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      toast.error('Falha ao copiar link. Por favor, copie manualmente.');
+    }
   };
 
 
@@ -835,6 +851,7 @@ export default function AdminPage() {
                 <thead>
                   <tr className="border-b border-border bg-muted/50">
                     <th className="text-left p-3 font-medium text-muted-foreground">Email</th>
+                    <th className="text-left p-3 font-medium text-muted-foreground">Papel</th>
                     <th className="text-left p-3 font-medium text-muted-foreground">Status</th>
                     <th className="text-left p-3 font-medium text-muted-foreground">Enviado em</th>
                     <th className="text-left p-3 font-medium text-muted-foreground">Expira em</th>
@@ -850,10 +867,31 @@ export default function AdminPage() {
                           <span className="ml-2 text-[10px] text-muted-foreground font-normal">(via link)</span>
                         )}
                       </td>
+                      <td className="p-3">
+                        <Badge variant="outline" className="capitalize text-[10px]">
+                          {inv.role || '—'}
+                        </Badge>
+                      </td>
                       <td className="p-3">{statusBadge(inv.status)}</td>
                       <td className="p-3 text-muted-foreground">{new Date(inv.created_at).toLocaleDateString('pt-BR')}</td>
                       <td className="p-3 text-muted-foreground">{new Date(inv.expires_at).toLocaleDateString('pt-BR')}</td>
-                      <td className="p-3 text-right">
+                      <td className="p-3 text-right flex items-center justify-end gap-1">
+                        {inv.status === 'pending' && (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-primary"
+                            title="Copiar link do convite"
+                            onClick={() => {
+                              const baseUrl = window.location.hostname.includes('lovable.app') 
+                                ? window.location.origin 
+                                : 'https://flowaiapp.lovable.app';
+                              copyLink(`${baseUrl}/register?token=${inv.token}`);
+                            }}
+                          >
+                            <Copy className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
                         {inv.status === 'pending' ? (
                           <Button
                             size="icon"
@@ -1323,40 +1361,84 @@ export default function AdminPage() {
       </div>
     </main>
 
-      {/* Invite Dialog */}
-      <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+      <Dialog open={inviteOpen} onOpenChange={(v) => { 
+        setInviteOpen(v); 
+        if (!v) {
+          setGeneratedLink('');
+          setInviteEmail('');
+          setInviteName('');
+          setInviteRole('viewer');
+        }
+      }}>
         <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>Cadastrar / Convidar Usuário</DialogTitle></DialogHeader>
-          <div className="space-y-4 pt-2">
-            <div>
-              <Label>Email *</Label>
-              <Input type="email" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} placeholder="email@exemplo.com" />
+          
+          {!generatedLink ? (
+            <div className="space-y-4 pt-2">
+              <div>
+                <Label>Email *</Label>
+                <Input type="email" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} placeholder="email@exemplo.com" />
+              </div>
+              <div>
+                <Label>Nome completo</Label>
+                <Input value={inviteName} onChange={e => setInviteName(e.target.value)} placeholder="Nome do usuário" />
+              </div>
+              <div>
+                <Label>Papel</Label>
+                <Select value={inviteRole} onValueChange={v => setInviteRole(v as AppRole)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="owner">Dono</SelectItem>
+                    {isAdmin && <SelectItem value="admin">Admin</SelectItem>}
+                    <SelectItem value="coordinator">Coordenador</SelectItem>
+                    <SelectItem value="user">Usuário</SelectItem>
+                    <SelectItem value="viewer">Visualizador</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                O convite será gerado e você poderá copiar o link para enviar ao usuário.
+              </p>
+              <Button onClick={handleSendInvite} className="w-full bg-primary text-white" disabled={inviteSending || !inviteEmail.trim()}>
+                {inviteSending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Link2 className="h-4 w-4 mr-2" />}
+                {inviteSending ? 'Gerando...' : 'Gerar Convite'}
+              </Button>
             </div>
-            <div>
-              <Label>Nome completo</Label>
-              <Input value={inviteName} onChange={e => setInviteName(e.target.value)} placeholder="Nome do usuário" />
+          ) : (
+            <div className="space-y-4 py-4">
+              <div className="p-4 bg-muted/50 border border-primary/20 rounded-xl space-y-3">
+                <p className="text-sm font-medium text-center text-foreground">Convite criado!</p>
+                <div className="flex gap-2">
+                  <Input value={generatedLink} readOnly className="h-9 text-xs font-mono bg-background text-foreground" />
+                  <Button
+                    onClick={() => copyLink(generatedLink)}
+                    variant="outline"
+                    size="sm"
+                    className="h-9 shrink-0"
+                  >
+                    {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                  </Button>
+                </div>
+                <div className="text-[11px] text-muted-foreground text-center space-y-1">
+                  <p>Este link expira em 72 horas.</p>
+                  <p>Papel: <strong className="text-foreground capitalize">{inviteRole}</strong></p>
+                </div>
+              </div>
+              <Button 
+                onClick={() => {
+                  setGeneratedLink('');
+                  setInviteEmail('');
+                  setInviteName('');
+                  setInviteRole('viewer');
+                }} 
+                variant="ghost" 
+                size="sm" 
+                className="w-full text-xs"
+              >
+                Criar outro convite
+              </Button>
             </div>
-            <div>
-              <Label>Papel</Label>
-              <Select value={inviteRole} onValueChange={v => setInviteRole(v as AppRole)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="owner">Dono</SelectItem>
-                  {isAdmin && <SelectItem value="admin">Admin</SelectItem>}
-                  <SelectItem value="coordinator">Coordenador</SelectItem>
-                  <SelectItem value="user">Usuário</SelectItem>
-                  <SelectItem value="viewer">Visualizador</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              O convite será criado e um email será aberto para envio. O usuário poderá acessar com Google/Apple ou criar uma senha.
-            </p>
-            <Button onClick={handleSendInvite} className="w-full bg-primary" disabled={inviteSending || !inviteEmail.trim()}>
-              <Mail className="h-4 w-4 mr-2" />
-              {inviteSending ? 'Enviando...' : 'Enviar Convite'}
-            </Button>
-          </div>
+          )}
         </DialogContent>
       </Dialog>
 
