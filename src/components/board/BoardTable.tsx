@@ -292,6 +292,13 @@ export function BoardTable({ boardId }: BoardTableProps) {
       <div className="flex items-center text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border pb-2 group/header">
         <div className="w-7 shrink-0" />
         <div className="w-1 self-stretch shrink-0" />
+        <button
+          onClick={() => setSort({ column: null, direction: null })}
+          className="w-12 px-1 shrink-0 flex items-center justify-center hover:text-foreground transition-colors"
+          title="Ordem por número"
+        >
+          Nº
+        </button>
         <button 
           onClick={() => handleSort('item')}
           className="flex-1 px-3 min-w-[200px] flex items-center hover:text-foreground transition-colors group"
