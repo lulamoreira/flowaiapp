@@ -40,44 +40,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [permissionsLoadFailed, setPermissionsLoadFailed] = useState(false);
-  const isFetchingRef = useRef(false);
-  const fetchControllerRef = useRef<AbortController | null>(null);
+
+  // Travas e disjuntor vivem em refs: mudar estado aqui recriaria a funcao
+  // e faria o efeito principal remontar em ciclo (bug do "Acesso Restrito").
+  const isFetchingRef = useRef<boolean>(false);
   const retryCountRef = useRef<number>(0);
   const lastFetchAttemptRef = useRef<number>(0);
   const isCircuitBreakerOpenRef = useRef<boolean>(false);
-  const hasFetchedOnceRef = useRef<boolean>(false);
-  const userIdRef = useRef<string | null>(null);
+  const currentUserIdRef = useRef<string | null>(null);
 
-  // Dependências VAZIAS: identidade estável para toda a vida do provider.
+  // Dependencias VAZIAS de proposito: esta funcao precisa ser estavel.
   const fetchProfile = useCallback(async (userId: string, isManualRetry = false) => {
-    const now = Date.now();
-    const cooldown = 30000; // 30s
-    const isFirstFetch = !hasFetchedOnceRef.current;
+    const cooldown = 30000; // 30s entre sequencias de tentativa
 
-    // Trava de concorrência (ref, não state — não causa re-render nem remount)
     if (isFetchingRef.current) return;
-    // O disjuntor e o cooldown nunca bloqueiam a PRIMEIRA busca após o carregamento
-    if (!isFirstFetch) {
-      if (isCircuitBreakerOpenRef.current && !isManualRetry) return;
-      if (!isManualRetry && retryCountRef.current === 0 && now - lastFetchAttemptRef.current < cooldown) {
-        return;
-      }
+    if (isCircuitBreakerOpenRef.current && !isManualRetry) return;
+
+    // A espera minima nunca vale para a primeira busca da pagina
+    // (lastFetchAttemptRef comeca em 0), so entre sequencias de retentativa.
+    if (
+      !isManualRetry &&
+      retryCountRef.current === 0 &&
+      lastFetchAttemptRef.current > 0 &&
+      Date.now() - lastFetchAttemptRef.current < cooldown
+    ) {
+      return;
     }
 
     isFetchingRef.current = true;
-    hasFetchedOnceRef.current = true;
 
-    if (isManualRetry || isFirstFetch) {
+    if (isManualRetry) {
       retryCountRef.current = 0;
       isCircuitBreakerOpenRef.current = false;
       setPermissionsLoadFailed(false);
     }
 
-    if (fetchControllerRef.current) fetchControllerRef.current.abort();
-    fetchControllerRef.current = new AbortController();
-
     try {
       lastFetchAttemptRef.current = Date.now();
+
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -94,27 +94,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (rolesError) throw rolesError;
 
       if (profileData) setProfile(profileData);
-      setRoles(rolesData ? rolesData.map((r) => r.role) : []);
+      if (rolesData) setRoles(rolesData.map(r => r.role) || []);
 
       setPermissionsLoadFailed(false);
       retryCountRef.current = 0;
       isCircuitBreakerOpenRef.current = false;
     } catch (err: any) {
-      if (err?.name === 'AbortError') return;
-
       console.error(`Attempt ${retryCountRef.current + 1} failed for fetchProfile:`, err);
       retryCountRef.current += 1;
 
       if (retryCountRef.current < 3) {
         const delay = Math.pow(2, retryCountRef.current) * 1000;
         setTimeout(() => {
-          isFetchingRef.current = false;
-          fetchProfile(userId, true);
+          if (currentUserIdRef.current) fetchProfile(currentUserIdRef.current);
         }, delay);
-        return;
+      } else {
+        // Disjuntor abre: para de tentar sozinho ate acao explicita do usuario.
+        isCircuitBreakerOpenRef.current = true;
+        setPermissionsLoadFailed(true);
       }
-      isCircuitBreakerOpenRef.current = true;
-      setPermissionsLoadFailed(true);
     } finally {
       isFetchingRef.current = false;
       if (retryCountRef.current === 0 || retryCountRef.current >= 3) {
@@ -124,68 +122,79 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refreshProfile = useCallback(async () => {
-    if (userIdRef.current) {
-      await fetchProfile(userIdRef.current, true);
+    if (currentUserIdRef.current) {
+      await fetchProfile(currentUserIdRef.current, true);
     }
   }, [fetchProfile]);
 
   const clearAuthState = useCallback(() => {
-    userIdRef.current = null;
     setUser(null);
     setSession(null);
     setProfile(null);
     setRoles([]);
     setLoading(false);
-    isFetchingRef.current = false;
     setPermissionsLoadFailed(false);
+    isFetchingRef.current = false;
     retryCountRef.current = 0;
     isCircuitBreakerOpenRef.current = false;
+    lastFetchAttemptRef.current = 0;
+    currentUserIdRef.current = null;
   }, []);
 
   const signOut = useCallback(async () => {
     window.location.href = '/logout';
   }, []);
 
-  // Roda UMA vez. Sem dependências reativas: nada de remount/unsubscribe em loop.
+  // Efeito principal roda UMA vez. fetchProfile e clearAuthState sao estaveis.
   useEffect(() => {
+    // Estado limpo a cada carregamento da pagina: o disjuntor nunca pode
+    // impedir a primeira busca.
+    isFetchingRef.current = false;
+    retryCountRef.current = 0;
+    isCircuitBreakerOpenRef.current = false;
+    lastFetchAttemptRef.current = 0;
+
     const safetyTimeout = setTimeout(() => {
       setLoading(false);
     }, 5000);
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
-      const currentUser = newSession?.user ?? null;
-      // Atualização SÍNCRONA apenas — nenhum await de chamada ao banco aqui.
-      setSession(newSession);
-      setUser(currentUser);
-      userIdRef.current = currentUser?.id ?? null;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, newSession) => {
+        // Somente atualizacoes sincronas aqui. Chamar o banco dentro deste
+        // callback causa impasse no cliente Supabase.
+        const currentUser = newSession?.user ?? null;
+        setSession(newSession);
+        setUser(currentUser);
+        currentUserIdRef.current = currentUser?.id ?? null;
 
-      if (currentUser) {
-        const uid = currentUser.id;
-        setTimeout(() => {
-          fetchProfile(uid, event === 'SIGNED_IN');
+        if (currentUser) {
           if (event === 'SIGNED_IN') {
-            logActivity('Login', { method: 'auth', email: currentUser.email });
+            const uid = currentUser.id;
+            setTimeout(() => {
+              fetchProfile(uid, true);
+              logActivity('Login', { method: 'auth', email: currentUser.email });
+            }, 0);
           }
-        }, 0);
-      } else if (event === 'SIGNED_OUT') {
-        clearAuthState();
+        } else {
+          clearAuthState();
+        }
       }
-    });
+    );
 
     supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
       const currentUser = initialSession?.user ?? null;
       setSession(initialSession);
       setUser(currentUser);
-      userIdRef.current = currentUser?.id ?? null;
-      clearTimeout(safetyTimeout);
+      currentUserIdRef.current = currentUser?.id ?? null;
 
       if (currentUser) {
-        retryCountRef.current = 0;
-        setTimeout(() => fetchProfile(currentUser.id), 0);
+        const uid = currentUser.id;
+        setTimeout(() => fetchProfile(uid), 0);
       } else {
         setLoading(false);
       }
-    }).catch((err) => {
+      clearTimeout(safetyTimeout);
+    }).catch(err => {
       console.error('Error in getSession:', err);
       setLoading(false);
       clearTimeout(safetyTimeout);
@@ -197,7 +206,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
 
   const rolesString = JSON.stringify(roles);
   const isAdmin = useMemo(() => roles.includes('admin') || roles.includes('owner'), [rolesString]);
@@ -219,15 +227,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider value={contextValue}>
-      {permissionsLoadFailed && !loading && session && 
+      {permissionsLoadFailed && !loading && session &&
        !['/login', '/register', '/reset-password', '/logout', '/form', '/timeline/public'].some(p => window.location.pathname.startsWith(p)) && (
         <div className="fixed bottom-4 right-4 z-[9999] bg-destructive text-destructive-foreground p-4 rounded-lg shadow-2xl flex items-center gap-4 max-w-md animate-in fade-in slide-in-from-bottom-4">
           <div className="flex-1">
             <p className="font-bold text-sm">Falha na Sincronização</p>
             <p className="text-xs opacity-90">Não foi possível carregar suas permissões. Algumas ações podem falhar.</p>
           </div>
-          <button 
-            onClick={() => user?.id && fetchProfile(user.id, true)}
+          <button
+            onClick={() => currentUserIdRef.current && fetchProfile(currentUserIdRef.current, true)}
             className="px-3 py-1 bg-background text-foreground rounded text-xs font-bold hover:bg-background/90 transition-colors"
           >
             Tentar agora
@@ -235,7 +243,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         </div>
       )}
 
-      {session && !loading && roles.length === 0 && 
+      {session && !loading && roles.length === 0 &&
        !['/login', '/register', '/reset-password', '/logout', '/form', '/timeline/public'].some(p => window.location.pathname.startsWith(p)) ? (
         <div className="min-h-screen flex flex-col items-center justify-center bg-background text-foreground p-6 text-center">
           <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mb-6">
@@ -247,7 +255,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           <p className="text-muted-foreground max-w-sm mb-8">
             Sua conta ainda não tem acesso a este espaço de trabalho. Peça um convite ao administrador para começar.
           </p>
-          <button 
+          <button
             onClick={() => window.location.href = '/logout'}
             className="px-6 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 transition-opacity shadow-lg"
           >
