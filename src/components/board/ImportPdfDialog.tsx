@@ -38,6 +38,8 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
   const [parsedData, setParsedData] = useState<{ title: string; tasks: ParsedTask[] } | null>(null);
   const [baseYear, setBaseYear] = useState(new Date().getFullYear().toString());
   const [showYearInput, setShowYearInput] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
   
   const { state, dispatch } = useAppStore();
   const navigate = useNavigate();
@@ -50,8 +52,10 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
       setStep('upload');
       setLoading(false);
       setShowYearInput(false);
+      setErrorMessage(null);
     }
   }, [open]);
+
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
