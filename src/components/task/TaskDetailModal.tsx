@@ -104,6 +104,7 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
     if (!current) return;
     const normalizedTitle = !current.title || current.title.trim() === 'Nova tarefa' ? '' : current.title;
     setLocalTitle(normalizedTitle);
+    setTitleBeforeEdit(normalizedTitle);
     setLocalDescription(current.description || '');
     setLocalPlannedStart(toInputFormat(current.plannedStart));
     setLocalPlannedEnd(toInputFormat(current.plannedEnd));
@@ -133,21 +134,15 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
     [update]
   );
 
-  // Intercept Escape while editing the title to discard changes instead of closing the modal
-  useEffect(() => {
-    if (!current) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && document.activeElement === titleInputRef.current) {
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        debouncedUpdate.cancel();
-        setLocalTitle(titleBeforeEdit);
-        titleInputRef.current?.blur();
-      }
-    };
-    document.addEventListener('keydown', handleKeyDown, true);
-    return () => document.removeEventListener('keydown', handleKeyDown, true);
-  }, [current, titleBeforeEdit, debouncedUpdate]);
+  // Handle Escape on the modal: if the title is being edited, discard changes and keep the modal open.
+  const handleDialogEscape = useCallback((e: KeyboardEvent) => {
+    if (document.activeElement === titleInputRef.current) {
+      e.preventDefault();
+      debouncedUpdate.cancel();
+      setLocalTitle(titleBeforeEdit);
+      titleInputRef.current?.blur();
+    }
+  }, [titleBeforeEdit, debouncedUpdate]);
 
   // Flush pending updates on unmount to prevent data loss
   useEffect(() => {
@@ -342,7 +337,7 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
   return (
     <>
       <Dialog open={!!task} onOpenChange={() => onClose()}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto" onEscapeKeyDown={handleDialogEscape}>
           <DialogHeader className="flex flex-row items-start justify-between pr-8 gap-4">
             <DialogTitle className="flex-1">
               <Textarea
@@ -352,7 +347,12 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
                   setLocalTitle(e.target.value);
                   debouncedUpdate({ title: e.target.value });
                 }}
-                onFocus={() => setTitleBeforeEdit(localTitle)}
+                onFocus={() => {
+                  // Capture the task's original title from current, not from local state,
+                  // so that auto-focus during modal open doesn't record an empty/placeholder value.
+                  const normalized = !current?.title || current.title.trim() === 'Nova tarefa' ? '' : current.title;
+                  setTitleBeforeEdit(normalized);
+                }}
                 onBlur={() => handleBlur('title', localTitle)}
                 onKeyDown={e => {
                   if (e.key === 'Enter') {
