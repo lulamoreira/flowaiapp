@@ -94,18 +94,31 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
   const [localPlannedEnd, setLocalPlannedEnd] = useState('');
   const [localActualStart, setLocalActualStart] = useState('');
   const [localActualEnd, setLocalActualEnd] = useState('');
+  const [titleBeforeEdit, setTitleBeforeEdit] = useState('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const titleInputRef = useRef<HTMLTextAreaElement>(null);
 
   // Sync local state ONLY when the active task ID changes (open/switch task)
   useEffect(() => {
     if (!current) return;
-    setLocalTitle(current.title || '');
+    const normalizedTitle = !current.title || current.title.trim() === 'Nova tarefa' ? '' : current.title;
+    setLocalTitle(normalizedTitle);
     setLocalDescription(current.description || '');
     setLocalPlannedStart(toInputFormat(current.plannedStart));
     setLocalPlannedEnd(toInputFormat(current.plannedEnd));
     setLocalActualStart(toInputFormat(current.actualStart));
     setLocalActualEnd(toInputFormat(current.actualEnd));
+  }, [current?.id]);
+
+  // Focus and select title after the modal finishes opening
+  useEffect(() => {
+    if (!current) return;
+    const timer = setTimeout(() => {
+      titleInputRef.current?.focus();
+      titleInputRef.current?.select();
+    }, 100);
+    return () => clearTimeout(timer);
   }, [current?.id]);
 
   const update = useCallback((updates: Partial<Task>) => {
