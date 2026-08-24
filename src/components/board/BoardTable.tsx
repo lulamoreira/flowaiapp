@@ -11,6 +11,16 @@ import { GripVertical, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useScopedTasks } from '@/hooks/useScopedTasks';
 import { cn } from '@/lib/utils';
+import {
+  assignmentsForManualNumber,
+  assignmentsFromOrder,
+  applyTaskNumbers,
+  buildBoardOrder,
+  compareByTaskNumber,
+  nextTaskNumber,
+  persistTaskNumbers,
+  TaskNumberUpdate,
+} from '@/lib/taskNumbering';
 import { DeleteConfirmDialog } from '@/components/ui/DeleteConfirmDialog';
 
 type SortConfig = {
