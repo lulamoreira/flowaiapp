@@ -37,6 +37,30 @@ const BoardPage = () => {
   const [titleDraft, setTitleDraft] = useState(board?.title ?? '');
   const [descDraft, setDescDraft] = useState(board?.description ?? '');
   const [membersDialogOpen, setMembersDialogOpen] = useState(false);
+  const [renumbering, setRenumbering] = useState(false);
+
+  /** Refaz a numeração de 1 a N seguindo a ordem atual (grupos + números). */
+  const renumberBoard = async () => {
+    if (!id || renumbering) return;
+    setRenumbering(true);
+    try {
+      const ordered = buildBoardOrder(state.tasks, state.groups, id);
+      const updates = assignmentsFromOrder(ordered);
+      if (!updates.length) {
+        toast.success('O quadro já está numerado de 1 a N.');
+        return;
+      }
+      const { error } = await persistTaskNumbers(updates);
+      if (error) {
+        toast.error('Erro ao renumerar: ' + error);
+        return;
+      }
+      dispatch({ type: 'SET_STATE', payload: { tasks: applyTaskNumbers(state.tasks, updates) } });
+      toast.success(`${updates.length} tarefa(s) renumerada(s).`);
+    } finally {
+      setRenumbering(false);
+    }
+  };
   const { canEdit, canDelete, isAdminOrCoordinator } = usePermissions();
   const canEditBoard = canEdit('boards');
   const canEditTasks = canEdit('tasks');
