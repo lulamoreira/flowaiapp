@@ -302,6 +302,9 @@ export function BoardGantt({ boardId, tasks: externalTasks, groups: externalGrou
                     onClick={() => setSelectedTask(task)}
                   >
                     <div className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: groupColor }} />
+                    {typeof task.taskNumber === 'number' && (
+                      <span className="text-xs text-muted-foreground tabular-nums shrink-0">{task.taskNumber}</span>
+                    )}
                     <span className="truncate">{task.title}</span>
                   </div>
                   <div className="relative" style={{ width: visibleDaysCount * dayWidth }}>
