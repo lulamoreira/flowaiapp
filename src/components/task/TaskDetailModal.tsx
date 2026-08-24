@@ -94,18 +94,31 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
   const [localPlannedEnd, setLocalPlannedEnd] = useState('');
   const [localActualStart, setLocalActualStart] = useState('');
   const [localActualEnd, setLocalActualEnd] = useState('');
+  const [titleBeforeEdit, setTitleBeforeEdit] = useState('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const titleInputRef = useRef<HTMLTextAreaElement>(null);
 
   // Sync local state ONLY when the active task ID changes (open/switch task)
   useEffect(() => {
     if (!current) return;
-    setLocalTitle(current.title || '');
+    const normalizedTitle = !current.title || current.title.trim() === 'Nova tarefa' ? '' : current.title;
+    setLocalTitle(normalizedTitle);
     setLocalDescription(current.description || '');
     setLocalPlannedStart(toInputFormat(current.plannedStart));
     setLocalPlannedEnd(toInputFormat(current.plannedEnd));
     setLocalActualStart(toInputFormat(current.actualStart));
     setLocalActualEnd(toInputFormat(current.actualEnd));
+  }, [current?.id]);
+
+  // Focus and select title after the modal finishes opening
+  useEffect(() => {
+    if (!current) return;
+    const timer = setTimeout(() => {
+      titleInputRef.current?.focus();
+      titleInputRef.current?.select();
+    }, 100);
+    return () => clearTimeout(timer);
   }, [current?.id]);
 
   const update = useCallback((updates: Partial<Task>) => {
@@ -314,17 +327,31 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
     <>
       <Dialog open={!!task} onOpenChange={() => onClose()}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader className="flex flex-row items-center justify-between pr-8">
+          <DialogHeader className="flex flex-row items-start justify-between pr-8 gap-4">
             <DialogTitle className="flex-1">
-              <Input
+              <Textarea
+                ref={titleInputRef}
                 value={localTitle}
                 onChange={e => {
                   setLocalTitle(e.target.value);
                   debouncedUpdate({ title: e.target.value });
                 }}
+                onFocus={() => setTitleBeforeEdit(localTitle)}
                 onBlur={() => handleBlur('title', localTitle)}
-                placeholder="Título da tarefa"
-                className="text-lg font-semibold border-0 px-0 focus-visible:ring-0 bg-transparent w-full"
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleBlur('title', localTitle);
+                    titleInputRef.current?.blur();
+                  } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    setLocalTitle(titleBeforeEdit);
+                    titleInputRef.current?.blur();
+                  }
+                }}
+                placeholder="Nome da tarefa"
+                rows={1}
+                className="text-2xl font-bold text-foreground border-0 px-0 py-0 bg-transparent hover:bg-muted/30 rounded-md transition-colors focus-visible:ring-2 focus-visible:ring-primary resize-none min-h-[40px] w-full leading-tight"
               />
             </DialogTitle>
             <Button
