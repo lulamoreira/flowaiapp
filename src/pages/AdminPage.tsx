@@ -1620,6 +1620,26 @@ export default function AdminPage() {
           </div>
         </DialogContent>
       </Dialog>
+      {/* Manual Copy Dialog Failover */}
+      <Dialog open={manualCopyOpen} onOpenChange={setManualCopyOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Cópia Manual</DialogTitle></DialogHeader>
+          <div className="space-y-4 pt-2">
+            <p className="text-sm text-muted-foreground">
+              Seu navegador impediu o acesso automático à área de transferência. Copie o link abaixo manualmente:
+            </p>
+            <Input 
+              value={manualCopyLink} 
+              readOnly 
+              onClick={(e) => (e.target as HTMLInputElement).select()}
+              className="font-mono text-xs bg-muted"
+            />
+            <Button onClick={() => setManualCopyOpen(false)} className="w-full">
+              Entendido
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
