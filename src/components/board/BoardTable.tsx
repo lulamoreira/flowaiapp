@@ -333,7 +333,7 @@ export function BoardTable({ boardId }: BoardTableProps) {
       
       {sort.column && (
         <div className="text-[10px] text-muted-foreground italic px-1">
-          Ordenado por {sort.column === 'item' ? 'Item' : sort.column === 'assignee' ? 'Responsável' : sort.column === 'status' ? 'Status' : sort.column === 'priority' ? 'Prioridade' : 'Data'} — volte para a ordem manual para reordenar arrastando
+          Ordenado por {sort.column === 'item' ? 'Item' : sort.column === 'assignee' ? 'Responsável' : sort.column === 'status' ? 'Status' : sort.column === 'priority' ? 'Prioridade' : 'Data'} — volte para a ordem por número para reordenar arrastando
         </div>
       )}
 
