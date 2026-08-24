@@ -53,11 +53,58 @@ export function TaskRow({ task, groupColor, onClick, draggable, onDragStart, onD
       draggable={draggable}
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
     >
       <div className="w-7 flex items-center justify-center">
         <GripVertical className="h-3.5 w-3.5 text-muted-foreground/30 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab" />
       </div>
       <div className="w-1 self-stretch" style={{ backgroundColor: groupColor }} />
+      <div className="w-12 px-1 shrink-0 flex items-center justify-center">
+        {editingNumber ? (
+          <input
+            type="text"
+            inputMode="numeric"
+            value={numberDraft}
+            autoFocus
+            onClick={e => e.stopPropagation()}
+            onChange={e => setNumberDraft(e.target.value.replace(/[^0-9]/g, ''))}
+            onBlur={() => setEditingNumber(false)}
+            onKeyDown={e => {
+              e.stopPropagation();
+              if (e.key === 'Escape') { setEditingNumber(false); return; }
+              if (e.key !== 'Enter') return;
+              const parsed = Number(numberDraft);
+              if (!Number.isInteger(parsed) || parsed < 1) {
+                setEditingNumber(false);
+                return;
+              }
+              setEditingNumber(false);
+              if (parsed !== task.taskNumber) onNumberCommit?.(parsed);
+            }}
+            className="w-10 text-center text-xs bg-background border border-primary rounded px-1 py-0.5 tabular-nums"
+            aria-label="Número da tarefa"
+          />
+        ) : (
+          <button
+            type="button"
+            disabled={!onNumberCommit}
+            onClick={e => {
+              e.stopPropagation();
+              if (!onNumberCommit) return;
+              setNumberDraft(task.taskNumber ? String(task.taskNumber) : '');
+              setEditingNumber(true);
+            }}
+            className={cn(
+              'text-xs tabular-nums text-muted-foreground rounded px-1 py-0.5 w-full',
+              onNumberCommit && 'hover:bg-muted hover:text-foreground'
+            )}
+            title={onNumberCommit ? 'Clique para editar o número' : undefined}
+          >
+            {task.taskNumber ?? '—'}
+          </button>
+        )}
+      </div>
       <div className="flex-1 px-3 py-2.5 text-sm font-medium text-foreground min-w-[200px] truncate">
         {task.title}
       </div>
