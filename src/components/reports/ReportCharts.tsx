@@ -23,12 +23,14 @@ export function ReportCharts() {
 
   // Fetch total tracked hours
   useEffect(() => {
-    const fetchHours = async () => {
-      const { data } = await supabase.from('time_entries').select('duration_seconds');
-      if (data) setTotalTrackedSeconds(data.reduce((sum, e) => sum + e.duration_seconds, 0));
-    };
-    fetchHours();
-  }, []);
+    if (!state.loading) {
+      const fetchHours = async () => {
+        const { data } = await supabase.from('time_entries').select('duration_seconds');
+        if (data) setTotalTrackedSeconds(data.reduce((sum, e) => sum + e.duration_seconds, 0));
+      };
+      fetchHours();
+    }
+  }, [state.loading]);
 
   const periodRange = useMemo(() => {
     const now = new Date();

@@ -63,7 +63,7 @@ export function TaskComments({ taskId }: TaskCommentsProps) {
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [taskId]);
+  }, [taskId, user?.id]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });

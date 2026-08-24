@@ -179,9 +179,9 @@ export default function AdminPage() {
   }, [filteredActivityLog, logPage]);
 
   useEffect(() => {
-    if (!loading) return;
+    if (!loading || !isAdminOrCoordinator) return;
     fetchAll();
-  }, []);
+  }, [isAdminOrCoordinator]);
 
   // Re-fetch activity log when role becomes available
   useEffect(() => {

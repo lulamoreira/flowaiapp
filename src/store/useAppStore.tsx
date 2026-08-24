@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, ReactNode, useCallback, useRef, useMemo } from 'react';
 import { Board, TaskGroup, Task, User, AutomationRule } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { logActivity } from '@/lib/activityLog';
@@ -180,6 +180,13 @@ const AppContext = createContext<{ state: AppState; dispatch: React.Dispatch<Act
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
+  const stateRef = useRef(state);
+  const fetchingRef = useRef<Record<string, boolean>>({});
+  const lastErrorToastRef = useRef<Record<string, number>>({});
+
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
 
   const load = async () => {
     try {
@@ -189,7 +196,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         : { data: [] };
       
       const roles = rolesData?.map(r => r.role) || [];
-      const isPrivileged = roles.includes('admin') || roles.includes('owner') || roles.includes('coordinator');
 
       const [boardsData, groupsData, tasksData, automationsData, profilesData, placeholdersData, membersData] = await Promise.all([
         fetchPaginated('boards', 'created_at'),
@@ -211,8 +217,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         projectMembers[m.board_id].push(m.user_id);
       });
 
-      // NO FILTRATION IN STORE: the RLS handles what the user can select, 
-      // and we want all LOADED boards to be visible in state.
       const boards = boardsData.map(dbToBoard);
 
       const realUsers: User[] = profilesData.map(p => ({
@@ -233,7 +237,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       dispatch({ type: 'SET_STATE', payload: { boards, groups, tasks, users, automations, projectMembers, loading: false } });
     } catch (err: any) {
       console.error('Error loading data:', err);
-      toast.error('Erro ao carregar dados: ' + err.message);
+      const now = Date.now();
+      if (!lastErrorToastRef.current['load'] || now - lastErrorToastRef.current['load'] > 30000) {
+        toast.error('Erro ao carregar dados: ' + err.message);
+        lastErrorToastRef.current['load'] = now;
+      }
     }
   };
 
@@ -241,7 +249,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     load();
   }, []);
 
-  const refetch = async (type: 'boards' | 'groups' | 'tasks' | 'automations' | 'users' | 'projectMembers') => {
+  const refetch = useCallback(async (type: 'boards' | 'groups' | 'tasks' | 'automations' | 'users' | 'projectMembers') => {
+    if (fetchingRef.current[type]) return;
+    fetchingRef.current[type] = true;
+
     try {
       switch (type) {
         case 'boards': {
@@ -298,34 +309,56 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
     } catch (err: any) {
       console.error(`Refetch error (${type}):`, err);
-      toast.error(`Erro ao atualizar ${type}: ` + err.message);
+      const now = Date.now();
+      if (!lastErrorToastRef.current[type] || now - lastErrorToastRef.current[type] > 30000) {
+        toast.error(`Erro ao atualizar ${type}: ` + err.message);
+        lastErrorToastRef.current[type] = now;
+      }
+    } finally {
+      fetchingRef.current[type] = false;
     }
-  };
+  }, []);
 
   useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    const pendingRefetches = new Set<Parameters<typeof refetch>[0]>();
+
+    const throttledRefetch = (type: Parameters<typeof refetch>[0]) => {
+      pendingRefetches.add(type);
+      if (timeoutId) return;
+      timeoutId = setTimeout(() => {
+        pendingRefetches.forEach(t => refetch(t));
+        pendingRefetches.clear();
+        timeoutId = null;
+      }, 300);
+    };
+
     const channel = supabase
       .channel('app-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'boards' }, () => refetch('boards'))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'task_groups' }, () => refetch('groups'))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => refetch('tasks'))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'automation_rules' }, () => refetch('automations'))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => refetch('users'))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'placeholder_members' }, () => refetch('users'))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'boards' }, () => throttledRefetch('boards'))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'task_groups' }, () => throttledRefetch('groups'))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => throttledRefetch('tasks'))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'automation_rules' }, () => throttledRefetch('automations'))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => throttledRefetch('users'))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'placeholder_members' }, () => throttledRefetch('users'))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'project_members' }, () => {
-        refetch('projectMembers');
-        refetch('boards');
+        throttledRefetch('projectMembers');
+        throttledRefetch('boards');
       })
+      .subscribe();
+
     const handleFocus = () => {
-      refetch('users');
-      refetch('projectMembers');
-      refetch('boards');
+      throttledRefetch('users');
+      throttledRefetch('projectMembers');
+      throttledRefetch('boards');
     };
     window.addEventListener('focus', handleFocus);
     return () => {
       supabase.removeChannel(channel);
       window.removeEventListener('focus', handleFocus);
+      if (timeoutId) clearTimeout(timeoutId);
     };
-  }, []);
+  }, [refetch]);
 
   const [confirmDelete, setConfirmDelete] = React.useState<{
     type: 'DELETE_TASK' | 'DELETE_BOARD' | 'DELETE_GROUP';
@@ -336,6 +369,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   } | null>(null);
 
   const wrappedDispatch = useCallback((action: Action) => {
+    const state = stateRef.current;
     // Intercept delete actions for confirmation
     if ((action.type === 'DELETE_TASK' || action.type === 'DELETE_BOARD' || action.type === 'DELETE_GROUP') && (action as any).confirmDetails) {
       const details = (action as any).confirmDetails;
@@ -609,10 +643,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
       }
     }
-  }, [state.automations, state.tasks]);
+  }, [dispatch]);
+
+  const contextValue = useMemo(() => ({ state, dispatch: wrappedDispatch }), [state, wrappedDispatch]);
 
   return (
-    <AppContext.Provider value={{ state, dispatch: wrappedDispatch }}>
+    <AppContext.Provider value={contextValue}>
       {children}
       <DeleteConfirmDialog
         open={!!confirmDelete}

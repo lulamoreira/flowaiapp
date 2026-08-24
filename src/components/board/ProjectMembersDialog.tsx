@@ -53,7 +53,7 @@ export function ProjectMembersDialog({ open, onOpenChange, boardId }: ProjectMem
   };
 
   useEffect(() => {
-    if (open) {
+    if (open && boardId) {
       loadAuthorized();
     }
   }, [open, boardId]);

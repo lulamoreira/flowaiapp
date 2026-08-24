@@ -43,15 +43,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isFetching, setIsFetching] = useState(false);
   const fetchControllerRef = useRef<AbortController | null>(null);
   const retryCountRef = useRef<number>(0);
+  const lastFetchAttemptRef = useRef<number>(0);
+  const isCircuitBreakerOpenRef = useRef<boolean>(false);
 
-  const fetchProfile = useCallback(async (userId: string) => {
-    if (isFetching || retryCountRef.current >= 3) return;
+  const fetchProfile = useCallback(async (userId: string, isManualRetry = false) => {
+    const now = Date.now();
+    const cooldown = 30000; // 30s
     
+    // Trava global e disjuntor
+    if (isFetching) return;
+    if (isCircuitBreakerOpenRef.current && !isManualRetry) return;
+    
+    // Intervalo mínimo entre sequências
+    if (!isManualRetry && retryCountRef.current === 0 && (now - lastFetchAttemptRef.current < cooldown)) {
+      console.log('fetchProfile ignored due to cooldown');
+      return;
+    }
+
     setIsFetching(true);
+    if (isManualRetry) {
+      retryCountRef.current = 0;
+      isCircuitBreakerOpenRef.current = false;
+      setPermissionsLoadFailed(false);
+    }
+
     if (fetchControllerRef.current) fetchControllerRef.current.abort();
     fetchControllerRef.current = new AbortController();
 
     try {
+      lastFetchAttemptRef.current = Date.now();
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -69,8 +89,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (profileData) setProfile(profileData);
       if (rolesData) setRoles(rolesData.map(r => r.role) || []);
+      
       setPermissionsLoadFailed(false);
-      retryCountRef.current = 0; // Reset on success
+      retryCountRef.current = 0;
+      isCircuitBreakerOpenRef.current = false;
     } catch (err: any) {
       if (err.name === 'AbortError') return;
       
@@ -81,6 +103,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const delay = Math.pow(2, retryCountRef.current) * 1000;
         setTimeout(() => fetchProfile(userId), delay);
       } else {
+        isCircuitBreakerOpenRef.current = true;
         setPermissionsLoadFailed(true);
       }
     } finally {
@@ -93,8 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshProfile = useCallback(async () => {
     if (user?.id) {
-      retryCountRef.current = 0;
-      await fetchProfile(user.id);
+      await fetchProfile(user.id, true);
     }
   }, [user?.id, fetchProfile]);
 
@@ -107,6 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsFetching(false);
     setPermissionsLoadFailed(false);
     retryCountRef.current = 0;
+    isCircuitBreakerOpenRef.current = false;
   }, []);
 
   const signOut = useCallback(async () => {
@@ -125,9 +148,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(currentUser);
         
         if (currentUser) {
-          retryCountRef.current = 0;
-          await fetchProfile(currentUser.id);
           if (event === 'SIGNED_IN') {
+            await fetchProfile(currentUser.id, true);
             logActivity('Login', { method: 'auth', email: currentUser.email });
           }
         } else {
@@ -188,7 +210,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             <p className="text-xs opacity-90">Não foi possível carregar suas permissões. Algumas ações podem falhar.</p>
           </div>
           <button 
-            onClick={() => user?.id && fetchProfile(user.id)}
+            onClick={() => user?.id && fetchProfile(user.id, true)}
             className="px-3 py-1 bg-background text-foreground rounded text-xs font-bold hover:bg-background/90 transition-colors"
           >
             Tentar agora
