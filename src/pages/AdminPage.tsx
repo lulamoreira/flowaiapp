@@ -119,6 +119,9 @@ export default function AdminPage() {
   const [inviteSending, setInviteSending] = useState(false);
   const [generatedLink, setGeneratedLink] = useState('');
   const [copied, setCopied] = useState(false);
+  const [copyingId, setCopyingId] = useState<string | null>(null);
+  const [manualCopyOpen, setManualCopyOpen] = useState(false);
+  const [manualCopyLink, setManualCopyLink] = useState('');
 
   // Role dialog
   const [roleDialogOpen, setRoleDialogOpen] = useState(false);
@@ -291,15 +294,23 @@ export default function AdminPage() {
     }
   };
 
-  const copyLink = async (link: string) => {
+  const copyLink = async (link: string, id?: string) => {
     if (!link) return;
     try {
       await navigator.clipboard.writeText(link);
-      setCopied(true);
+      if (id) {
+        setCopyingId(id);
+        setTimeout(() => setCopyingId(null), 2000);
+      } else {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }
       toast.success('Link copiado!');
-      setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      toast.error('Falha ao copiar link. Por favor, copie manualmente.');
+      console.error('Falha ao copiar:', err);
+      setManualCopyLink(link);
+      setManualCopyOpen(true);
+      toast.error('Erro ao acessar área de transferência. Use a cópia manual.');
     }
   };
 
@@ -880,16 +891,16 @@ export default function AdminPage() {
                           <Button
                             size="icon"
                             variant="ghost"
-                            className="h-7 w-7 text-primary"
+                            className={cn("h-7 w-7", copyingId === inv.id ? "text-green-500" : "text-primary")}
                             title="Copiar link do convite"
                             onClick={() => {
                               const baseUrl = window.location.hostname.includes('lovable.app') 
                                 ? window.location.origin 
                                 : 'https://flowaiapp.lovable.app';
-                              copyLink(`${baseUrl}/register?token=${inv.token}`);
+                              copyLink(`${baseUrl}/register?token=${inv.token}`, inv.id);
                             }}
                           >
-                            <Copy className="h-3.5 w-3.5" />
+                            {copyingId === inv.id ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
                           </Button>
                         )}
                         {inv.status === 'pending' ? (
@@ -1605,6 +1616,26 @@ export default function AdminPage() {
               disabled={claiming || !targetUserId}
             >
               {claiming ? 'Convertendo...' : 'Confirmar Conversão'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      {/* Manual Copy Dialog Failover */}
+      <Dialog open={manualCopyOpen} onOpenChange={setManualCopyOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Cópia Manual</DialogTitle></DialogHeader>
+          <div className="space-y-4 pt-2">
+            <p className="text-sm text-muted-foreground">
+              Seu navegador impediu o acesso automático à área de transferência. Copie o link abaixo manualmente:
+            </p>
+            <Input 
+              value={manualCopyLink} 
+              readOnly 
+              onClick={(e) => (e.target as HTMLInputElement).select()}
+              className="font-mono text-xs bg-muted"
+            />
+            <Button onClick={() => setManualCopyOpen(false)} className="w-full">
+              Entendido
             </Button>
           </div>
         </DialogContent>
