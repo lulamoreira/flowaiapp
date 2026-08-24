@@ -10,7 +10,13 @@ import { BoardWorkload } from '@/components/board/BoardWorkload';
 import { AutomationPanel } from '@/components/automation/AutomationPanel';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Zap, Table, Columns3, Plus, Pencil, Check, X, CalendarDays, GanttChart, Users, Share2 } from 'lucide-react';
+import { Zap, Table, Columns3, Plus, Pencil, Check, X, CalendarDays, GanttChart, Users, Share2, ListOrdered } from 'lucide-react';
+import {
+  applyTaskNumbers,
+  assignmentsFromOrder,
+  buildBoardOrder,
+  persistTaskNumbers,
+} from '@/lib/taskNumbering';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
