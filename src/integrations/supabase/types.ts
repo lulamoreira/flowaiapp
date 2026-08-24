@@ -781,6 +781,7 @@ export type Database = {
           priority: string
           status: string
           subtasks: Json
+          task_number: number | null
           title: string
           updated_at: string
         }
@@ -801,6 +802,7 @@ export type Database = {
           priority?: string
           status?: string
           subtasks?: Json
+          task_number?: number | null
           title: string
           updated_at?: string
         }
@@ -821,6 +823,7 @@ export type Database = {
           priority?: string
           status?: string
           subtasks?: Json
+          task_number?: number | null
           title?: string
           updated_at?: string
         }
