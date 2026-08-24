@@ -17,10 +17,16 @@ interface TaskRowProps {
   draggable?: boolean;
   onDragStart?: (e: React.DragEvent) => void;
   onDragEnd?: () => void;
+  onDragOver?: (e: React.DragEvent) => void;
+  onDrop?: (e: React.DragEvent) => void;
   isDragging?: boolean;
+  /** Habilita a edição do número; recebe apenas inteiros positivos já validados. */
+  onNumberCommit?: (value: number) => void;
 }
 
-export function TaskRow({ task, groupColor, onClick, draggable, onDragStart, onDragEnd, isDragging }: TaskRowProps) {
+export function TaskRow({ task, groupColor, onClick, draggable, onDragStart, onDragEnd, onDragOver, onDrop, isDragging, onNumberCommit }: TaskRowProps) {
+  const [editingNumber, setEditingNumber] = useState(false);
+  const [numberDraft, setNumberDraft] = useState('');
   const { state, dispatch } = useAppStore();
   const assignee = state.users.find(u => u.id === task.assignee);
   const [assigneeOpen, setAssigneeOpen] = useState(false);
