@@ -40,28 +40,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [permissionsLoadFailed, setPermissionsLoadFailed] = useState(false);
-  const [isFetching, setIsFetching] = useState(false);
+  const isFetchingRef = useRef(false);
   const fetchControllerRef = useRef<AbortController | null>(null);
   const retryCountRef = useRef<number>(0);
   const lastFetchAttemptRef = useRef<number>(0);
   const isCircuitBreakerOpenRef = useRef<boolean>(false);
+  const hasFetchedOnceRef = useRef<boolean>(false);
+  const userIdRef = useRef<string | null>(null);
 
+  // Dependências VAZIAS: identidade estável para toda a vida do provider.
   const fetchProfile = useCallback(async (userId: string, isManualRetry = false) => {
     const now = Date.now();
     const cooldown = 30000; // 30s
-    
-    // Trava global e disjuntor
-    if (isFetching) return;
-    if (isCircuitBreakerOpenRef.current && !isManualRetry) return;
-    
-    // Intervalo mínimo entre sequências
-    if (!isManualRetry && retryCountRef.current === 0 && (now - lastFetchAttemptRef.current < cooldown)) {
-      console.log('fetchProfile ignored due to cooldown');
-      return;
+    const isFirstFetch = !hasFetchedOnceRef.current;
+
+    // Trava de concorrência (ref, não state — não causa re-render nem remount)
+    if (isFetchingRef.current) return;
+    // O disjuntor e o cooldown nunca bloqueiam a PRIMEIRA busca após o carregamento
+    if (!isFirstFetch) {
+      if (isCircuitBreakerOpenRef.current && !isManualRetry) return;
+      if (!isManualRetry && retryCountRef.current === 0 && now - lastFetchAttemptRef.current < cooldown) {
+        return;
+      }
     }
 
-    setIsFetching(true);
-    if (isManualRetry) {
+    isFetchingRef.current = true;
+    hasFetchedOnceRef.current = true;
+
+    if (isManualRetry || isFirstFetch) {
       retryCountRef.current = 0;
       isCircuitBreakerOpenRef.current = false;
       setPermissionsLoadFailed(false);
@@ -77,9 +83,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .select('*')
         .eq('user_id', userId)
         .maybeSingle();
-      
+
       if (profileError) throw profileError;
-      
+
       const { data: rolesData, error: rolesError } = await supabase
         .from('user_roles')
         .select('role')
@@ -88,45 +94,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (rolesError) throw rolesError;
 
       if (profileData) setProfile(profileData);
-      if (rolesData) setRoles(rolesData.map(r => r.role) || []);
-      
+      setRoles(rolesData ? rolesData.map((r) => r.role) : []);
+
       setPermissionsLoadFailed(false);
       retryCountRef.current = 0;
       isCircuitBreakerOpenRef.current = false;
     } catch (err: any) {
-      if (err.name === 'AbortError') return;
-      
+      if (err?.name === 'AbortError') return;
+
       console.error(`Attempt ${retryCountRef.current + 1} failed for fetchProfile:`, err);
       retryCountRef.current += 1;
-      
+
       if (retryCountRef.current < 3) {
         const delay = Math.pow(2, retryCountRef.current) * 1000;
-        setTimeout(() => fetchProfile(userId), delay);
-      } else {
-        isCircuitBreakerOpenRef.current = true;
-        setPermissionsLoadFailed(true);
+        setTimeout(() => {
+          isFetchingRef.current = false;
+          fetchProfile(userId, true);
+        }, delay);
+        return;
       }
+      isCircuitBreakerOpenRef.current = true;
+      setPermissionsLoadFailed(true);
     } finally {
-      setIsFetching(false);
+      isFetchingRef.current = false;
       if (retryCountRef.current === 0 || retryCountRef.current >= 3) {
         setLoading(false);
       }
     }
-  }, [isFetching]);
+  }, []);
 
   const refreshProfile = useCallback(async () => {
-    if (user?.id) {
-      await fetchProfile(user.id, true);
+    if (userIdRef.current) {
+      await fetchProfile(userIdRef.current, true);
     }
-  }, [user?.id, fetchProfile]);
+  }, [fetchProfile]);
 
   const clearAuthState = useCallback(() => {
+    userIdRef.current = null;
     setUser(null);
     setSession(null);
     setProfile(null);
     setRoles([]);
     setLoading(false);
-    setIsFetching(false);
+    isFetchingRef.current = false;
     setPermissionsLoadFailed(false);
     retryCountRef.current = 0;
     isCircuitBreakerOpenRef.current = false;
@@ -136,41 +146,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.location.href = '/logout';
   }, []);
 
+  // Roda UMA vez. Sem dependências reativas: nada de remount/unsubscribe em loop.
   useEffect(() => {
     const safetyTimeout = setTimeout(() => {
       setLoading(false);
     }, 5000);
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        const currentUser = session?.user ?? null;
-        setSession(session);
-        setUser(currentUser);
-        
-        if (currentUser) {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
+      const currentUser = newSession?.user ?? null;
+      // Atualização SÍNCRONA apenas — nenhum await de chamada ao banco aqui.
+      setSession(newSession);
+      setUser(currentUser);
+      userIdRef.current = currentUser?.id ?? null;
+
+      if (currentUser) {
+        const uid = currentUser.id;
+        setTimeout(() => {
+          fetchProfile(uid, event === 'SIGNED_IN');
           if (event === 'SIGNED_IN') {
-            await fetchProfile(currentUser.id, true);
             logActivity('Login', { method: 'auth', email: currentUser.email });
           }
-        } else {
-          clearAuthState();
-        }
+        }, 0);
+      } else if (event === 'SIGNED_OUT') {
+        clearAuthState();
       }
-    );
+    });
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      const currentUser = session?.user ?? null;
-      setSession(session);
+    supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
+      const currentUser = initialSession?.user ?? null;
+      setSession(initialSession);
       setUser(currentUser);
-      
+      userIdRef.current = currentUser?.id ?? null;
+      clearTimeout(safetyTimeout);
+
       if (currentUser) {
         retryCountRef.current = 0;
-        await fetchProfile(currentUser.id);
+        setTimeout(() => fetchProfile(currentUser.id), 0);
       } else {
         setLoading(false);
       }
-      clearTimeout(safetyTimeout);
-    }).catch(err => {
+    }).catch((err) => {
       console.error('Error in getSession:', err);
       setLoading(false);
       clearTimeout(safetyTimeout);
@@ -180,7 +195,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       subscription.unsubscribe();
       clearTimeout(safetyTimeout);
     };
-  }, [fetchProfile, clearAuthState]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
 
   const rolesString = JSON.stringify(roles);
   const isAdmin = useMemo(() => roles.includes('admin') || roles.includes('owner'), [rolesString]);
