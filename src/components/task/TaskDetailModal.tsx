@@ -135,7 +135,7 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
   );
 
   // Handle Escape on the modal: if the title is being edited, discard changes and keep the modal open.
-  const handleDialogEscape = useCallback((e: React.KeyboardEvent) => {
+  const handleDialogEscape = useCallback((e: KeyboardEvent) => {
     if (document.activeElement === titleInputRef.current) {
       e.preventDefault();
       debouncedUpdate.cancel();
