@@ -43,13 +43,14 @@ As datas podem vir em diversos formatos, como:
 Regras estritas:
 1. Devolva um objeto JSON com as chaves: "title" (string) e "tasks" (array de objetos).
 2. Cada objeto em "tasks" deve ter:
+   - "number" (número ou null): o código/numeração da etapa exibido no documento (ex: "01" -> 1). Se não houver, use null.
    - "title" (string): o nome da tarefa.
    - "startDate" (string ou null): formato "YYYY-MM-DD". Se o ano não for encontrado no texto, use "YYYY" como placeholder (ex: "YYYY-08-15").
    - "endDate" (string ou null): formato "YYYY-MM-DD". Se o ano não for encontrado, use "YYYY" como placeholder.
    - "duration" (string ou null): descrição da duração encontrada (ex: "10 dias").
 3. Se o ano não estiver explícito no documento, deixe o ano como "YYYY". Não tente adivinhar.
 4. Ignore cabeçalhos, rodapés e numeração de página.
-5. Preserve a ordem das tarefas conforme aparecem no documento.
+5. Preserve EXATAMENTE a ordem das tarefas conforme aparecem no documento (de cima para baixo). Nunca reordene por data nem por ordem alfabética.
 6. Não adicione nenhum comentário ou texto fora do JSON.
 
 ${text ? `Texto extraído do documento:\n---\n${text}\n---` : 'O cronograma está nas imagens anexadas. Leia todo o conteúdo visível (tabelas, barras, legendas) para extrair as tarefas e datas.'}`

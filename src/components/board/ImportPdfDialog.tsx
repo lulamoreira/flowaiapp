@@ -25,6 +25,8 @@ interface ImportPdfDialogProps {
 }
 
 interface ParsedTask {
+  /** Numeração da etapa vinda do documento (quando existir). */
+  number?: number | null;
   title: string;
   startDate?: string;
   endDate?: string;
@@ -238,7 +240,18 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
         return;
       }
 
-      const rawTasks = data?.tasks || [];
+      /**
+       * A ordem precisa ser exatamente a do documento. Quando a IA devolve a
+       * numeração das etapas, ordenamos por ela (fonte de verdade do documento);
+       * caso contrário mantemos a ordem de leitura, sem reordenar por data/título.
+       */
+      const rawTasks: ParsedTask[] = (data?.tasks || []).map((t: any) => ({
+        ...t,
+        number: Number.isFinite(Number(t?.number)) && Number(t?.number) > 0 ? Number(t.number) : null,
+      }));
+      if (rawTasks.length > 0 && rawTasks.every((t) => typeof t.number === 'number')) {
+        rawTasks.sort((a, b) => (a.number as number) - (b.number as number));
+      }
       if (rawTasks.length === 0) {
         const msg = 'Nenhuma tarefa foi identificada neste documento.';
         setErrorMessage(msg);
@@ -330,6 +343,7 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
         group_id: groupId,
         board_id: boardId,
         position: index,
+        task_number: t.number ?? index + 1,
         created_by: user.id
       }));
 
@@ -365,6 +379,7 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
         plannedEnd: t.planned_end || undefined,
         groupId: t.group_id,
         boardId: t.board_id,
+        taskNumber: t.task_number,
         subtasks: [],
         attachments: [],
         createdAt: new Date().toISOString().split('T')[0],
