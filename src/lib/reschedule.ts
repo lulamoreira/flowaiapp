@@ -236,7 +236,12 @@ export function calculateSmartDateEdit(
       nextBounds.end.getTime() !== originalBounds.end.getTime())
   );
 
-  if (originalBounds && nextBounds && (touchesProjectStart || touchesProjectEnd || expandsProject)) {
+  // Fim aberto: a última tarefa está sem data, então o projeto não tem prazo
+  // fixo. Nesse caso nunca comprimimos o cronograma — o atraso é propagado para
+  // frente e a entrega final é sugerida adiante.
+  const openProjectEnd = hasOpenProjectEnd(boardTasks);
+
+  if (!openProjectEnd && originalBounds && nextBounds && (touchesProjectStart || touchesProjectEnd || expandsProject)) {
     try {
       const proportional = calculateReschedule(boardTasks, nextBounds.start, nextBounds.end);
       const proportionalUpdates = proportional
