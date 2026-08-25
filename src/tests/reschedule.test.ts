@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculateReschedule, calculateSmartDateEdit, detectNewConflicts } from '../lib/reschedule';
+import { calculateLockedAnchorAdjustments, calculateReschedule, calculateSmartDateEdit, detectNewConflicts } from '../lib/reschedule';
 import { Task } from '../types';
 import { isWeekend, parseISO } from 'date-fns';
 
@@ -246,7 +246,25 @@ describe('Smart date edit rescheduling', () => {
 
     const result = calculateSmartDateEdit(tasksWithLockedAnchor, '3', { plannedStart: '2024-09-11', plannedEnd: '2024-09-12' });
     expect(result.updates.find(update => update.taskId === '1')).toBeUndefined();
-    expect(result.updates.find(update => update.taskId === '3')).toBeUndefined();
+    expect(result.updates.find(update => update.taskId === '3')).toEqual({
+      taskId: '3',
+      plannedStart: '2024-09-13',
+      plannedEnd: '2024-09-14',
+    });
+  });
+
+  it('corrige violações existentes quando uma tarefa vira âncora travada', () => {
+    const tasksWithExistingViolation: Task[] = [
+      { ...mockTasks[0], id: '12', taskNumber: 12, title: 'Transporte', plannedStart: '2024-09-20', plannedEnd: '2024-09-21' },
+      { ...mockTasks[1], id: '13', taskNumber: 13, title: 'Instalação', plannedStart: '2024-09-19', plannedEnd: '2024-09-23', scheduleLocked: true },
+      { ...mockTasks[1], id: '14', taskNumber: 14, title: 'Inauguração', plannedStart: '2024-09-24', plannedEnd: '2024-09-24' },
+    ];
+
+    const result = calculateLockedAnchorAdjustments(tasksWithExistingViolation);
+
+    expect(result).toEqual([
+      { taskId: '12', plannedStart: '2024-09-17', plannedEnd: '2024-09-18' },
+    ]);
   });
 });
 

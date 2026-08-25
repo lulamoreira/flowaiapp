@@ -19,7 +19,7 @@ import { TaskTimeTracking } from '@/components/task/TaskTimeTracking';
 import { toast } from 'sonner';
 import { parseISO, format, isValid } from 'date-fns';
 import { debounce } from 'lodash';
-import { calculateSmartDateEdit } from '@/lib/reschedule';
+import { calculateLockedAnchorAdjustments, calculateSmartDateEdit } from '@/lib/reschedule';
 import { applyScheduleDateUpdates, persistScheduleDateUpdates, saveScheduleSnapshot } from '@/lib/scheduleUpdates';
 
 interface TaskDetailModalProps {
@@ -176,6 +176,41 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
       toast.success(`${result.updates.length} tarefas ajustadas pelo reagendamento inteligente.`);
     }
   }, [current, state.tasks, dispatch]);
+
+  const commitScheduleLockChange = useCallback(async (checked: boolean) => {
+    if (!current) return;
+
+    update({ scheduleLocked: checked });
+
+    if (!checked || !current.plannedStart || !current.plannedEnd) return;
+
+    const boardTasksWithAnchor = state.tasks
+      .filter(t => t.boardId === current.boardId)
+      .map(t => (t.id === current.id ? { ...t, scheduleLocked: true } : t));
+    const updates = calculateLockedAnchorAdjustments(boardTasksWithAnchor);
+
+    if (updates.length === 0) return;
+
+    const snapshot = await saveScheduleSnapshot(current.boardId, state.tasks);
+    if (snapshot.error) {
+      toast.error('Não foi possível criar o ponto de desfazer: ' + snapshot.error);
+      return;
+    }
+
+    const { error } = await persistScheduleDateUpdates(updates);
+    if (error) {
+      toast.error('Erro ao ajustar tarefas pela âncora travada: ' + error);
+      return;
+    }
+
+    const tasksWithLock = state.tasks.map(t => (t.id === current.id ? { ...t, scheduleLocked: true } : t));
+    dispatch({
+      type: 'SET_STATE',
+      payload: { tasks: applyScheduleDateUpdates(tasksWithLock, updates) },
+    });
+
+    toast.success(`${updates.length} tarefas ajustadas pela data travada.`);
+  }, [current, state.tasks, update, dispatch]);
 
   const debouncedUpdate = useCallback(
     debounce((updates: Partial<Task>) => {
@@ -565,7 +600,7 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
               <Switch
                 id="schedule-locked"
                 checked={!!current.scheduleLocked}
-                onCheckedChange={checked => update({ scheduleLocked: checked })}
+                onCheckedChange={checked => { void commitScheduleLockChange(checked); }}
               />
             </div>
             {current.scheduleLocked && (
