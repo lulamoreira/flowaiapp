@@ -136,14 +136,16 @@ function compareTaskOrder(a: Task, b: Task): number {
  */
 function constrainUpdatesByLockedAnchors(
   boardTasks: Task[],
-  candidateUpdates: ScheduleDateUpdate[]
+  candidateUpdates: ScheduleDateUpdate[],
+  anchorTasks: Task[] = boardTasks,
+  options: { allowLockedTaskIds?: Set<string> } = {}
 ): ScheduleDateUpdate[] {
-  if (!boardTasks.some(task => task.scheduleLocked && task.plannedStart && task.plannedEnd)) {
+  if (!anchorTasks.some(task => task.scheduleLocked && task.plannedStart && task.plannedEnd)) {
     return candidateUpdates;
   }
 
   const updates = new Map(candidateUpdates.map(update => [update.taskId, update]));
-  const effective = boardTasks
+  const effective = anchorTasks
     .slice()
     .sort(compareTaskOrder)
     .map(task => {
@@ -158,25 +160,21 @@ function constrainUpdatesByLockedAnchors(
   effective.forEach((entry, index) => {
     if (!entry.task.scheduleLocked || !entry.plannedStart) return;
 
-    let cursor = addDays(dayOnly(entry.plannedStart), -1);
+    const latestEndBeforeAnchor = addDays(dayOnly(entry.plannedStart), -1);
     for (let i = index - 1; i >= 0; i -= 1) {
       const previous = effective[i];
       if (previous.task.scheduleLocked) break;
       if (!previous.plannedStart || !previous.plannedEnd) continue;
 
-      const currentStart = dayOnly(previous.plannedStart);
       const currentEnd = dayOnly(previous.plannedEnd);
       const duration = daysBetween(previous.plannedStart, previous.plannedEnd);
 
-      if (currentEnd > cursor) {
-        const adjustedEnd = cursor;
+      if (currentEnd > latestEndBeforeAnchor) {
+        const adjustedEnd = latestEndBeforeAnchor;
         const adjustedStart = addDays(adjustedEnd, -duration);
         previous.plannedStart = format(adjustedStart, 'yyyy-MM-dd');
         previous.plannedEnd = format(adjustedEnd, 'yyyy-MM-dd');
         writeScheduleUpdate(updates, previous.task, adjustedStart, adjustedEnd);
-        cursor = addDays(adjustedStart, -1);
-      } else {
-        cursor = addDays(currentStart, -1);
       }
     }
   });
@@ -184,25 +182,21 @@ function constrainUpdatesByLockedAnchors(
   effective.forEach((entry, index) => {
     if (!entry.task.scheduleLocked || !entry.plannedEnd) return;
 
-    let cursor = addDays(dayOnly(entry.plannedEnd), 1);
+    const earliestStartAfterAnchor = addDays(dayOnly(entry.plannedEnd), 1);
     for (let i = index + 1; i < effective.length; i += 1) {
       const next = effective[i];
       if (next.task.scheduleLocked) break;
       if (!next.plannedStart || !next.plannedEnd) continue;
 
       const currentStart = dayOnly(next.plannedStart);
-      const currentEnd = dayOnly(next.plannedEnd);
       const duration = daysBetween(next.plannedStart, next.plannedEnd);
 
-      if (currentStart < cursor) {
-        const adjustedStart = cursor;
+      if (currentStart < earliestStartAfterAnchor) {
+        const adjustedStart = earliestStartAfterAnchor;
         const adjustedEnd = addDays(adjustedStart, duration);
         next.plannedStart = format(adjustedStart, 'yyyy-MM-dd');
         next.plannedEnd = format(adjustedEnd, 'yyyy-MM-dd');
         writeScheduleUpdate(updates, next.task, adjustedStart, adjustedEnd);
-        cursor = addDays(adjustedEnd, 1);
-      } else {
-        cursor = addDays(currentEnd, 1);
       }
     }
   });
@@ -210,9 +204,18 @@ function constrainUpdatesByLockedAnchors(
   return Array.from(updates.values()).filter(update => {
     const original = boardTasks.find(task => task.id === update.taskId);
     if (!original) return false;
-    if (original.scheduleLocked) return false;
+    if (original.scheduleLocked && !options.allowLockedTaskIds?.has(update.taskId)) return false;
     return scheduleChanged(original, update);
   });
+}
+
+/**
+ * Recalcula apenas as tarefas que violam âncoras travadas já existentes.
+ * Útil quando o usuário acabou de travar uma tarefa: a âncora passa a impor
+ * contexto imediatamente, mesmo sem alterar uma data naquele momento.
+ */
+export function calculateLockedAnchorAdjustments(tasks: Task[]): ScheduleDateUpdate[] {
+  return constrainUpdatesByLockedAnchors(tasks, [], tasks);
 }
 
 /**
@@ -374,7 +377,12 @@ export function calculateSmartDateEdit(
         return scheduleChanged(original, update);
       });
 
-      const constrainedUpdates = constrainUpdatesByLockedAnchors(boardTasks, updates);
+      const constrainedUpdates = constrainUpdatesByLockedAnchors(
+        boardTasks,
+        updates,
+        nextBoardTasks,
+        { allowLockedTaskIds: new Set([changedTaskId]) }
+      );
       const tail = suggestOpenTailUpdates(boardTasks, constrainedUpdates);
       const allUpdates = [...constrainedUpdates, ...tail];
 
@@ -425,7 +433,12 @@ export function calculateSmartDateEdit(
     return scheduleChanged(original, update);
   });
 
-  const constrainedUpdates = constrainUpdatesByLockedAnchors(boardTasks, filteredUpdates);
+  const constrainedUpdates = constrainUpdatesByLockedAnchors(
+    boardTasks,
+    filteredUpdates,
+    nextBoardTasks,
+    { allowLockedTaskIds: new Set([changedTaskId]) }
+  );
   const tailUpdates = suggestOpenTailUpdates(boardTasks, constrainedUpdates);
   const allUpdates = [...constrainedUpdates, ...tailUpdates];
 
