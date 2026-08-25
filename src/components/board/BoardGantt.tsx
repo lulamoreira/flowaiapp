@@ -9,6 +9,7 @@ import { ChevronLeft, ChevronRight, CalendarDays, LayoutGrid } from 'lucide-reac
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useScopedTasks } from '@/hooks/useScopedTasks';
+import { compareByTaskNumber } from '@/lib/taskNumbering';
 
 
 interface BoardGanttProps {
@@ -73,18 +74,14 @@ export function BoardGantt({ boardId, tasks: externalTasks, groups: externalGrou
 
 
   const rows = useMemo(() => {
-    const rowList: { task: Task; groupColor: string }[] = [];
-    groups.forEach(g => {
-      tasks.filter(t => t.groupId === g.id).forEach(t => {
-        rowList.push({ task: t, groupColor: g.color });
-      });
-    });
-    const groupedIds = new Set(groups.map(g => g.id));
-    tasks.filter(t => !groupedIds.has(t.groupId)).forEach(t => {
-      rowList.push({ task: t, groupColor: '#94a3b8' });
-    });
-    return rowList;
+    const colorByGroup = new Map(groups.map(g => [g.id, g.color]));
+    // Ordem única e estável: sempre pelo código (task_number) da tarefa.
+    return tasks
+      .slice()
+      .sort(compareByTaskNumber)
+      .map(t => ({ task: t, groupColor: colorByGroup.get(t.groupId) ?? '#94a3b8' }));
   }, [tasks, groups]);
+
 
   const getBarPosition = (task: Task) => {
     const start = task.plannedStart ? parseISO(task.plannedStart) : null;
