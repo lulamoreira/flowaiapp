@@ -779,6 +779,7 @@ export type Database = {
           planned_start: string | null
           position: number
           priority: string
+          schedule_locked: boolean
           status: string
           subtasks: Json
           task_number: number | null
@@ -800,6 +801,7 @@ export type Database = {
           planned_start?: string | null
           position?: number
           priority?: string
+          schedule_locked?: boolean
           status?: string
           subtasks?: Json
           task_number?: number | null
@@ -821,6 +823,7 @@ export type Database = {
           planned_start?: string | null
           position?: number
           priority?: string
+          schedule_locked?: boolean
           status?: string
           subtasks?: Json
           task_number?: number | null

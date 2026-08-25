@@ -36,6 +36,8 @@ export interface Task {
   position?: number;
   /** Número sequencial da tarefa dentro do quadro (public.tasks.task_number). */
   taskNumber?: number | null;
+  /** Quando true, reagendamentos do projeto não alteram as datas desta tarefa. */
+  scheduleLocked?: boolean;
 }
 
 export interface TaskGroup {
