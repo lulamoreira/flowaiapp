@@ -96,8 +96,11 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
   const [localActualEnd, setLocalActualEnd] = useState('');
   const [titleBeforeEdit, setTitleBeforeEdit] = useState('');
 
+  const [isTitleEditing, setIsTitleEditing] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const titleInputRef = useRef<HTMLTextAreaElement>(null);
+  const dialogContentRef = useRef<HTMLDivElement>(null);
 
   // Sync local state ONLY when the active task ID changes (open/switch task)
   useEffect(() => {
@@ -110,16 +113,14 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
     setLocalPlannedEnd(toInputFormat(current.plannedEnd));
     setLocalActualStart(toInputFormat(current.actualStart));
     setLocalActualEnd(toInputFormat(current.actualEnd));
+    setIsTitleEditing(false);
   }, [current?.id]);
 
-  // Focus and select title after the modal finishes opening
+  // Ensure the modal always opens scrolled to the top
   useEffect(() => {
-    if (!current) return;
-    const timer = setTimeout(() => {
-      titleInputRef.current?.focus();
-      titleInputRef.current?.select();
-    }, 100);
-    return () => clearTimeout(timer);
+    if (current && dialogContentRef.current) {
+      dialogContentRef.current.scrollTop = 0;
+    }
   }, [current?.id]);
 
   const update = useCallback((updates: Partial<Task>) => {
@@ -337,40 +338,54 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
   return (
     <>
       <Dialog open={!!task} onOpenChange={() => onClose()}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto" onEscapeKeyDown={handleDialogEscape}>
+        <DialogContent ref={dialogContentRef} className="max-w-2xl max-h-[85vh] overflow-y-auto" onEscapeKeyDown={handleDialogEscape} onOpenAutoFocus={(e) => e.preventDefault()}>
           <DialogHeader className="flex flex-row items-start justify-between pr-8 gap-4">
             <DialogTitle className="flex-1">
               <Textarea
                 ref={titleInputRef}
                 value={localTitle}
+                readOnly={!isTitleEditing}
+                onClick={() => {
+                  if (!isTitleEditing && current) {
+                    const normalized = !current.title || current.title.trim() === 'Nova tarefa' ? '' : current.title;
+                    setTitleBeforeEdit(normalized);
+                    setIsTitleEditing(true);
+                  }
+                }}
                 onChange={e => {
                   setLocalTitle(e.target.value);
                   debouncedUpdate({ title: e.target.value });
                 }}
                 onFocus={() => {
+                  if (!isTitleEditing) return;
                   // Capture the task's original title from current, not from local state,
                   // so that auto-focus during modal open doesn't record an empty/placeholder value.
                   const normalized = !current?.title || current.title.trim() === 'Nova tarefa' ? '' : current.title;
                   setTitleBeforeEdit(normalized);
                 }}
-                onBlur={() => handleBlur('title', localTitle)}
+                onBlur={() => {
+                  handleBlur('title', localTitle);
+                  setIsTitleEditing(false);
+                }}
                 onKeyDown={e => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
                     debouncedUpdate.cancel();
                     handleBlur('title', localTitle);
                     titleInputRef.current?.blur();
+                    setIsTitleEditing(false);
                   } else if (e.key === 'Escape') {
                     e.preventDefault();
                     e.stopPropagation();
                     debouncedUpdate.cancel();
                     setLocalTitle(titleBeforeEdit);
                     titleInputRef.current?.blur();
+                    setIsTitleEditing(false);
                   }
                 }}
                 placeholder="Nome da tarefa"
                 rows={1}
-                className="text-2xl font-bold text-foreground border-0 px-0 py-0 bg-transparent hover:bg-muted/30 rounded-md transition-colors focus-visible:ring-2 focus-visible:ring-primary resize-none min-h-[40px] w-full leading-tight"
+                className={`text-2xl font-bold text-foreground border-0 px-0 py-0 bg-transparent hover:bg-muted/30 rounded-md transition-colors focus-visible:ring-2 focus-visible:ring-primary resize-none min-h-[40px] w-full leading-tight ${!isTitleEditing ? 'cursor-pointer focus-visible:ring-0' : ''}`}
               />
             </DialogTitle>
             <Button
@@ -381,7 +396,8 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
             >
               <Trash2 className="h-4 w-4" />
             </Button>
-          </DialogHeader>
+          <DialogDescription className="sr-only">Edite os detalhes da tarefa abaixo</DialogDescription>
+        </DialogHeader>
 
         <div className="space-y-5">
           {/* Status & Priority */}

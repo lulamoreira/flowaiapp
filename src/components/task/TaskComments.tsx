@@ -29,6 +29,7 @@ export function TaskComments({ taskId }: TaskCommentsProps) {
   const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const hasLoadedRef = useRef(false);
 
   // Mention state
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
@@ -53,6 +54,7 @@ export function TaskComments({ taskId }: TaskCommentsProps) {
   };
 
   useEffect(() => {
+    hasLoadedRef.current = false;
     fetchComments();
     const channel = supabase
       .channel(`comments-${taskId}`)
@@ -66,7 +68,11 @@ export function TaskComments({ taskId }: TaskCommentsProps) {
   }, [taskId, user?.id]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (!hasLoadedRef.current) {
+      hasLoadedRef.current = true;
+      return;
+    }
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, [comments.length]);
 
   const parseMentions = (text: string): string[] => {
