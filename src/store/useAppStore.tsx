@@ -661,7 +661,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         onOpenChange={(open) => !open && setConfirmDelete(null)}
         onConfirm={async () => {
           if (confirmDelete) {
-            dispatch({ type: confirmDelete.type, payload: confirmDelete.payload } as Action);
+            // IMPORTANTE: usar wrappedDispatch — o `dispatch` cru só altera o estado
+            // local e o item reaparece no próximo refetch, pois nada é gravado no banco.
+            wrappedDispatch({ type: confirmDelete.type, payload: confirmDelete.payload } as Action);
             toast.success(`${confirmDelete.itemType} excluído`);
             setConfirmDelete(null);
           }
