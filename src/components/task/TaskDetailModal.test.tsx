@@ -74,14 +74,14 @@ describe('TaskDetailModal title field', () => {
     mockDispatch.mockClear();
   });
 
-  it('focuses and selects the title on open', async () => {
+  it('does not focus the title on open', async () => {
     const task = createTask('Título existente');
     render(<TaskDetailModal task={task} onClose={() => {}} />);
 
     const input = await screen.findByPlaceholderText('Nome da tarefa') as HTMLTextAreaElement;
-    await waitFor(() => expect(document.activeElement).toBe(input));
-    expect(input.selectionStart).toBe(0);
-    expect(input.selectionEnd).toBe('Título existente'.length);
+    await new Promise(r => setTimeout(r, 150));
+    expect(document.activeElement).not.toBe(input);
+    expect(input).toHaveAttribute('readonly');
   });
 
   it('clears the placeholder title for new tasks', async () => {
