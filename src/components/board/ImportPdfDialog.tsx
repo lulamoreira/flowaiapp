@@ -333,8 +333,9 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado.');
 
-      // Final date processing with user selected year
-      const finalTasks = processDates(parsedData.tasks, parseInt(baseYear, 10));
+      // Final date processing with user selected year + ordem definida pela numeração
+      const finalTasks = sortByNumber(processDates(parsedData.tasks, parseInt(baseYear, 10)));
+
 
       boardId = crypto.randomUUID();
       
