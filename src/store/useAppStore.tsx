@@ -131,6 +131,7 @@ function dbToTask(row: any): Task {
     createdAt: row.created_at?.split('T')[0] || '',
     position: row.position ?? 0,
     taskNumber: typeof row.task_number === 'number' ? row.task_number : null,
+    scheduleLocked: row.schedule_locked === true,
   };
 }
 
