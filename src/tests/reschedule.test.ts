@@ -197,7 +197,27 @@ describe('Smart date edit rescheduling', () => {
       { taskId: '3', plannedStart: '2024-01-10', plannedEnd: '2024-01-13' },
     ]);
   });
+
+  it('propaga o atraso e sugere a entrega quando a última tarefa está sem data', () => {
+    const openEnd: Task[] = [
+      { ...mockTasks[0], id: '1', taskNumber: 1, plannedStart: '2024-01-01', plannedEnd: '2024-01-03' },
+      { ...mockTasks[1], id: '2', taskNumber: 2, plannedStart: '2024-01-04', plannedEnd: '2024-01-06' },
+      { ...mockTasks[1], id: '3', taskNumber: 3, title: 'Entrega', plannedStart: undefined, plannedEnd: undefined },
+    ];
+
+    // Etapa 1 atrasa 4 dias (começa 05 e termina 08).
+    const result = calculateSmartDateEdit(openEnd, '1', { plannedEnd: '2024-01-07' });
+
+    expect(result.strategy).toBe('sequence');
+    expect(result.suggestedOpenEnd).toBe(true);
+    expect(result.updates).toEqual([
+      { taskId: '1', plannedStart: '2024-01-01', plannedEnd: '2024-01-07' },
+      { taskId: '2', plannedStart: '2024-01-08', plannedEnd: '2024-01-10' },
+      { taskId: '3', plannedStart: '2024-01-11', plannedEnd: '2024-01-11' },
+    ]);
+  });
 });
+
 
 describe('Reschedule: locked tasks and business days', () => {
   it('keeps locked task dates untouched', () => {

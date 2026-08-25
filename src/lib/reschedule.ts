@@ -44,7 +44,13 @@ export interface SmartDateEditResult {
   updates: ScheduleDateUpdate[];
   /** Estratégia usada para explicar o comportamento na interface. */
   strategy: 'project-window' | 'sequence' | 'single';
+  /** True quando a última tarefa estava sem data e recebeu uma sugestão automática. */
+  suggestedOpenEnd?: boolean;
 }
+
+/** Duração padrão (em dias corridos) usada ao sugerir data para tarefa sem data. */
+const DEFAULT_OPEN_TASK_DURATION_DAYS = 1;
+
 
 /** Normaliza uma data (com ou sem hora) para o início do dia local. */
 function dayOnly(value: string | Date): Date {
@@ -101,6 +107,67 @@ function compareTaskOrder(a: Task, b: Task): number {
   if (ac !== bc) return ac < bc ? -1 : 1;
   return a.title.localeCompare(b.title, 'pt-BR');
 }
+
+/**
+ * True quando a(s) última(s) tarefa(s) do quadro (na ordem do código) estão sem
+ * nenhuma data. Nesse caso o projeto tem "fim aberto": atrasos empurram a
+ * entrega para frente em vez de comprimir o cronograma existente.
+ */
+export function hasOpenProjectEnd(tasks: Task[]): boolean {
+  const ordered = tasks.slice().sort(compareTaskOrder);
+  const last = ordered[ordered.length - 1];
+  if (!last) return false;
+  return !last.plannedStart && !last.plannedEnd;
+}
+
+/**
+ * Sugere datas para as tarefas finais sem data, encadeando-as após o término
+ * da última tarefa que possui data (já considerando as atualizações aplicadas).
+ */
+function suggestOpenTailUpdates(
+  boardTasks: Task[],
+  appliedUpdates: ScheduleDateUpdate[]
+): ScheduleDateUpdate[] {
+  const byTask = new Map(appliedUpdates.map(update => [update.taskId, update]));
+  const effective = boardTasks.map(task => {
+    const update = byTask.get(task.id);
+    return {
+      task,
+      plannedStart: update ? update.plannedStart : task.plannedStart ?? null,
+      plannedEnd: update ? update.plannedEnd : task.plannedEnd ?? null,
+    };
+  });
+  const ordered = effective.slice().sort((a, b) => compareTaskOrder(a.task, b.task));
+
+  let lastDatedIndex = -1;
+  ordered.forEach((entry, index) => {
+    if (entry.plannedStart && entry.plannedEnd) lastDatedIndex = index;
+  });
+  if (lastDatedIndex === -1) return [];
+
+  const tail = ordered.slice(lastDatedIndex + 1);
+  if (tail.length === 0) return [];
+  // Só sugere quando TODAS as tarefas finais estão realmente sem data.
+  if (tail.some(entry => entry.plannedStart || entry.plannedEnd)) return [];
+
+  let cursor = dayOnly(ordered[lastDatedIndex].plannedEnd!);
+  const suggestions: ScheduleDateUpdate[] = [];
+
+  for (const entry of tail) {
+    if (entry.task.scheduleLocked) continue;
+    const start = addDays(cursor, 1);
+    const end = addDays(start, Math.max(0, DEFAULT_OPEN_TASK_DURATION_DAYS - 1));
+    suggestions.push({
+      taskId: entry.task.id,
+      plannedStart: format(start, 'yyyy-MM-dd'),
+      plannedEnd: format(end, 'yyyy-MM-dd'),
+    });
+    cursor = end;
+  }
+
+  return suggestions;
+}
+
 
 /**
  * Reagendamento inteligente disparado pela edição direta da data de uma tarefa.
@@ -169,7 +236,12 @@ export function calculateSmartDateEdit(
       nextBounds.end.getTime() !== originalBounds.end.getTime())
   );
 
-  if (originalBounds && nextBounds && (touchesProjectStart || touchesProjectEnd || expandsProject)) {
+  // Fim aberto: a última tarefa está sem data, então o projeto não tem prazo
+  // fixo. Nesse caso nunca comprimimos o cronograma — o atraso é propagado para
+  // frente e a entrega final é sugerida adiante.
+  const openProjectEnd = hasOpenProjectEnd(boardTasks);
+
+  if (!openProjectEnd && originalBounds && nextBounds && (touchesProjectStart || touchesProjectEnd || expandsProject)) {
     try {
       const proportional = calculateReschedule(boardTasks, nextBounds.start, nextBounds.end);
       const proportionalUpdates = proportional
@@ -196,7 +268,14 @@ export function calculateSmartDateEdit(
       });
 
 
-      return { updates, strategy: updates.length > 1 ? 'project-window' : 'single' };
+      const tail = suggestOpenTailUpdates(boardTasks, updates);
+      const allUpdates = [...updates, ...tail];
+
+      return {
+        updates: allUpdates,
+        strategy: allUpdates.length > 1 ? 'project-window' : 'single',
+        suggestedOpenEnd: tail.length > 0,
+      };
     } catch {
       // Se o cronograma não puder ser escalado proporcionalmente, cai para
       // deslocamento sequencial para ainda preservar a intenção do usuário.
@@ -240,9 +319,13 @@ export function calculateSmartDateEdit(
   });
 
 
+  const tailUpdates = suggestOpenTailUpdates(boardTasks, filteredUpdates);
+  const allUpdates = [...filteredUpdates, ...tailUpdates];
+
   return {
-    updates: filteredUpdates,
-    strategy: filteredUpdates.length > 1 ? 'sequence' : 'single',
+    updates: allUpdates,
+    strategy: allUpdates.length > 1 ? 'sequence' : 'single',
+    suggestedOpenEnd: tailUpdates.length > 0,
   };
 }
 
