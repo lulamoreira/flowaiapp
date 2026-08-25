@@ -120,6 +120,17 @@ export function calculateSmartDateEdit(
   if (!changedTask) return { updates: [], strategy: 'single' };
 
   const nextChangedTask: Task = { ...changedTask, ...changes };
+  if (nextChangedTask.plannedStart && nextChangedTask.plannedEnd) {
+    const nextStart = dayOnly(nextChangedTask.plannedStart);
+    const nextEnd = dayOnly(nextChangedTask.plannedEnd);
+    if (nextEnd < nextStart) {
+      if (Object.prototype.hasOwnProperty.call(changes, 'plannedStart')) {
+        nextChangedTask.plannedEnd = dateKey(nextChangedTask.plannedStart) ?? undefined;
+      } else {
+        nextChangedTask.plannedStart = dateKey(nextChangedTask.plannedEnd) ?? undefined;
+      }
+    }
+  }
   const boardTasks = tasks.filter(task => task.boardId === changedTask.boardId);
   const nextBoardTasks = boardTasks.map(task => (task.id === changedTaskId ? nextChangedTask : task));
 

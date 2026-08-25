@@ -170,9 +170,9 @@ describe('Smart date edit rescheduling', () => {
 
     expect(result.strategy).toBe('project-window');
     expect(result.updates).toEqual([
-      { taskId: '1', plannedStart: '2024-01-01', plannedEnd: '2024-01-07' },
-      { taskId: '2', plannedStart: '2024-01-08', plannedEnd: '2024-01-12' },
-      { taskId: '3', plannedStart: '2024-01-13', plannedEnd: '2024-01-20' },
+      { taskId: '1', plannedStart: '2024-01-01', plannedEnd: '2024-01-05' },
+      { taskId: '2', plannedStart: '2024-01-07', plannedEnd: '2024-01-12' },
+      { taskId: '3', plannedStart: '2024-01-14', plannedEnd: '2024-01-20' },
     ]);
   });
 
