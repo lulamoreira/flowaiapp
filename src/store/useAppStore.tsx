@@ -554,6 +554,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
               attachments: t.attachments as any,
               position: t.position ?? 0,
               ...(typeof t.taskNumber === 'number' ? { task_number: t.taskNumber } : {}),
+              schedule_locked: !!t.scheduleLocked,
               created_by: user?.id,
             });
             error = res.error;
