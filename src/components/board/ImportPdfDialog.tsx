@@ -513,7 +513,10 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
                 {previewTasks.map((task, idx) => (
                   <div key={idx} className="grid grid-cols-12 gap-3 items-end border-b border-border/50 pb-4 last:border-0">
                     <div className="col-span-6 space-y-1">
-                      <Label className="text-[10px] uppercase text-muted-foreground">Tarefa</Label>
+                      <Label className="text-[10px] uppercase text-muted-foreground">
+                        Tarefa {String(task.number ?? idx + 1).padStart(2, '0')}
+                      </Label>
+
                       <Input 
                         value={task.title} 
                         onChange={(e) => handleTaskEdit(idx, 'title', e.target.value)}
