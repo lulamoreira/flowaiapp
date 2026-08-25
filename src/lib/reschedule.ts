@@ -44,7 +44,13 @@ export interface SmartDateEditResult {
   updates: ScheduleDateUpdate[];
   /** Estratégia usada para explicar o comportamento na interface. */
   strategy: 'project-window' | 'sequence' | 'single';
+  /** True quando a última tarefa estava sem data e recebeu uma sugestão automática. */
+  suggestedOpenEnd?: boolean;
 }
+
+/** Duração padrão (em dias corridos) usada ao sugerir data para tarefa sem data. */
+const DEFAULT_OPEN_TASK_DURATION_DAYS = 1;
+
 
 /** Normaliza uma data (com ou sem hora) para o início do dia local. */
 function dayOnly(value: string | Date): Date {
