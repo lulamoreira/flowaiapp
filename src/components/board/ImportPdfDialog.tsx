@@ -445,11 +445,13 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
    * dando a impressão de que a IA não leu as datas presentes na imagem/PDF.
    */
   const previewTasks = React.useMemo(() => {
-    if (!parsedData) return [] as ParsedTask[];
+    if (!parsedData) return [] as Array<{ task: ParsedTask; index: number }>;
     const year = parseInt(baseYear, 10);
-    if (!Number.isFinite(year)) return parsedData.tasks;
-    return processDates(parsedData.tasks, year);
+    const resolved = Number.isFinite(year) ? processDates(parsedData.tasks, year) : parsedData.tasks;
+    const withIndex = resolved.map((task, index) => ({ task, index, number: task.number ?? null }));
+    return sortByNumber(withIndex);
   }, [parsedData, baseYear]);
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
