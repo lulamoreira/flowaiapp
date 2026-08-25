@@ -499,6 +499,25 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
               />
             </div>
           </div>
+          {/* Schedule lock */}
+          <div className="rounded-md border p-3">
+            <div className="flex items-center justify-between gap-3">
+              <label htmlFor="schedule-locked" className="text-xs font-medium cursor-pointer">
+                Travar datas desta tarefa
+              </label>
+              <Switch
+                id="schedule-locked"
+                checked={!!current.scheduleLocked}
+                onCheckedChange={checked => update({ scheduleLocked: checked })}
+              />
+            </div>
+            {current.scheduleLocked && (
+              <p className="text-[11px] text-muted-foreground mt-2">
+                Reagendamentos do projeto não vão alterar as datas desta tarefa.
+              </p>
+            )}
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Início real</label>
