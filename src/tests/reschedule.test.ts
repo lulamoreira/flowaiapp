@@ -216,6 +216,38 @@ describe('Smart date edit rescheduling', () => {
       { taskId: '3', plannedStart: '2024-01-11', plannedEnd: '2024-01-11' },
     ]);
   });
+
+  it('mantém tarefa anterior antes de uma tarefa posterior travada', () => {
+    const tasksWithLockedAnchor: Task[] = [
+      { ...mockTasks[0], id: '11', taskNumber: 11, title: 'Etapa anterior', plannedStart: '2024-09-10', plannedEnd: '2024-09-12' },
+      { ...mockTasks[1], id: '12', taskNumber: 12, title: 'Transporte', plannedStart: '2024-09-13', plannedEnd: '2024-09-14' },
+      { ...mockTasks[1], id: '13', taskNumber: 13, title: 'Instalação', plannedStart: '2024-09-19', plannedEnd: '2024-09-23', scheduleLocked: true },
+      { ...mockTasks[1], id: '14', taskNumber: 14, title: 'Inauguração', plannedStart: '2024-09-24', plannedEnd: '2024-09-24' },
+    ];
+
+    const result = calculateSmartDateEdit(tasksWithLockedAnchor, '11', { plannedEnd: '2024-09-20' });
+    const transport = result.updates.find(update => update.taskId === '12');
+    const locked = result.updates.find(update => update.taskId === '13');
+
+    expect(locked).toBeUndefined();
+    expect(transport).toEqual({
+      taskId: '12',
+      plannedStart: '2024-09-17',
+      plannedEnd: '2024-09-18',
+    });
+  });
+
+  it('não deixa tarefa posterior invadir uma âncora anterior travada', () => {
+    const tasksWithLockedAnchor: Task[] = [
+      { ...mockTasks[0], id: '1', taskNumber: 1, title: 'Fundação', plannedStart: '2024-09-10', plannedEnd: '2024-09-12', scheduleLocked: true },
+      { ...mockTasks[1], id: '2', taskNumber: 2, title: 'Montagem', plannedStart: '2024-09-13', plannedEnd: '2024-09-14' },
+      { ...mockTasks[1], id: '3', taskNumber: 3, title: 'Entrega', plannedStart: '2024-09-15', plannedEnd: '2024-09-16' },
+    ];
+
+    const result = calculateSmartDateEdit(tasksWithLockedAnchor, '3', { plannedStart: '2024-09-11', plannedEnd: '2024-09-12' });
+    expect(result.updates.find(update => update.taskId === '1')).toBeUndefined();
+    expect(result.updates.find(update => update.taskId === '3')).toBeUndefined();
+  });
 });
 
 
