@@ -95,6 +95,25 @@ function scheduleChanged(task: Task, update: ScheduleDateUpdate): boolean {
   return !sameDate(task.plannedStart, update.plannedStart) || !sameDate(task.plannedEnd, update.plannedEnd);
 }
 
+function daysBetween(start: string | null | undefined, end: string | null | undefined): number {
+  if (!start || !end) return 0;
+  return Math.max(0, differenceInCalendarDays(dayOnly(end), dayOnly(start)));
+}
+
+function writeScheduleUpdate(
+  updates: Map<string, ScheduleDateUpdate>,
+  task: Task,
+  plannedStart: Date,
+  plannedEnd: Date
+) {
+  if (task.scheduleLocked) return;
+  updates.set(task.id, {
+    taskId: task.id,
+    plannedStart: format(plannedStart, 'yyyy-MM-dd'),
+    plannedEnd: format(plannedEnd, 'yyyy-MM-dd'),
+  });
+}
+
 function compareTaskOrder(a: Task, b: Task): number {
   const an = typeof a.taskNumber === 'number' ? a.taskNumber : Number.POSITIVE_INFINITY;
   const bn = typeof b.taskNumber === 'number' ? b.taskNumber : Number.POSITIVE_INFINITY;
@@ -106,6 +125,94 @@ function compareTaskOrder(a: Task, b: Task): number {
   const bc = b.createdAt || '';
   if (ac !== bc) return ac < bc ? -1 : 1;
   return a.title.localeCompare(b.title, 'pt-BR');
+}
+
+/**
+ * Mantém coerência contextual da sequência quando existem tarefas travadas.
+ *
+ * Uma tarefa travada posterior é uma âncora: tarefas anteriores, pela ordem do
+ * código, não podem terminar depois do início dela. O inverso também vale para
+ * tarefas posteriores, que não podem começar antes do fim da âncora.
+ */
+function constrainUpdatesByLockedAnchors(
+  boardTasks: Task[],
+  candidateUpdates: ScheduleDateUpdate[]
+): ScheduleDateUpdate[] {
+  if (!boardTasks.some(task => task.scheduleLocked && task.plannedStart && task.plannedEnd)) {
+    return candidateUpdates;
+  }
+
+  const updates = new Map(candidateUpdates.map(update => [update.taskId, update]));
+  const effective = boardTasks
+    .slice()
+    .sort(compareTaskOrder)
+    .map(task => {
+      const update = updates.get(task.id);
+      return {
+        task,
+        plannedStart: update ? update.plannedStart : task.plannedStart ?? null,
+        plannedEnd: update ? update.plannedEnd : task.plannedEnd ?? null,
+      };
+    });
+
+  effective.forEach((entry, index) => {
+    if (!entry.task.scheduleLocked || !entry.plannedStart) return;
+
+    let cursor = addDays(dayOnly(entry.plannedStart), -1);
+    for (let i = index - 1; i >= 0; i -= 1) {
+      const previous = effective[i];
+      if (previous.task.scheduleLocked) break;
+      if (!previous.plannedStart || !previous.plannedEnd) continue;
+
+      const currentStart = dayOnly(previous.plannedStart);
+      const currentEnd = dayOnly(previous.plannedEnd);
+      const duration = daysBetween(previous.plannedStart, previous.plannedEnd);
+
+      if (currentEnd > cursor) {
+        const adjustedEnd = cursor;
+        const adjustedStart = addDays(adjustedEnd, -duration);
+        previous.plannedStart = format(adjustedStart, 'yyyy-MM-dd');
+        previous.plannedEnd = format(adjustedEnd, 'yyyy-MM-dd');
+        writeScheduleUpdate(updates, previous.task, adjustedStart, adjustedEnd);
+        cursor = addDays(adjustedStart, -1);
+      } else {
+        cursor = addDays(currentStart, -1);
+      }
+    }
+  });
+
+  effective.forEach((entry, index) => {
+    if (!entry.task.scheduleLocked || !entry.plannedEnd) return;
+
+    let cursor = addDays(dayOnly(entry.plannedEnd), 1);
+    for (let i = index + 1; i < effective.length; i += 1) {
+      const next = effective[i];
+      if (next.task.scheduleLocked) break;
+      if (!next.plannedStart || !next.plannedEnd) continue;
+
+      const currentStart = dayOnly(next.plannedStart);
+      const currentEnd = dayOnly(next.plannedEnd);
+      const duration = daysBetween(next.plannedStart, next.plannedEnd);
+
+      if (currentStart < cursor) {
+        const adjustedStart = cursor;
+        const adjustedEnd = addDays(adjustedStart, duration);
+        next.plannedStart = format(adjustedStart, 'yyyy-MM-dd');
+        next.plannedEnd = format(adjustedEnd, 'yyyy-MM-dd');
+        writeScheduleUpdate(updates, next.task, adjustedStart, adjustedEnd);
+        cursor = addDays(adjustedEnd, 1);
+      } else {
+        cursor = addDays(currentEnd, 1);
+      }
+    }
+  });
+
+  return Array.from(updates.values()).filter(update => {
+    const original = boardTasks.find(task => task.id === update.taskId);
+    if (!original) return false;
+    if (original.scheduleLocked) return false;
+    return scheduleChanged(original, update);
+  });
 }
 
 /**
@@ -267,12 +374,12 @@ export function calculateSmartDateEdit(
         return scheduleChanged(original, update);
       });
 
-
-      const tail = suggestOpenTailUpdates(boardTasks, updates);
+      const constrainedUpdates = constrainUpdatesByLockedAnchors(boardTasks, updates);
+      const tail = suggestOpenTailUpdates(boardTasks, constrainedUpdates);
       const allUpdates = [...updates, ...tail];
 
       return {
-        updates: allUpdates,
+        updates: [...constrainedUpdates, ...tail],
         strategy: allUpdates.length > 1 ? 'project-window' : 'single',
         suggestedOpenEnd: tail.length > 0,
       };
@@ -318,9 +425,9 @@ export function calculateSmartDateEdit(
     return scheduleChanged(original, update);
   });
 
-
-  const tailUpdates = suggestOpenTailUpdates(boardTasks, filteredUpdates);
-  const allUpdates = [...filteredUpdates, ...tailUpdates];
+  const constrainedUpdates = constrainUpdatesByLockedAnchors(boardTasks, filteredUpdates);
+  const tailUpdates = suggestOpenTailUpdates(boardTasks, constrainedUpdates);
+  const allUpdates = [...constrainedUpdates, ...tailUpdates];
 
   return {
     updates: allUpdates,
