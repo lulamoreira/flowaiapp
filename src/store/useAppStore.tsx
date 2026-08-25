@@ -580,6 +580,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
               attachments: t.attachments as any,
               position: t.position ?? 0,
               ...(typeof t.taskNumber === 'number' ? { task_number: t.taskNumber } : {}),
+              schedule_locked: !!t.scheduleLocked,
             }).eq('id', t.id);
             error = res.error;
             if (oldTask && oldTask.status !== t.status) {
