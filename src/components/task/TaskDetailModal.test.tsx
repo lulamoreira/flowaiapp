@@ -127,6 +127,7 @@ describe('TaskDetailModal title field', () => {
 
     const input = await screen.findByPlaceholderText('Nome da tarefa') as HTMLTextAreaElement;
     fireEvent.click(input);
+    input.focus();
     await waitFor(() => expect(document.activeElement).toBe(input));
 
     fireEvent.change(input, { target: { value: 'Título confirmado' } });
