@@ -237,7 +237,7 @@ describe('Smart date edit rescheduling', () => {
     });
   });
 
-  it('mantém tarefa posterior depois de uma tarefa anterior travada', () => {
+  it('não deixa tarefa posterior invadir uma âncora anterior travada', () => {
     const tasksWithLockedAnchor: Task[] = [
       { ...mockTasks[0], id: '1', taskNumber: 1, title: 'Fundação', plannedStart: '2024-09-10', plannedEnd: '2024-09-12', scheduleLocked: true },
       { ...mockTasks[1], id: '2', taskNumber: 2, title: 'Montagem', plannedStart: '2024-09-13', plannedEnd: '2024-09-14' },
@@ -245,14 +245,8 @@ describe('Smart date edit rescheduling', () => {
     ];
 
     const result = calculateSmartDateEdit(tasksWithLockedAnchor, '3', { plannedStart: '2024-09-11', plannedEnd: '2024-09-12' });
-    const moved = result.updates.find(update => update.taskId === '3');
-
     expect(result.updates.find(update => update.taskId === '1')).toBeUndefined();
-    expect(moved).toEqual({
-      taskId: '3',
-      plannedStart: '2024-09-13',
-      plannedEnd: '2024-09-14',
-    });
+    expect(result.updates.find(update => update.taskId === '3')).toBeUndefined();
   });
 });
 
