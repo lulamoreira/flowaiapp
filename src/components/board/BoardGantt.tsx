@@ -9,6 +9,7 @@ import { ChevronLeft, ChevronRight, CalendarDays, LayoutGrid } from 'lucide-reac
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useScopedTasks } from '@/hooks/useScopedTasks';
+import { compareByTaskNumber } from '@/lib/taskNumbering';
 
 
 interface BoardGanttProps {
