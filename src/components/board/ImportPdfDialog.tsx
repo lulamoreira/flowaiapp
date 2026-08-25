@@ -387,6 +387,18 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
     }
   };
 
+  /**
+   * Datas exibidas na revisão já com o ano resolvido pelo "Ano de Início".
+   * Sem isto, tarefas cujo ano veio como placeholder "YYYY" apareceriam vazias,
+   * dando a impressão de que a IA não leu as datas presentes na imagem/PDF.
+   */
+  const previewTasks = React.useMemo(() => {
+    if (!parsedData) return [] as ParsedTask[];
+    const year = parseInt(baseYear, 10);
+    if (!Number.isFinite(year)) return parsedData.tasks;
+    return processDates(parsedData.tasks, year);
+  }, [parsedData, baseYear]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[700px] max-h-[90vh] flex flex-col">
@@ -465,8 +477,8 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
             </div>
 
             <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
-              <span>{parsedData?.tasks.length} tarefas encontradas</span>
-              {parsedData?.tasks.some(t => !t.startDate || !t.endDate) && (
+              <span>{previewTasks.length} tarefas encontradas</span>
+              {previewTasks.some(t => !t.startDate || !t.endDate) && (
                 <span className="text-yellow-600 flex items-center gap-1">
                   <AlertTriangle className="h-3 w-3" /> Algumas tarefas sem data
                 </span>
@@ -475,7 +487,7 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
 
             <ScrollArea className="flex-1 border rounded-md">
               <div className="p-4 space-y-4">
-                {parsedData?.tasks.map((task, idx) => (
+                {previewTasks.map((task, idx) => (
                   <div key={idx} className="grid grid-cols-12 gap-3 items-end border-b border-border/50 pb-4 last:border-0">
                     <div className="col-span-6 space-y-1">
                       <Label className="text-[10px] uppercase text-muted-foreground">Tarefa</Label>
@@ -489,7 +501,7 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
                       <Label className="text-[10px] uppercase text-muted-foreground">Início</Label>
                       <Input 
                         type="date"
-                        value={task.startDate?.includes('YYYY') ? '' : task.startDate} 
+                        value={task.startDate?.includes('YYYY') ? '' : (task.startDate || '')} 
                         onChange={(e) => handleTaskEdit(idx, 'startDate', e.target.value)}
                         className="h-8 text-xs"
                       />
@@ -498,7 +510,7 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
                       <Label className="text-[10px] uppercase text-muted-foreground">Fim</Label>
                       <Input 
                         type="date"
-                        value={task.endDate?.includes('YYYY') ? '' : task.endDate} 
+                        value={task.endDate?.includes('YYYY') ? '' : (task.endDate || '')} 
                         onChange={(e) => handleTaskEdit(idx, 'endDate', e.target.value)}
                         className="h-8 text-xs"
                       />
