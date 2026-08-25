@@ -230,8 +230,12 @@ export function calculateSmartDateEdit(
 
   const filteredUpdates = updates.filter(update => {
     const original = boardTasks.find(task => task.id === update.taskId);
-    return original ? scheduleChanged(original, update) : false;
+    if (!original) return false;
+    // Travadas só mudam quando são exatamente a tarefa editada pelo usuário.
+    if (original.scheduleLocked && original.id !== changedTaskId) return false;
+    return scheduleChanged(original, update);
   });
+
 
   return {
     updates: filteredUpdates,
