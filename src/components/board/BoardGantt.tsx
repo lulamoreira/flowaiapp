@@ -10,6 +10,9 @@ import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useScopedTasks } from '@/hooks/useScopedTasks';
 import { compareByTaskNumber } from '@/lib/taskNumbering';
+import { calculateSmartDateEdit } from '@/lib/reschedule';
+import { applyScheduleDateUpdates, persistScheduleDateUpdates, saveScheduleSnapshot } from '@/lib/scheduleUpdates';
+import { toast } from 'sonner';
 
 
 interface BoardGanttProps {
@@ -28,6 +31,7 @@ export function BoardGantt({ boardId, tasks: externalTasks, groups: externalGrou
   const [offset, setOffset] = useState(0); // dias ou meses conforme modo
   const [mode, setMode] = useState<'week' | 'month'>(() => (localStorage.getItem('flowai-gantt-mode') as 'week' | 'month') || 'week');
   const [dragging, setDragging] = useState<{ taskId: string; edge: 'start' | 'end' | 'move'; startX: number; origStart: string; origEnd: string } | null>(null);
+  const [dragPreview, setDragPreview] = useState<{ taskId: string; plannedStart?: string; plannedEnd?: string } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -84,8 +88,11 @@ export function BoardGantt({ boardId, tasks: externalTasks, groups: externalGrou
 
 
   const getBarPosition = (task: Task) => {
-    const start = task.plannedStart ? parseISO(task.plannedStart) : null;
-    const end = task.plannedEnd ? parseISO(task.plannedEnd) : null;
+    const preview = dragPreview?.taskId === task.id ? dragPreview : null;
+    const startValue = preview?.plannedStart ?? task.plannedStart;
+    const endValue = preview?.plannedEnd ?? task.plannedEnd;
+    const start = startValue ? parseISO(startValue) : null;
+    const end = endValue ? parseISO(endValue) : null;
     if (!start && !end) return null;
 
     const s = startOfDay(start || end!);
@@ -133,10 +140,53 @@ export function BoardGantt({ boardId, tasks: externalTasks, groups: externalGrou
     const newStart = dragging.origStart ? format(addDays(parseISO(dragging.origStart), dragging.edge === 'end' ? 0 : daysDelta), "yyyy-MM-dd'T'HH:mm") : undefined;
     const newEnd = dragging.origEnd ? format(addDays(parseISO(dragging.origEnd), dragging.edge === 'start' ? 0 : daysDelta), "yyyy-MM-dd'T'HH:mm") : undefined;
 
-    dispatch({ type: 'UPDATE_TASK', payload: { ...task, plannedStart: newStart, plannedEnd: newEnd } });
-  }, [dragging, state.tasks, dispatch]);
+    setDragPreview({ taskId: task.id, plannedStart: newStart, plannedEnd: newEnd });
+  }, [dragging, state.tasks]);
 
-  const handleMouseUp = useCallback(() => setDragging(null), []);
+  const handleMouseUp = useCallback(() => {
+    if (!dragging) return;
+
+    const preview = dragPreview;
+    setDragging(null);
+    setDragPreview(null);
+    if (!preview) return;
+
+    const task = state.tasks.find(t => t.id === dragging.taskId);
+    if (!task) return;
+
+    const boardTasks = state.tasks.filter(t => t.boardId === boardId);
+    const result = calculateSmartDateEdit(boardTasks, task.id, {
+      plannedStart: preview.plannedStart,
+      plannedEnd: preview.plannedEnd,
+    });
+
+    if (result.updates.length === 0) return;
+
+    void (async () => {
+      if (result.strategy !== 'single') {
+        const snapshot = await saveScheduleSnapshot(boardId, state.tasks);
+        if (snapshot.error) {
+          toast.error('Não foi possível criar o ponto de desfazer: ' + snapshot.error);
+          return;
+        }
+      }
+
+      const { error } = await persistScheduleDateUpdates(result.updates);
+      if (error) {
+        toast.error('Erro ao reagendar tarefas: ' + error);
+        return;
+      }
+
+      dispatch({
+        type: 'SET_STATE',
+        payload: { tasks: applyScheduleDateUpdates(state.tasks, result.updates) },
+      });
+
+      if (result.updates.length > 1) {
+        toast.success(`${result.updates.length} tarefas ajustadas pelo reagendamento inteligente.`);
+      }
+    })();
+  }, [dragging, dragPreview, state.tasks, boardId, dispatch]);
 
   if (tasks.length === 0) {
     return <p className="text-sm text-muted-foreground p-4">Nenhuma tarefa neste board.</p>;

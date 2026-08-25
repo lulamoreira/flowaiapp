@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculateReschedule, detectNewConflicts } from '../lib/reschedule';
+import { calculateReschedule, calculateSmartDateEdit, detectNewConflicts } from '../lib/reschedule';
 import { Task } from '../types';
 import { isWeekend, parseISO } from 'date-fns';
 
@@ -155,6 +155,47 @@ describe('Reschedule Logic', () => {
     ];
     
     expect(() => calculateReschedule(zeroDurationTasks, new Date(), new Date())).toThrow('DURATION_ZERO');
+  });
+});
+
+describe('Smart date edit rescheduling', () => {
+  const numberedTasks: Task[] = [
+    { ...mockTasks[0], id: '1', taskNumber: 1, plannedStart: '2024-01-01', plannedEnd: '2024-01-03' },
+    { ...mockTasks[1], id: '2', taskNumber: 2, plannedStart: '2024-01-04', plannedEnd: '2024-01-06' },
+    { ...mockTasks[1], id: '3', taskNumber: 3, title: 'Task 3', plannedStart: '2024-01-07', plannedEnd: '2024-01-10' },
+  ];
+
+  it('scales the whole project when the final task changes the project end', () => {
+    const result = calculateSmartDateEdit(numberedTasks, '3', { plannedEnd: '2024-01-20' });
+
+    expect(result.strategy).toBe('project-window');
+    expect(result.updates).toEqual([
+      { taskId: '1', plannedStart: '2024-01-01', plannedEnd: '2024-01-05' },
+      { taskId: '2', plannedStart: '2024-01-07', plannedEnd: '2024-01-12' },
+      { taskId: '3', plannedStart: '2024-01-07', plannedEnd: '2024-01-20' },
+    ]);
+  });
+
+  it('keeps a final task on the typed day when moving its start beyond its old end', () => {
+    const result = calculateSmartDateEdit(numberedTasks, '3', { plannedStart: '2024-01-20' });
+
+    expect(result.strategy).toBe('project-window');
+    expect(result.updates.find(update => update.taskId === '3')).toEqual({
+      taskId: '3',
+      plannedStart: '2024-01-20',
+      plannedEnd: '2024-01-20',
+    });
+    expect(result.updates.filter(update => update.taskId !== '3').length).toBeGreaterThan(0);
+  });
+
+  it('shifts later tasks by task number when an internal task date changes', () => {
+    const result = calculateSmartDateEdit(numberedTasks, '2', { plannedEnd: '2024-01-09' });
+
+    expect(result.strategy).toBe('sequence');
+    expect(result.updates).toEqual([
+      { taskId: '2', plannedStart: '2024-01-04', plannedEnd: '2024-01-09' },
+      { taskId: '3', plannedStart: '2024-01-10', plannedEnd: '2024-01-13' },
+    ]);
   });
 });
 

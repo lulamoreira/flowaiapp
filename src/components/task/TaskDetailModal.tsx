@@ -19,6 +19,8 @@ import { TaskTimeTracking } from '@/components/task/TaskTimeTracking';
 import { toast } from 'sonner';
 import { parseISO, format, isValid } from 'date-fns';
 import { debounce } from 'lodash';
+import { calculateSmartDateEdit } from '@/lib/reschedule';
+import { applyScheduleDateUpdates, persistScheduleDateUpdates, saveScheduleSnapshot } from '@/lib/scheduleUpdates';
 
 interface TaskDetailModalProps {
   task: Task | null;
@@ -129,6 +131,50 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
     dispatch({ type: 'UPDATE_TASK', payload: { ...current, ...updates } });
   }, [current, dispatch]);
 
+  const commitPlannedDateChange = useCallback(async (
+    field: 'plannedStart' | 'plannedEnd',
+    value: string
+  ) => {
+    if (!current) return;
+
+    const dbValue = fromInputFormat(value);
+    if (dbValue === current[field]) return;
+
+    const boardTasks = state.tasks.filter(t => t.boardId === current.boardId);
+    const result = calculateSmartDateEdit(boardTasks, current.id, { [field]: dbValue });
+
+    if (result.updates.length === 0) return;
+
+    if (result.strategy !== 'single') {
+      const snapshot = await saveScheduleSnapshot(current.boardId, state.tasks);
+      if (snapshot.error) {
+        toast.error('Não foi possível criar o ponto de desfazer: ' + snapshot.error);
+        return;
+      }
+    }
+
+    const { error } = await persistScheduleDateUpdates(result.updates);
+    if (error) {
+      toast.error('Erro ao reagendar tarefas: ' + error);
+      return;
+    }
+
+    dispatch({
+      type: 'SET_STATE',
+      payload: { tasks: applyScheduleDateUpdates(state.tasks, result.updates) },
+    });
+
+    const appliedCurrent = result.updates.find(update => update.taskId === current.id);
+    if (appliedCurrent) {
+      setLocalPlannedStart(toInputFormat(appliedCurrent.plannedStart));
+      setLocalPlannedEnd(toInputFormat(appliedCurrent.plannedEnd));
+    }
+
+    if (result.updates.length > 1) {
+      toast.success(`${result.updates.length} tarefas ajustadas pelo reagendamento inteligente.`);
+    }
+  }, [current, state.tasks, dispatch]);
+
   const debouncedUpdate = useCallback(
     debounce((updates: Partial<Task>) => {
       update(updates);
@@ -181,12 +227,20 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
       case 'actualStart': setLocalActualStart(value); break;
       case 'actualEnd': setLocalActualEnd(value); break;
     }
-    // Debounce database update
-    debouncedUpdate({ [field]: fromInputFormat(value) });
+    // Datas planejadas disparam o reagendamento inteligente no blur, com a
+    // janela original ainda intacta. Datas reais continuam com debounce simples.
+    if (field === 'actualStart' || field === 'actualEnd') {
+      debouncedUpdate({ [field]: fromInputFormat(value) });
+    }
   };
 
   const handleBlur = (field: keyof Task, value: any) => {
     debouncedUpdate.cancel();
+    if (field === 'plannedStart' || field === 'plannedEnd') {
+      void commitPlannedDateChange(field, value);
+      return;
+    }
+
     const dbValue = (field.includes('Start') || field.includes('End')) && typeof value === 'string' 
       ? fromInputFormat(value) 
       : value;
