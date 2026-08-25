@@ -5,7 +5,7 @@ import { parseISO, differenceInDays, addDays, format, startOfDay, isBefore, isSa
 import { ptBR } from 'date-fns/locale';
 import { formatTaskDate } from '@/lib/dateUtils';
 import { TaskDetailModal } from '@/components/task/TaskDetailModal';
-import { ChevronLeft, ChevronRight, CalendarDays, LayoutGrid } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CalendarDays, LayoutGrid, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useScopedTasks } from '@/hooks/useScopedTasks';
