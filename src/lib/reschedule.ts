@@ -376,7 +376,7 @@ export function calculateSmartDateEdit(
 
       const constrainedUpdates = constrainUpdatesByLockedAnchors(boardTasks, updates);
       const tail = suggestOpenTailUpdates(boardTasks, constrainedUpdates);
-      const allUpdates = [...updates, ...tail];
+      const allUpdates = [...constrainedUpdates, ...tail];
 
       return {
         updates: [...constrainedUpdates, ...tail],
