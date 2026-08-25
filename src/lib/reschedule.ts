@@ -268,7 +268,14 @@ export function calculateSmartDateEdit(
       });
 
 
-      return { updates, strategy: updates.length > 1 ? 'project-window' : 'single' };
+      const tail = suggestOpenTailUpdates(boardTasks, updates);
+      const allUpdates = [...updates, ...tail];
+
+      return {
+        updates: allUpdates,
+        strategy: allUpdates.length > 1 ? 'project-window' : 'single',
+        suggestedOpenEnd: tail.length > 0,
+      };
     } catch {
       // Se o cronograma não puder ser escalado proporcionalmente, cai para
       // deslocamento sequencial para ainda preservar a intenção do usuário.
