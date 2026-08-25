@@ -532,7 +532,7 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
 
             <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
               <span>{previewTasks.length} tarefas encontradas</span>
-              {previewTasks.some(t => !t.startDate || !t.endDate) && (
+              {previewTasks.some(({ task }) => !task.startDate || !task.endDate) && (
                 <span className="text-yellow-600 flex items-center gap-1">
                   <AlertTriangle className="h-3 w-3" /> Algumas tarefas sem data
                 </span>
@@ -541,16 +541,25 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
 
             <ScrollArea className="flex-1 min-h-0 h-[45vh] border rounded-md">
               <div className="p-4 space-y-4">
-                {previewTasks.map((task, idx) => (
-                  <div key={idx} className="grid grid-cols-12 gap-3 items-end border-b border-border/50 pb-4 last:border-0">
-                    <div className="col-span-6 space-y-1">
-                      <Label className="text-[10px] uppercase text-muted-foreground">
-                        Tarefa {String(task.number ?? idx + 1).padStart(2, '0')}
-                      </Label>
-
+                {previewTasks.map(({ task, index }) => (
+                  <div key={index} className="grid grid-cols-12 gap-3 items-end border-b border-border/50 pb-4 last:border-0">
+                    <div className="col-span-2 space-y-1">
+                      <Label className="text-[10px] uppercase text-muted-foreground">Nº</Label>
+                      <Input
+                        type="number"
+                        min={1}
+                        inputMode="numeric"
+                        aria-label={`Numeração da tarefa ${task.title}`}
+                        value={task.number ?? ''}
+                        onChange={(e) => handleTaskNumberEdit(index, e.target.value)}
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                    <div className="col-span-4 space-y-1">
+                      <Label className="text-[10px] uppercase text-muted-foreground">Tarefa</Label>
                       <Input 
                         value={task.title} 
-                        onChange={(e) => handleTaskEdit(idx, 'title', e.target.value)}
+                        onChange={(e) => handleTaskEdit(index, 'title', e.target.value)}
                         className="h-8 text-sm"
                       />
                     </div>
@@ -559,7 +568,7 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
                       <Input 
                         type="date"
                         value={task.startDate?.includes('YYYY') ? '' : (task.startDate || '')} 
-                        onChange={(e) => handleTaskEdit(idx, 'startDate', e.target.value)}
+                        onChange={(e) => handleTaskEdit(index, 'startDate', e.target.value)}
                         className="h-8 text-xs"
                       />
                     </div>
@@ -568,12 +577,13 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
                       <Input 
                         type="date"
                         value={task.endDate?.includes('YYYY') ? '' : (task.endDate || '')} 
-                        onChange={(e) => handleTaskEdit(idx, 'endDate', e.target.value)}
+                        onChange={(e) => handleTaskEdit(index, 'endDate', e.target.value)}
                         className="h-8 text-xs"
                       />
                     </div>
                   </div>
                 ))}
+
               </div>
             </ScrollArea>
           </div>
