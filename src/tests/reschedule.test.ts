@@ -172,8 +172,20 @@ describe('Smart date edit rescheduling', () => {
     expect(result.updates).toEqual([
       { taskId: '1', plannedStart: '2024-01-01', plannedEnd: '2024-01-05' },
       { taskId: '2', plannedStart: '2024-01-07', plannedEnd: '2024-01-12' },
-      { taskId: '3', plannedStart: '2024-01-14', plannedEnd: '2024-01-20' },
+      { taskId: '3', plannedStart: '2024-01-07', plannedEnd: '2024-01-20' },
     ]);
+  });
+
+  it('keeps a final task on the typed day when moving its start beyond its old end', () => {
+    const result = calculateSmartDateEdit(numberedTasks, '3', { plannedStart: '2024-01-20' });
+
+    expect(result.strategy).toBe('project-window');
+    expect(result.updates.find(update => update.taskId === '3')).toEqual({
+      taskId: '3',
+      plannedStart: '2024-01-20',
+      plannedEnd: '2024-01-20',
+    });
+    expect(result.updates.filter(update => update.taskId !== '3').length).toBeGreaterThan(0);
   });
 
   it('shifts later tasks by task number when an internal task date changes', () => {

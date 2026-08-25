@@ -164,6 +164,12 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
       payload: { tasks: applyScheduleDateUpdates(state.tasks, result.updates) },
     });
 
+    const appliedCurrent = result.updates.find(update => update.taskId === current.id);
+    if (appliedCurrent) {
+      setLocalPlannedStart(toInputFormat(appliedCurrent.plannedStart));
+      setLocalPlannedEnd(toInputFormat(appliedCurrent.plannedEnd));
+    }
+
     if (result.updates.length > 1) {
       toast.success(`${result.updates.length} tarefas ajustadas pelo reagendamento inteligente.`);
     }
