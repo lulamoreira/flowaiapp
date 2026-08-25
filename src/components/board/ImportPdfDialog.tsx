@@ -137,6 +137,13 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
     return images;
   };
 
+  /**
+   * Resolve o placeholder "YYYY" usando o ano de início informado.
+   * A virada de ano só acontece quando o mês retrocede de forma significativa
+   * (ex.: Dez -> Jan). Retrocessos pequenos são normais em cronogramas — tarefas
+   * não vêm em ordem cronológica e o fim de uma pode ser posterior ao início da
+   * seguinte — e antes causavam saltos indevidos de ano (Set/2026 -> Set/2027).
+   */
   const processDates = (tasks: ParsedTask[], startYear: number): ParsedTask[] => {
     let currentYear = startYear;
     let lastMonth = -1;
@@ -144,15 +151,15 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
     return tasks.map(task => {
       const fixDate = (dateStr?: string) => {
         if (!dateStr || !dateStr.includes('YYYY')) return dateStr;
-        
+
         const monthMatch = dateStr.match(/-(\d{2})-/);
         if (monthMatch) {
           const month = parseInt(monthMatch[1], 10);
-          // If month regresses (e.g., Dec -> Jan), increment year
-          if (lastMonth !== -1 && month < lastMonth) {
+          // Só vira o ano em retrocesso grande (Dez -> Jan/Fev...)
+          if (lastMonth !== -1 && lastMonth - month >= 6) {
             currentYear++;
           }
-          lastMonth = month;
+          if (month >= lastMonth) lastMonth = month;
           return dateStr.replace('YYYY', currentYear.toString());
         }
         return dateStr.replace('YYYY', currentYear.toString());
@@ -165,6 +172,7 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
       };
     });
   };
+
 
   /**
    * Extrai a mensagem real de erro devolvida por uma Edge Function.
