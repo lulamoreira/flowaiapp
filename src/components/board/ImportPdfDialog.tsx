@@ -455,7 +455,7 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] flex flex-col overflow-hidden">
+      <DialogContent className="flex h-[90vh] max-h-[90vh] w-[calc(100vw-2rem)] flex-col overflow-hidden sm:max-w-[700px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-primary" />
@@ -507,8 +507,8 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
             )}
           </div>
         ) : (
-          <div className="flex-1 min-h-0 overflow-hidden flex flex-col gap-4 py-2">
-            <div className="grid grid-cols-2 gap-4">
+          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden py-2">
+            <div className="grid shrink-0 grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1">
                 <Label className="text-xs">Título do Projeto</Label>
                 <Input 
@@ -530,7 +530,7 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
               )}
             </div>
 
-            <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
+            <div className="flex shrink-0 items-center justify-between px-1 text-xs text-muted-foreground">
               <span>{previewTasks.length} tarefas encontradas</span>
               {previewTasks.some(({ task }) => !task.startDate || !task.endDate) && (
                 <span className="text-yellow-600 flex items-center gap-1">
@@ -539,8 +539,8 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
               )}
             </div>
 
-            <ScrollArea className="flex-1 min-h-0 h-[45vh] border rounded-md">
-              <div className="p-4 space-y-4">
+            <ScrollArea className="min-h-0 flex-1 rounded-md border">
+              <div className="space-y-4 p-4 pr-5">
                 {previewTasks.map(({ task, index }) => (
                   <div key={index} className="grid grid-cols-12 gap-3 items-end border-b border-border/50 pb-4 last:border-0">
                     <div className="col-span-2 space-y-1">
@@ -589,7 +589,7 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
           </div>
         )}
 
-        <DialogFooter className="mt-4">
+        <DialogFooter className="shrink-0 border-t border-border/60 pt-4">
           {step === 'upload' ? (
             <>
               <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={loading}>
