@@ -119,6 +119,11 @@ export function BoardGantt({ boardId, tasks: externalTasks, groups: externalGrou
     e.stopPropagation();
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
+    // Tarefa travada: datas fixas, servem de âncora para o reagendamento inteligente.
+    if (task.scheduleLocked) {
+      toast.info('Esta tarefa está com a data travada. Destrave no detalhe da tarefa para movê-la.');
+      return;
+    }
     setDragging({
       taskId,
       edge,
@@ -127,6 +132,7 @@ export function BoardGantt({ boardId, tasks: externalTasks, groups: externalGrou
       origEnd: task.plannedEnd || '',
     });
   }, [tasks]);
+
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (!dragging) return;
