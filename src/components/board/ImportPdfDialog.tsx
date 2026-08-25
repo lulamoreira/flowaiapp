@@ -401,7 +401,7 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] flex flex-col">
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-primary" />
@@ -453,7 +453,7 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
             )}
           </div>
         ) : (
-          <div className="flex-1 overflow-hidden flex flex-col gap-4 py-2">
+          <div className="flex-1 min-h-0 overflow-hidden flex flex-col gap-4 py-2">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
                 <Label className="text-xs">Título do Projeto</Label>
@@ -485,7 +485,7 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
               )}
             </div>
 
-            <ScrollArea className="flex-1 border rounded-md">
+            <ScrollArea className="flex-1 min-h-0 h-[45vh] border rounded-md">
               <div className="p-4 space-y-4">
                 {previewTasks.map((task, idx) => (
                   <div key={idx} className="grid grid-cols-12 gap-3 items-end border-b border-border/50 pb-4 last:border-0">
