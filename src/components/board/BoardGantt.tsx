@@ -5,7 +5,7 @@ import { parseISO, differenceInDays, addDays, format, startOfDay, isBefore, isSa
 import { ptBR } from 'date-fns/locale';
 import { formatTaskDate } from '@/lib/dateUtils';
 import { TaskDetailModal } from '@/components/task/TaskDetailModal';
-import { ChevronLeft, ChevronRight, CalendarDays, LayoutGrid } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CalendarDays, LayoutGrid, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useScopedTasks } from '@/hooks/useScopedTasks';
@@ -119,6 +119,11 @@ export function BoardGantt({ boardId, tasks: externalTasks, groups: externalGrou
     e.stopPropagation();
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
+    // Tarefa travada: datas fixas, servem de âncora para o reagendamento inteligente.
+    if (task.scheduleLocked) {
+      toast.info('Esta tarefa está com a data travada. Destrave no detalhe da tarefa para movê-la.');
+      return;
+    }
     setDragging({
       taskId,
       edge,
@@ -127,6 +132,7 @@ export function BoardGantt({ boardId, tasks: externalTasks, groups: externalGrou
       origEnd: task.plannedEnd || '',
     });
   }, [tasks]);
+
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (!dragging) return;
@@ -373,24 +379,25 @@ export function BoardGantt({ boardId, tasks: externalTasks, groups: externalGrou
                           bar.isOverdue
                             ? 'bg-destructive/85 hover:bg-destructive'
                             : 'bg-primary/85 hover:bg-primary'
-                        } ${bar.overflowLeft ? 'rounded-l-none' : ''} ${bar.overflowRight ? 'rounded-r-none' : ''}`}
+                        } ${task.scheduleLocked ? 'ring-1 ring-inset ring-foreground/40' : ''} ${bar.overflowLeft ? 'rounded-l-none' : ''} ${bar.overflowRight ? 'rounded-r-none' : ''}`}
                         style={{ left: bar.left, width: bar.width, height: ROW_HEIGHT - 12 }}
-                        title={task.title}
+                        title={task.scheduleLocked ? `${task.title} — data travada` : task.title}
                       >
-                        {!bar.overflowLeft && (
+                        {!bar.overflowLeft && !task.scheduleLocked && (
                           <div
                             className="absolute left-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-white/30 rounded-l-md"
                             onMouseDown={e => handleMouseDown(e, task.id, 'start')}
                           />
                         )}
                         <div
-                          className="absolute left-2 right-2 top-0 bottom-0 cursor-grab flex items-center px-1"
+                          className={`absolute left-2 right-2 top-0 bottom-0 flex items-center gap-1 px-1 ${task.scheduleLocked ? 'cursor-not-allowed' : 'cursor-grab'}`}
                           onMouseDown={e => handleMouseDown(e, task.id, 'move')}
                           onClick={() => setSelectedTask(task)}
                         >
+                          {task.scheduleLocked && <Lock className="h-3 w-3 text-primary-foreground shrink-0" />}
                           <span className="text-[11px] text-white truncate font-medium">{task.title}</span>
                         </div>
-                        {!bar.overflowRight && (
+                        {!bar.overflowRight && !task.scheduleLocked && (
                           <div
                             className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-white/30 rounded-r-md"
                             onMouseDown={e => handleMouseDown(e, task.id, 'end')}
@@ -402,6 +409,7 @@ export function BoardGantt({ boardId, tasks: externalTasks, groups: externalGrou
                 </div>
               );
             })}
+
           </div>
         </div>
       </div>

@@ -568,9 +568,11 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
             </div>
             {current.scheduleLocked && (
               <p className="text-[11px] text-muted-foreground mt-2">
-                Reagendamentos do projeto não vão alterar as datas desta tarefa.
+                Nenhum reagendamento (projeto ou inteligente) altera estas datas. Elas continuam sendo
+                consideradas como âncora no cálculo das demais tarefas.
               </p>
             )}
+
           </div>
 
           <div className="grid grid-cols-2 gap-4">
