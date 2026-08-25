@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { calculateReschedule, detectNewConflicts } from '../lib/reschedule';
 import { Task } from '../types';
+import { isWeekend, parseISO } from 'date-fns';
 
 const mockTasks: Task[] = [
   {
@@ -154,5 +155,46 @@ describe('Reschedule Logic', () => {
     ];
     
     expect(() => calculateReschedule(zeroDurationTasks, new Date(), new Date())).toThrow('DURATION_ZERO');
+  });
+});
+
+describe('Reschedule: locked tasks and business days', () => {
+  it('keeps locked task dates untouched', () => {
+    const locked: Task[] = [
+      { ...mockTasks[0], scheduleLocked: true },
+      mockTasks[1],
+    ];
+    const results = calculateReschedule(locked, new Date(2024, 1, 1), new Date(2024, 1, 10));
+    const t1 = results.find(r => r.taskId === '1')!;
+    expect(t1.locked).toBe(true);
+    expect(t1.plannedStart).toBe('2024-01-01');
+    expect(t1.plannedEnd).toBe('2024-01-05');
+    expect(t1.diffDays).toBe(0);
+    // Unlocked task still moves
+    expect(results.find(r => r.taskId === '2')!.plannedStart).not.toBe('2024-01-06');
+  });
+
+  it('never lands on weekends in business-days mode', () => {
+    const results = calculateReschedule(
+      mockTasks,
+      new Date(2024, 1, 1),
+      new Date(2024, 1, 23),
+      { businessDays: true }
+    );
+    for (const r of results) {
+      if (!r.plannedStart || !r.plannedEnd) continue;
+      expect(isWeekend(parseISO(r.plannedStart))).toBe(false);
+      expect(isWeekend(parseISO(r.plannedEnd))).toBe(false);
+    }
+  });
+
+  it('reports non-zero diffDays when dates change with time components', () => {
+    const timed: Task[] = [
+      { ...mockTasks[0], plannedStart: '2024-01-01T14:00:00+00:00', plannedEnd: '2024-01-05T14:00:00+00:00' },
+      { ...mockTasks[1], plannedStart: '2024-01-06T14:00:00+00:00', plannedEnd: '2024-01-10T14:00:00+00:00' },
+    ];
+    const results = calculateReschedule(timed, new Date(2024, 1, 1), new Date(2024, 1, 10));
+    expect(results[0].diffDays).not.toBe(0);
+    expect(results[1].diffDays).not.toBe(0);
   });
 });
