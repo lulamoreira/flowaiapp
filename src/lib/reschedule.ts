@@ -109,6 +109,67 @@ function compareTaskOrder(a: Task, b: Task): number {
 }
 
 /**
+ * True quando a(s) última(s) tarefa(s) do quadro (na ordem do código) estão sem
+ * nenhuma data. Nesse caso o projeto tem "fim aberto": atrasos empurram a
+ * entrega para frente em vez de comprimir o cronograma existente.
+ */
+export function hasOpenProjectEnd(tasks: Task[]): boolean {
+  const ordered = tasks.slice().sort(compareTaskOrder);
+  const last = ordered[ordered.length - 1];
+  if (!last) return false;
+  return !last.plannedStart && !last.plannedEnd;
+}
+
+/**
+ * Sugere datas para as tarefas finais sem data, encadeando-as após o término
+ * da última tarefa que possui data (já considerando as atualizações aplicadas).
+ */
+function suggestOpenTailUpdates(
+  boardTasks: Task[],
+  appliedUpdates: ScheduleDateUpdate[]
+): ScheduleDateUpdate[] {
+  const byTask = new Map(appliedUpdates.map(update => [update.taskId, update]));
+  const effective = boardTasks.map(task => {
+    const update = byTask.get(task.id);
+    return {
+      task,
+      plannedStart: update ? update.plannedStart : task.plannedStart ?? null,
+      plannedEnd: update ? update.plannedEnd : task.plannedEnd ?? null,
+    };
+  });
+  const ordered = effective.slice().sort((a, b) => compareTaskOrder(a.task, b.task));
+
+  let lastDatedIndex = -1;
+  ordered.forEach((entry, index) => {
+    if (entry.plannedStart && entry.plannedEnd) lastDatedIndex = index;
+  });
+  if (lastDatedIndex === -1) return [];
+
+  const tail = ordered.slice(lastDatedIndex + 1);
+  if (tail.length === 0) return [];
+  // Só sugere quando TODAS as tarefas finais estão realmente sem data.
+  if (tail.some(entry => entry.plannedStart || entry.plannedEnd)) return [];
+
+  let cursor = dayOnly(ordered[lastDatedIndex].plannedEnd!);
+  const suggestions: ScheduleDateUpdate[] = [];
+
+  for (const entry of tail) {
+    if (entry.task.scheduleLocked) continue;
+    const start = addDays(cursor, 1);
+    const end = addDays(start, Math.max(0, DEFAULT_OPEN_TASK_DURATION_DAYS - 1));
+    suggestions.push({
+      taskId: entry.task.id,
+      plannedStart: format(start, 'yyyy-MM-dd'),
+      plannedEnd: format(end, 'yyyy-MM-dd'),
+    });
+    cursor = end;
+  }
+
+  return suggestions;
+}
+
+
+/**
  * Reagendamento inteligente disparado pela edição direta da data de uma tarefa.
  *
  * - Se a edição mexe no início/fim do projeto, reaproveita o cálculo proporcional
