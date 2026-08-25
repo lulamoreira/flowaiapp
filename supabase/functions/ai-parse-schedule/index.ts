@@ -11,10 +11,12 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { text } = await req.json()
+    const { text, images } = await req.json() as { text?: string; images?: string[] }
 
-    if (!text) {
-      return new Response(JSON.stringify({ error: 'O texto extraído do PDF é obrigatório.' }), {
+    const imageList = Array.isArray(images) ? images.filter((i) => typeof i === 'string' && i.startsWith('data:image/')) : []
+
+    if (!text && imageList.length === 0) {
+      return new Response(JSON.stringify({ error: 'Envie o texto do PDF ou ao menos uma imagem do cronograma.' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
@@ -29,7 +31,7 @@ Deno.serve(async (req) => {
     }
 
     const prompt = `Você é um especialista em análise de documentos e cronogramas.
-Sua tarefa é extrair as informações de um cronograma em PDF (cujo texto bruto foi extraído e será fornecido abaixo) e retornar um JSON estruturado.
+Sua tarefa é extrair as informações de um cronograma (em PDF ou imagem) e retornar um JSON estruturado.
 
 O cronograma está em português do Brasil.
 As datas podem vir em diversos formatos, como:
@@ -50,10 +52,7 @@ Regras estritas:
 5. Preserve a ordem das tarefas conforme aparecem no documento.
 6. Não adicione nenhum comentário ou texto fora do JSON.
 
-Texto extraído do PDF:
----
-${text}
----`
+${text ? `Texto extraído do documento:\n---\n${text}\n---` : 'O cronograma está nas imagens anexadas. Leia todo o conteúdo visível (tabelas, barras, legendas) para extrair as tarefas e datas.'}`
 
     const response = await fetch(AI_GATEWAY_URL, {
       method: 'POST',
@@ -64,7 +63,15 @@ ${text}
       },
       body: JSON.stringify({
         model: 'google/gemini-2.5-flash',
-        messages: [{ role: 'user', content: prompt }],
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: prompt },
+              ...imageList.map((url) => ({ type: 'image_url', image_url: { url } })),
+            ],
+          },
+        ],
         max_tokens: 4000,
         response_format: { type: 'json_object' },
       }),
@@ -104,7 +111,7 @@ ${text}
       parsed = JSON.parse(cleanedContent)
     } catch (_) {
       return new Response(
-        JSON.stringify({ error: 'A IA não retornou um JSON válido. Tente novamente ou revise o PDF.' }),
+        JSON.stringify({ error: 'A IA não retornou um JSON válido. Tente novamente ou revise o documento.' }),
         { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       )
     }

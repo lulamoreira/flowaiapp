@@ -84,6 +84,59 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
     return fullText;
   };
 
+
+  /** Converte um arquivo de imagem em data URL, redimensionando se muito grande. */
+  const imageFileToDataUrl = (imgFile: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error('Não foi possível ler a imagem.'));
+      reader.onload = () => {
+        const src = String(reader.result || '');
+        const img = new Image();
+        img.onerror = () => reject(new Error('Imagem inválida ou corrompida.'));
+        img.onload = () => {
+          const MAX = 2000;
+          const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+          if (scale === 1) {
+            resolve(src);
+            return;
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.round(img.width * scale);
+          canvas.height = Math.round(img.height * scale);
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            resolve(src);
+            return;
+          }
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL('image/jpeg', 0.9));
+        };
+        img.src = src;
+      };
+      reader.readAsDataURL(imgFile);
+    });
+
+  /** Renderiza as páginas de um PDF sem texto em imagens (fallback de OCR pela IA). */
+  const renderPdfPagesToImages = async (pdfFile: File, maxPages = 4): Promise<string[]> => {
+    const arrayBuffer = await pdfFile.arrayBuffer();
+    const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+    const images: string[] = [];
+    const total = Math.min(pdf.numPages, maxPages);
+    for (let i = 1; i <= total; i++) {
+      const page = await pdf.getPage(i);
+      const viewport = page.getViewport({ scale: 2 });
+      const canvas = document.createElement('canvas');
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) continue;
+      await page.render({ canvasContext: ctx, viewport, canvas } as any).promise;
+      images.push(canvas.toDataURL('image/jpeg', 0.85));
+    }
+    return images;
+  };
+
   const processDates = (tasks: ParsedTask[], startYear: number): ParsedTask[] => {
     let currentYear = startYear;
     let lastMonth = -1;
@@ -143,10 +196,25 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
     setErrorMessage(null);
 
     try {
-      const extractedText = await extractTextFromPdf(file);
+      const isImage = file.type.startsWith('image/');
+      let payload: { text?: string; images?: string[] };
+
+      if (isImage) {
+        payload = { images: [await imageFileToDataUrl(file)] };
+      } else {
+        try {
+          payload = { text: await extractTextFromPdf(file) };
+        } catch (err: any) {
+          // PDF digitalizado: cai para leitura por imagem das páginas
+          if (err?.message !== 'OCR_REQUIRED') throw err;
+          const images = await renderPdfPagesToImages(file);
+          if (images.length === 0) throw err;
+          payload = { images };
+        }
+      }
 
       const { data, error } = await supabase.functions.invoke('ai-parse-schedule', {
-        body: { text: extractedText }
+        body: payload
       });
 
       if (error) {
@@ -164,7 +232,7 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
 
       const rawTasks = data?.tasks || [];
       if (rawTasks.length === 0) {
-        const msg = 'Nenhuma tarefa foi identificada neste PDF.';
+        const msg = 'Nenhuma tarefa foi identificada neste documento.';
         setErrorMessage(msg);
         toast.error(msg);
         return;
@@ -176,7 +244,7 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
       );
 
       setParsedData({
-        title: data.title || file.name.replace('.pdf', ''),
+        title: data.title || file.name.replace(/\.(pdf|png|jpe?g|webp|heic)$/i, ''),
         tasks: rawTasks
       });
       
@@ -189,7 +257,7 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
     } catch (error: any) {
       console.error(error);
       const msg = error?.message === 'OCR_REQUIRED'
-        ? 'Este PDF parece ser digitalizado e não contém texto selecionável.'
+        ? 'Este PDF é digitalizado e não pôde ser lido. Tente enviar uma imagem (print) do cronograma.'
         : (error?.message || 'Não foi possível processar o documento.');
       setErrorMessage(msg);
       toast.error(msg);
@@ -225,7 +293,7 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
       const { error: boardError } = await supabase.from('boards').insert({
         id: boardId,
         title: parsedData.title,
-        description: 'Projeto importado via PDF',
+        description: 'Projeto importado por documento',
         color: '#3B82F6', // Using semantic blue
         created_by: user.id
       });
@@ -264,7 +332,7 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
       const novoBoard = { 
         id: boardId, 
         title: parsedData.title, 
-        description: 'Projeto importado via PDF', 
+        description: 'Projeto importado por documento', 
         color: '#3B82F6', 
         updatedAt: new Date().toISOString().split('T')[0], 
         favorite: false 
@@ -325,11 +393,11 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-primary" />
-            Importar Cronograma (PDF)
+            Importar Cronograma (PDF ou Imagem)
           </DialogTitle>
           <DialogDescription>
             {step === 'upload' 
-              ? 'Selecione um arquivo PDF para extrair as tarefas e datas automaticamente.'
+              ? 'Selecione um PDF ou uma imagem (print, foto) do cronograma para extrair tarefas e datas automaticamente.'
               : 'Revise os dados extraídos antes de criar o projeto.'}
           </DialogDescription>
         </DialogHeader>
@@ -354,16 +422,16 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
             <Upload className="h-10 w-10 text-muted-foreground mb-4" />
             <div className="text-center px-4">
               <Label htmlFor="pdf-upload" className="cursor-pointer">
-                <span className="text-primary font-semibold hover:underline">Clique para selecionar</span> ou arraste o PDF
+                <span className="text-primary font-semibold hover:underline">Clique para selecionar</span> ou arraste o arquivo
                 <Input
                   id="pdf-upload"
                   type="file"
-                  accept=".pdf"
+                  accept=".pdf,image/*"
                   onChange={handleFileChange}
                   className="hidden"
                 />
               </Label>
-              <p className="text-xs text-muted-foreground mt-2">PDFs com texto selecionável são recomendados.</p>
+              <p className="text-xs text-muted-foreground mt-2">PDF, PNG, JPG ou WEBP. PDFs com texto selecionável têm a melhor precisão.</p>
             </div>
             {file && (
               <div className="mt-6 flex items-center gap-2 bg-background p-2 rounded border border-border">
@@ -450,7 +518,7 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
               </Button>
               <Button onClick={handleAnalyze} disabled={!file || loading}>
                 {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Upload className="h-4 w-4 mr-2" />}
-                Analisar PDF
+                Analisar documento
               </Button>
             </>
           ) : (
