@@ -295,6 +295,34 @@ export function ImportPdfDialog({ open, onOpenChange }: ImportPdfDialogProps) {
     setParsedData({ ...parsedData, tasks: newTasks });
   };
 
+  /**
+   * A numeração informada aqui é a fonte de verdade da ordem das tarefas.
+   * Campo vazio = sem número (essas tarefas ficam no fim, mantendo a ordem de leitura).
+   */
+  const handleTaskNumberEdit = (index: number, value: string) => {
+    if (!parsedData) return;
+    const parsed = parseInt(value, 10);
+    const nextNumber = Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+    const newTasks = [...parsedData.tasks];
+    newTasks[index] = { ...newTasks[index], number: nextNumber };
+    setParsedData({ ...parsedData, tasks: newTasks });
+  };
+
+  /** Ordena por numeração (crescente); sem numeração vai para o fim, ordem estável. */
+  const sortByNumber = <T extends { number?: number | null }>(items: T[]): T[] =>
+    items
+      .map((item, i) => ({ item, i }))
+      .sort((a, b) => {
+        const an = a.item.number ?? null;
+        const bn = b.item.number ?? null;
+        if (an === bn) return a.i - b.i;
+        if (an === null) return 1;
+        if (bn === null) return -1;
+        return an - bn;
+      })
+      .map(({ item }) => item);
+
+
   const handleConfirm = async () => {
     if (!parsedData) return;
     setLoading(true);
