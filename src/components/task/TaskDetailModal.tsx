@@ -170,7 +170,9 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
       setLocalPlannedEnd(toInputFormat(appliedCurrent.plannedEnd));
     }
 
-    if (result.updates.length > 1) {
+    if (result.suggestedOpenEnd) {
+      toast.success('Entrega final sugerida automaticamente a partir do atraso detectado.');
+    } else if (result.updates.length > 1) {
       toast.success(`${result.updates.length} tarefas ajustadas pelo reagendamento inteligente.`);
     }
   }, [current, state.tasks, dispatch]);
