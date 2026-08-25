@@ -246,7 +246,11 @@ describe('Smart date edit rescheduling', () => {
 
     const result = calculateSmartDateEdit(tasksWithLockedAnchor, '3', { plannedStart: '2024-09-11', plannedEnd: '2024-09-12' });
     expect(result.updates.find(update => update.taskId === '1')).toBeUndefined();
-    expect(result.updates.find(update => update.taskId === '3')).toBeUndefined();
+    expect(result.updates.find(update => update.taskId === '3')).toEqual({
+      taskId: '3',
+      plannedStart: '2024-09-13',
+      plannedEnd: '2024-09-14',
+    });
   });
 
   it('corrige violações existentes quando uma tarefa vira âncora travada', () => {
