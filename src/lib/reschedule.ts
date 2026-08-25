@@ -319,9 +319,13 @@ export function calculateSmartDateEdit(
   });
 
 
+  const tailUpdates = suggestOpenTailUpdates(boardTasks, filteredUpdates);
+  const allUpdates = [...filteredUpdates, ...tailUpdates];
+
   return {
-    updates: filteredUpdates,
-    strategy: filteredUpdates.length > 1 ? 'sequence' : 'single',
+    updates: allUpdates,
+    strategy: allUpdates.length > 1 ? 'sequence' : 'single',
+    suggestedOpenEnd: tailUpdates.length > 0,
   };
 }
 
